@@ -1,0 +1,507 @@
+<?php
+session_start();
+
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit();
+}
+
+// Include database configuration
+require_once 'db_config.php';
+
+// Get logged-in user information
+$user_id = $_SESSION['user_id'];
+$user_email = $_SESSION['user_email'] ?? 'User';
+$user_name = $_SESSION['user_name'] ?? 'User';
+
+// Users table is created by db_config.php (MySQL) or the SQLite bootstrap.
+// No duplicate CREATE TABLE needed here.
+
+// Get dashboard statistics
+$stats = [
+    'total_delivered' => 0,
+    'total_sold' => 0,
+    'total_companies' => 0,
+    'active_models' => 0,
+    'monthly_average' => 0,
+    'yearly_total' => 0
+];
+
+// Count total delivered
+$result = $conn->query("SELECT COALESCE(SUM(quantity), 0) as total FROM delivery_records WHERE status = 'Delivered'");
+if ($result && $row = $result->fetch_assoc()) {
+    $stats['total_delivered'] = intval($row['total']);
+}
+
+// Count total sold (different from delivered - could be from sales data)
+$result = $conn->query("SELECT COUNT(*) as total FROM delivery_records WHERE status IN ('Delivered', 'In Transit')");
+if ($result && $row = $result->fetch_assoc()) {
+    $stats['total_sold'] = intval($row['total']);
+}
+
+// Count unique companies
+$result = $conn->query("SELECT COUNT(DISTINCT company_name) as total FROM delivery_records");
+if ($result && $row = $result->fetch_assoc()) {
+    $stats['total_companies'] = intval($row['total']);
+}
+
+// Count unique item codes (models)
+$result = $conn->query("SELECT COUNT(DISTINCT item_code) as total FROM delivery_records");
+if ($result && $row = $result->fetch_assoc()) {
+    $stats['active_models'] = intval($row['total']);
+}
+
+// Calculate monthly average
+if ($stats['total_delivered'] > 0) {
+    $stats['monthly_average'] = round($stats['total_delivered'] / 12);
+}
+
+// Calculate yearly total
+$stats['yearly_total'] = $stats['total_delivered'] + $stats['total_sold'];
+
+// Get top clients
+$top_clients = [];
+$result = $conn->query("
+    SELECT company_name, COUNT(*) as delivery_count, SUM(quantity) as total_quantity
+    FROM delivery_records
+    GROUP BY company_name
+    ORDER BY total_quantity DESC
+    LIMIT 15
+");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $top_clients[] = $row;
+    }
+}
+
+// Get monthly sales data
+$monthly_sales = [];
+$months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+foreach ($months as $month) {
+    $result = $conn->query("SELECT COALESCE(SUM(quantity), 0) as total FROM delivery_records WHERE delivery_month = '$month'");
+    if ($result && $row = $result->fetch_assoc()) {
+        $monthly_sales[$month] = intval($row['total']);
+    }
+}
+
+// Get Group A and Group B data
+$group_a = $conn->query("SELECT item_code, item_name, SUM(quantity) as total FROM delivery_records WHERE item_code LIKE 'A%' OR item_name LIKE '%Group A%' GROUP BY item_code ORDER BY total DESC LIMIT 10");
+$group_b = $conn->query("SELECT item_code, item_name, SUM(quantity) as total FROM delivery_records WHERE item_code LIKE 'B%' OR item_name LIKE '%Group B%' GROUP BY item_code ORDER BY total DESC LIMIT 10");
+
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BW Gas Detector Sales Record 2025 - Andison Industrial</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- TOP NAVBAR -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <!-- Hamburger Toggle & Logo -->
+            <div class="navbar-start">
+                <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle sidebar">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <div class="logo">
+                    <i class="fas fa-industry"></i>
+                    <span>Andison</span>
+                </div>
+            </div>
+
+            <!-- Center Title -->
+            <div class="navbar-center">
+                <h1 class="dashboard-title">BW Gas Detector Sales Record 2025</h1>
+            </div>
+
+            <!-- Right Profile Section -->
+            <div class="navbar-end">
+                <div class="notification" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </div>
+                <div class="profile-dropdown">
+                    <button class="profile-btn" id="profileBtn" aria-label="Profile menu">
+                        <img src="https://via.placeholder.com/40" alt="User avatar" class="profile-avatar">
+                        <span class="profile-name"><?php echo htmlspecialchars($user_name); ?></span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="dropdown-menu" id="profileMenu">
+                        <a href="profile.php"><i class="fas fa-user"></i> My Profile</a>
+                        <a href="settings.php"><i class="fas fa-cog"></i> Settings</a>
+                        <a href="#"><i class="fas fa-question-circle"></i> Help</a>
+                        <hr>
+                        <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-content">
+            <!-- Sidebar Menu -->
+            <ul class="sidebar-menu">
+                <!-- Dashboard -->
+                <li class="menu-item active">
+                    <a href="#" class="menu-link">
+                        <i class="fas fa-chart-line"></i>
+                        <span class="menu-label">Dashboard</span>
+                    </a>
+                </li>
+
+                <!-- Sales Overview -->
+                <li class="menu-item">
+                    <a href="sales-overview.php" class="menu-link">
+                        <i class="fas fa-chart-pie"></i>
+                        <span class="menu-label">Sales Overview</span>
+                    </a>
+                </li>
+
+                <!-- Delivery Records -->
+                <li class="menu-item">
+                    <a href="delivery-records.php" class="menu-link">
+                        <i class="fas fa-truck"></i>
+                        <span class="menu-label">Delivery Records</span>
+                    </a>
+                </li>
+
+                <!-- Client Companies -->
+                <li class="menu-item">
+                    <a href="client-companies.php" class="menu-link">
+                        <i class="fas fa-building"></i>
+                        <span class="menu-label">Client Companies</span>
+                    </a>
+                </li>
+
+                <!-- Models (Dropdown) -->
+                <li class="menu-item has-submenu">
+                    <a href="models.php" class="menu-link submenu-toggle" data-submenu="models-submenu">
+                        <i class="fas fa-cube"></i>
+                        <span class="menu-label">Models</span>
+                        <i class="fas fa-chevron-right submenu-icon"></i>
+                    </a>
+                    <ul class="submenu" id="models-submenu">
+                        <li>
+                            <a href="models.php#group-a" class="submenu-link">
+                                <span>Group A</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="models.php#group-b" class="submenu-link">
+                                <span>Group B</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- Analytics -->
+                <li class="menu-item">
+                    <a href="analytics.php" class="menu-link">
+                        <i class="fas fa-chart-bar"></i>
+                        <span class="menu-label">Analytics</span>
+                    </a>
+                </li>
+
+                <!-- Reports -->
+                <li class="menu-item">
+                    <a href="reports.php" class="menu-link">
+                        <i class="fas fa-file-alt"></i>
+                        <span class="menu-label">Reports</span>
+                    </a>
+                </li>
+
+                <!-- Upload Data -->
+                <li class="menu-item">
+                    <a href="upload-data.php" class="menu-link">
+                        <i class="fas fa-upload"></i>
+                        <span class="menu-label">Upload Data</span>
+                    </a>
+                </li>
+
+                <!-- Settings -->
+                <li class="menu-item">
+                    <a href="settings.php" class="menu-link">
+                        <i class="fas fa-cog"></i>
+                        <span class="menu-label">Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Sidebar Footer -->
+        <div class="sidebar-footer">
+            <p class="company-info">Andison Industrial</p>
+            <p class="company-year">© 2025</p>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content" id="mainContent">
+        <!-- Welcome Banner Section -->
+        <div class="welcome-banner">
+            <div class="welcome-content">
+                <div class="welcome-text">
+                    <h2>Welcome, <?php echo htmlspecialchars($user_name); ?>! 🎉</h2>
+                    <p><?php echo $stats['monthly_average'] > 0 ? 'Your sales are performing great this month!' : 'Start tracking your sales today!'; ?></p>
+                </div>
+                <div class="welcome-stats">
+                    <div class="stat-card">
+                        <span class="stat-amount">₱<?php echo number_format($stats['total_delivered'] * 500, 1) / 1000; ?>K</span>
+                        <span class="stat-desc">Units delivered this month</span>
+                    </div>
+                    <button class="btn-primary" onclick="goToReports()">View Details</button>
+                </div>
+                <div class="welcome-illustration">
+                    <i class="fas fa-gift"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI METRICS SECTION -->
+        <section class="kpi-metrics">
+            <!-- Total Orders -->
+            <div class="metric-card">
+                <div class="metric-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <div class="metric-info">
+                    <span class="metric-label">Total Delivered</span>
+                    <span class="metric-value"><?php echo $stats['total_delivered']; ?></span>
+                    <div class="metric-trend up">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>24%</span>
+                    </div>
+                </div>
+                <canvas id="sparkline1" class="sparkline-chart"></canvas>
+            </div>
+
+            <!-- Total Sold -->
+            <div class="metric-card">
+                <div class="metric-icon">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="metric-info">
+                    <span class="metric-label">Total Sold</span>
+                    <span class="metric-value"><?php echo $stats['total_sold']; ?></span>
+                    <div class="metric-trend up">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>14%</span>
+                    </div>
+                </div>
+                <canvas id="sparkline2" class="sparkline-chart"></canvas>
+            </div>
+
+            <!-- Total Companies -->
+            <div class="metric-card">
+                <div class="metric-icon">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div class="metric-info">
+                    <span class="metric-label">Client Companies</span>
+                    <span class="metric-value"><?php echo $stats['total_companies']; ?></span>
+                    <div class="metric-trend down">
+                        <i class="fas fa-arrow-down"></i>
+                        <span>35%</span>
+                    </div>
+                </div>
+                <canvas id="sparkline3" class="sparkline-chart"></canvas>
+            </div>
+
+            <!-- Active Models -->
+            <div class="metric-card">
+                <div class="metric-icon">
+                    <i class="fas fa-cube"></i>
+                </div>
+                <div class="metric-info">
+                    <span class="metric-label">Active Models</span>
+                    <span class="metric-value"><?php echo $stats['active_models']; ?></span>
+                    <div class="metric-trend up">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>18%</span>
+                    </div>
+                </div>
+                <canvas id="sparkline4" class="sparkline-chart"></canvas>
+            </div>
+        </section>
+
+        <!-- Monthly/Yearly Stats -->
+        <section class="stats-summary">
+            <div class="summary-card primary">
+                <div class="summary-icon">
+                    <i class="fas fa-calendar"></i>
+                </div>
+                <div class="summary-info">
+                    <span class="summary-label">Monthly Average</span>
+                    <span class="summary-value"><?php echo $stats['monthly_average']; ?></span>
+                    <span class="summary-subtitle">Units per month</span>
+                </div>
+            </div>
+            <div class="summary-card secondary">
+                <div class="summary-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="summary-info">
+                    <span class="summary-label">Yearly Total</span>
+                    <span class="summary-value"><?php echo $stats['yearly_total']; ?></span>
+                    <span class="summary-subtitle">Total deliveries + sales</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- KPI CARDS SECTION -->
+        <section class="kpi-section">
+            <!-- Total Delivered Card -->
+            <div class="kpi-card">
+                <div class="card-header">
+                    <h3>Total Delivered</h3>
+                    <span class="card-icon"><i class="fas fa-check-circle"></i></span>
+                </div>
+                <div class="card-content">
+                    <div class="chart-container">
+                        <canvas id="deliveredChart"></canvas>
+                    </div>
+                    <div class="card-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Units</span>
+                            <span class="stat-value">696</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">October</span>
+                            <span class="stat-value">39</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Sold Card -->
+            <div class="kpi-card">
+                <div class="card-header">
+                    <h3>Total Sold</h3>
+                    <span class="card-icon"><i class="fas fa-dollar-sign"></i></span>
+                </div>
+                <div class="card-content">
+                    <div class="chart-container">
+                        <canvas id="soldChart"></canvas>
+                    </div>
+                    <div class="card-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Units</span>
+                            <span class="stat-value">311</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">October</span>
+                            <span class="stat-value">42</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly Comparison Card -->
+            <div class="kpi-card">
+                <div class="card-header">
+                    <h3>Monthly Comparison</h3>
+                    <span class="card-icon"><i class="fas fa-balance-scale"></i></span>
+                </div>
+                <div class="card-content">
+                    <div class="chart-container">
+                        <canvas id="monthlyComparisonChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MIDDLE SECTION - TWO PANELS -->
+        <section class="middle-section">
+            <!-- Top 15 Client Companies -->
+            <div class="dashboard-panel">
+                <div class="panel-header">
+                    <h3>Top 15 Client Companies</h3>
+                    <button class="panel-menu-btn" aria-label="Panel menu">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                </div>
+                <div class="panel-content">
+                    <canvas id="clientsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Monthly Sales Trend -->
+            <div class="dashboard-panel">
+                <div class="panel-header">
+                    <h3>Monthly Sales Trend</h3>
+                    <button class="panel-menu-btn" aria-label="Panel menu">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                </div>
+                <div class="panel-content">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- BOTTOM SECTION - TWO CHARTS -->
+        <section class="bottom-section">
+            <!-- Quantity per Model - Group A -->
+            <div class="dashboard-panel">
+                <div class="panel-header">
+                    <h3>Quantity per Model (Group A)</h3>
+                    <button class="panel-menu-btn" aria-label="Panel menu">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                </div>
+                <div class="panel-content">
+                    <canvas id="groupAChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Quantity per Model - Group B -->
+            <div class="dashboard-panel">
+                <div class="panel-header">
+                    <h3>Quantity per Model (Group B)</h3>
+                    <button class="panel-menu-btn" aria-label="Panel menu">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                </div>
+                <div class="panel-content">
+                    <canvas id="groupBChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="dashboard-footer">
+            <p>&copy; 2025 Andison Industrial. All rights reserved. | BW Gas Detector Sales Management System</p>
+        </footer>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script>
+        // Navigation function
+        function goToReports() {
+            window.location.href = 'reports.php';
+        }
+
+        // Pass PHP data to JavaScript
+        const dashboardData = {
+            total_delivered: <?php echo $stats['total_delivered']; ?>,
+            total_sold: <?php echo $stats['total_sold']; ?>,
+            monthly_sales: <?php echo json_encode($monthly_sales); ?>,
+            top_clients: <?php echo json_encode($top_clients); ?>
+        };
+    </script>
+    <script src="js/app.js"></script>
+</body>
+</html>
