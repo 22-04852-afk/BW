@@ -240,8 +240,8 @@ function handleSignup(firstName, lastName, email, password) {
             signupBtn.innerHTML = 'Create Account';
         }
     })
-    .catch(() => {
-        showError('An error occurred. Please try again.');
+    .catch(error => {
+        showError(error.message || 'An error occurred. Please try again.');
         signupBtn.disabled = false;
         signupBtn.innerHTML = 'Create Account';
     });

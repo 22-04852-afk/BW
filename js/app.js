@@ -519,22 +519,21 @@ function initializeGroupBChart() {
 
 function logoutHandler() {
     if (confirm('Are you sure you want to logout?')) {
-        // Clear user data from localStorage
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('loginTime');
-        localStorage.removeItem('sidebarCollapsed');
-        localStorage.removeItem('newUserAccount');
-        localStorage.removeItem('currentUserProfile');
-        localStorage.removeItem('profilePicture');
-        
-        // Redirect to login page
-        window.location.href = 'login.php';
+        window.location.href = 'logout.php';
     }
 }
 
 const logoutBtn = document.getElementById('logoutBtn');
 if (logoutBtn) {
     logoutBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        logoutHandler();
+    });
+}
+
+const profileLogoutBtn = document.getElementById('profileLogoutBtn');
+if (profileLogoutBtn) {
+    profileLogoutBtn.addEventListener('click', function(e) {
         e.preventDefault();
         logoutHandler();
     });
