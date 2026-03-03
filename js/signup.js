@@ -124,22 +124,8 @@ function checkEmailAvailability(email) {
         return;
     }
 
-    // Simulate email checking (800ms delay)
-    emailHint.textContent = 'Checking availability...';
-    emailHint.className = 'form-hint';
-
-    setTimeout(() => {
-        // Simulated result: 90% emails are available
-        const isAvailable = Math.random() > 0.1;
-        
-        if (isAvailable) {
-            emailHint.textContent = '✓ Email available';
-            emailHint.className = 'form-hint success';
-        } else {
-            emailHint.textContent = 'This email is already registered';
-            emailHint.className = 'form-hint error';
-        }
-    }, 800);
+    emailHint.textContent = '✓ Looks good';
+    emailHint.className = 'form-hint success';
 }
 
 function isValidEmail(email) {
@@ -232,32 +218,30 @@ function handleSignup(firstName, lastName, email, password) {
     formData.append('password', password);
     formData.append('confirmPassword', password);
 
-    fetch('/bw-gas-detector/api/signup.php', {
+    fetch('api/signup.php', {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response =>
+        response.text().then(text => {
+            try { return JSON.parse(text); }
+            catch (e) { throw new Error('Server error: ' + text.substring(0, 150)); }
+        })
+    )
     .then(data => {
         if (data.success) {
-            // Store user email for reference
-            localStorage.setItem('userEmail', email);
-            localStorage.setItem('signupTime', new Date().toISOString());
-
             showSuccess(data.message);
-
-            // Redirect after 1.5 seconds
             setTimeout(() => {
                 window.location.href = data.redirect || 'index.php';
             }, 1500);
         } else {
-            showError(data.message || 'Signup failed');
+            showError(data.message || 'Signup failed. Please try again.');
             signupBtn.disabled = false;
             signupBtn.innerHTML = 'Create Account';
         }
     })
-    .catch(error => {
-        console.error('Signup error:', error);
-        showError('An error occurred during signup. Please try again.');
+    .catch(() => {
+        showError('An error occurred. Please try again.');
         signupBtn.disabled = false;
         signupBtn.innerHTML = 'Create Account';
     });
@@ -358,21 +342,4 @@ if (!document.querySelector('style[data-notification]')) {
     document.head.appendChild(style);
 }
 
-// Check if user already logged in
-document.addEventListener('DOMContentLoaded', function() {
-    const userEmail = localStorage.getItem('userEmail');
-    if (userEmail) {
-        // User already logged in, redirect to dashboard
-        window.location.href = 'index.php';
-    }
-});
 
-console.log('Signup Features:');
-console.log('✓ Email validation & availability check');
-console.log('✓ Password strength meter');
-console.log('✓ Password visibility toggle (dual)');
-console.log('✓ Real-time password feedback');
-console.log('✓ Password matching validation');
-console.log('✓ Terms acceptance required');
-console.log('✓ Social signup buttons');
-console.log('✓ Comprehensive form validation');

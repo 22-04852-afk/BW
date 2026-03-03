@@ -1,4 +1,6 @@
 <?php
+ob_start();
+
 session_start();
 
 header('Content-Type: application/json; charset=utf-8');
@@ -13,8 +15,32 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$email = trim($_POST['email'] ?? '');
-$password = trim($_POST['password'] ?? '');
+// ---- Brute-force rate limiting (max 10 attempts per 15 min per session) ----
+$_SESSION['login_attempts'] = $_SESSION['login_attempts'] ?? 0;
+$_SESSION['login_first_attempt'] = $_SESSION['login_first_attempt'] ?? time();
+
+$windowSeconds = 15 * 60; // 15 minutes
+$maxAttempts   = 10;
+
+if (time() - $_SESSION['login_first_attempt'] > $windowSeconds) {
+    // Reset window
+    $_SESSION['login_attempts'] = 0;
+    $_SESSION['login_first_attempt'] = time();
+}
+
+if ($_SESSION['login_attempts'] >= $maxAttempts) {
+    $waitSec  = $windowSeconds - (time() - $_SESSION['login_first_attempt']);
+    $waitMins = max(1, (int) ceil($waitSec / 60));
+    http_response_code(429);
+    echo json_encode([
+        'success' => false,
+        'message' => "Too many login attempts. Please wait {$waitMins} minute(s) and try again."
+    ]);
+    exit;
+}
+
+$email    = trim($_POST['email'] ?? '');
+$password = $_POST['password'] ?? '';   // Do NOT trim password — leading/trailing space may be intentional
 
 if (!$email || !$password) {
     echo json_encode(['success' => false, 'message' => 'Email and password are required']);
@@ -34,6 +60,7 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if (!$result || $result->num_rows === 0) {
+    $_SESSION['login_attempts']++;
     echo json_encode(['success' => false, 'message' => 'Invalid email or password']);
     exit;
 }
@@ -51,15 +78,23 @@ if (password_verify($password, $stored)) {
 }
 
 if (!$verified) {
+    $_SESSION['login_attempts']++;
     echo json_encode(['success' => false, 'message' => 'Invalid email or password']);
     exit;
 }
+
+// Successful login: regenerate session to prevent session fixation
+session_regenerate_id(true);
+
+// Reset rate-limit counters on success
+unset($_SESSION['login_attempts'], $_SESSION['login_first_attempt']);
 
 // Successful login: set session
 $_SESSION['user_id'] = $user['id'];
 $_SESSION['user_email'] = $user['email'];
 $_SESSION['user_name'] = $user['name'] ?? $user['email'];
 
+ob_clean();
 echo json_encode([
     'success' => true,
     'message' => 'Login successful',

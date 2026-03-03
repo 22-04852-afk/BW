@@ -28,7 +28,9 @@ class SqliteResult {
 class SqliteStmt {
     private PDO          $pdo;
     private PDOStatement $stmt;
-    private array        $params = [];
+    private array        $params   = [];
+    public  int          $insert_id = 0;
+    public  string       $error     = '';
 
     public function __construct(PDO $pdo, string $sql) {
         $this->pdo  = $pdo;
@@ -41,7 +43,16 @@ class SqliteStmt {
     }
 
     public function execute(): bool {
-        return $this->stmt->execute($this->params);
+        try {
+            $ok = $this->stmt->execute($this->params);
+            if ($ok) {
+                $this->insert_id = (int) $this->pdo->lastInsertId();
+            }
+            return $ok;
+        } catch (Throwable $e) {
+            $this->error = $e->getMessage();
+            return false;
+        }
     }
 
     public function get_result(): SqliteResult {

@@ -2,9 +2,7 @@
 // LOGIN PAGE FUNCTIONALITY
 // ============================================
 
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Login Page Loaded');
-    
+document.addEventListener('DOMContentLoaded', function () {
     initializePasswordToggle();
     initializeLoginForm();
     initializeRememberMe();
@@ -22,12 +20,74 @@ function initializePasswordToggle() {
 
     if (!toggleBtn || !passwordInput) return;
 
-    toggleBtn.addEventListener('click', function(e) {
+    toggleBtn.addEventListener('click', function (e) {
         e.preventDefault();
-        const type = passwordInput.type === 'password' ? 'text' : 'password';
-        passwordInput.type = type;
-        this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+        const isPassword = passwordInput.type === 'password';
+        passwordInput.type = isPassword ? 'text' : 'password';
+        const icon = this.querySelector('i');
+        icon.classList.toggle('fa-eye', !isPassword);
+        icon.classList.toggle('fa-eye-slash', isPassword);
+        this.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
     });
+}
+
+// ============================================
+// REAL-TIME FIELD VALIDATION
+// ============================================
+
+function validateEmail(value) {
+    if (!value) return 'Email address is required.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Please enter a valid email address.';
+    return '';
+}
+
+function validatePassword(value) {
+    if (!value) return 'Password is required.';
+    if (value.length < 6) return 'Password must be at least 6 characters.';
+    return '';
+}
+
+function setFieldState(inputId, errorId, errorMsg) {
+    const input = document.getElementById(inputId);
+    const errorEl = document.getElementById(errorId);
+    if (!input || !errorEl) return;
+
+    if (errorMsg) {
+        input.classList.add('input-error');
+        input.classList.remove('input-valid');
+        errorEl.textContent = errorMsg;
+    } else {
+        input.classList.remove('input-error');
+        input.classList.add('input-valid');
+        errorEl.textContent = '';
+    }
+}
+
+function attachRealTimeValidation() {
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+
+    if (emailInput) {
+        emailInput.addEventListener('blur', function () {
+            setFieldState('email', 'email-error', validateEmail(this.value.trim()));
+        });
+        emailInput.addEventListener('input', function () {
+            if (this.classList.contains('input-error')) {
+                setFieldState('email', 'email-error', validateEmail(this.value.trim()));
+            }
+        });
+    }
+
+    if (passwordInput) {
+        passwordInput.addEventListener('blur', function () {
+            setFieldState('password', 'password-error', validatePassword(this.value));
+        });
+        passwordInput.addEventListener('input', function () {
+            if (this.classList.contains('input-error')) {
+                setFieldState('password', 'password-error', validatePassword(this.value));
+            }
+        });
+    }
 }
 
 // ============================================
@@ -38,39 +98,29 @@ function initializeLoginForm() {
     const form = document.getElementById('loginForm');
     if (!form) return;
 
-    form.addEventListener('submit', function(e) {
+    attachRealTimeValidation();
+
+    form.addEventListener('submit', function (e) {
         e.preventDefault();
-        
+
         const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value.trim();
+        const password = document.getElementById('password').value;
 
-        // Validation
-        if (!email || !password) {
-            showError('Please fill in all fields');
-            return;
-        }
+        const emailErr = validateEmail(email);
+        const passErr = validatePassword(password);
 
-        if (!isValidEmail(email)) {
-            showError('Please enter a valid email address');
-            return;
-        }
+        setFieldState('email', 'email-error', emailErr);
+        setFieldState('password', 'password-error', passErr);
 
-        if (password.length < 6) {
-            showError('Password must be at least 6 characters');
-            return;
-        }
+        if (emailErr || passErr) return;
 
         handleLogin(email, password);
     });
 
     // Keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-        if (e.altKey && e.key === 'l') {
-            document.getElementById('email').focus();
-        }
-        if (e.ctrlKey && e.key === 'Enter') {
-            form.dispatchEvent(new Event('submit'));
-        }
+    document.addEventListener('keydown', function (e) {
+        if (e.altKey && e.key === 'l') document.getElementById('email')?.focus();
+        if (e.ctrlKey && e.key === 'Enter') form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     });
 }
 
@@ -79,13 +129,15 @@ function initializeLoginForm() {
 // ============================================
 
 function handleLogin(email, password) {
-    const loginBtn = document.querySelector('.btn-login');
+    const loginBtn = document.getElementById('loginBtn');
+    const btnText = loginBtn?.querySelector('.btn-text');
 
-    // Disable button and show loading state
-    loginBtn.disabled = true;
-    loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+    if (loginBtn) {
+        loginBtn.disabled = true;
+        loginBtn.style.minWidth = loginBtn.offsetWidth + 'px';
+    }
+    if (btnText) btnText.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Signing in…';
 
-    // Send login request to backend
     const formData = new FormData();
     formData.append('email', email);
     formData.append('password', password);
@@ -94,87 +146,56 @@ function handleLogin(email, password) {
         method: 'POST',
         body: formData
     })
-    .then(response => {
-        // Log response status and text for debugging
-        console.log('Response status:', response.status);
-        return response.text().then(text => {
-            try {
-                return JSON.parse(text);
-            } catch(e) {
-                console.error('Failed to parse response:', text);
-                throw new Error('Server returned invalid response: ' + text);
+        .then(response =>
+            response.text().then(text => {
+                try { return JSON.parse(text); }
+                catch (e) { throw new Error('Unexpected server response. Please try again.'); }
+            })
+        )
+        .then(data => {
+            if (data.success) {
+                const rememberMe = document.getElementById('rememberMe');
+                if (rememberMe?.checked) {
+                    localStorage.setItem('savedEmail', email);
+                } else {
+                    localStorage.removeItem('savedEmail');
+                }
+
+                if (btnText) btnText.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Success!';
+                showNotification(data.message || 'Login successful!', 'success');
+
+                setTimeout(() => { window.location.href = data.redirect || 'index.php'; }, 1200);
+            } else {
+                showNotification(data.message || 'Invalid credentials. Please try again.', 'error');
+                setFieldState('password', 'password-error', 'Check your email and password and try again.');
+                resetLoginButton(loginBtn, btnText);
             }
+        })
+        .catch(error => {
+            showNotification(error.message, 'error');
+            resetLoginButton(loginBtn, btnText);
         });
-    })
-    .then(data => {
-        console.log('Login response:', data);
-        if (data.success) {
-            // Store user email for reference
-            localStorage.setItem('userEmail', email);
-            localStorage.setItem('loginTime', new Date().toISOString());
+}
 
-            showSuccess(data.message);
-
-            // Redirect after 1.5 seconds
-            setTimeout(() => {
-                window.location.href = data.redirect || 'index.php';
-            }, 1500);
-        } else {
-            showError(data.message || 'Login failed');
-            loginBtn.disabled = false;
-            loginBtn.innerHTML = 'Login';
-        }
-    })
-    .catch(error => {
-        console.error('Login error:', error);
-        console.error('Error details:', error.message);
-        showError('Error: ' + error.message);
-        loginBtn.disabled = false;
-        loginBtn.innerHTML = 'Login';
-    });
+function resetLoginButton(loginBtn, btnText) {
+    if (loginBtn) { loginBtn.disabled = false; loginBtn.style.minWidth = ''; }
+    if (btnText) btnText.innerHTML = 'Login';
 }
 
 // ============================================
-// EMAIL VALIDATION
-// ============================================
-
-function isValidEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-}
-
-// ============================================
-// REMEMBER ME FUNCTIONALITY
+// REMEMBER ME
 // ============================================
 
 function initializeRememberMe() {
     const rememberCheckbox = document.getElementById('rememberMe');
     const emailInput = document.getElementById('email');
-
     if (!rememberCheckbox || !emailInput) return;
 
-    // Load saved email if exists
     const savedEmail = localStorage.getItem('savedEmail');
     if (savedEmail) {
         emailInput.value = savedEmail;
         rememberCheckbox.checked = true;
     }
-
-    // Save email when checkbox changes
-    rememberCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            localStorage.setItem('savedEmail', emailInput.value);
-        } else {
-            localStorage.removeItem('savedEmail');
-        }
-    });
-
-    // Update saved email when email changes
-    emailInput.addEventListener('input', function() {
-        if (rememberCheckbox.checked) {
-            localStorage.setItem('savedEmail', this.value);
-        }
-    });
 }
 
 // ============================================
@@ -183,12 +204,11 @@ function initializeRememberMe() {
 
 function initializeSocialHandlers() {
     const socialBtns = document.querySelectorAll('.social-btn');
-
     socialBtns.forEach(btn => {
-        btn.addEventListener('click', function(e) {
+        btn.addEventListener('click', function (e) {
             e.preventDefault();
-            const provider = this.classList[1] || 'Social'; // google, facebook, linkedin, github
-            showSuccess(`Signing in with ${provider.charAt(0).toUpperCase() + provider.slice(1)}...`);
+            const provider = this.classList[1] || 'social';
+            showNotification(`${capitalize(provider)} sign-in is not configured yet.`, 'info');
         });
     });
 }
@@ -198,93 +218,91 @@ function initializeSocialHandlers() {
 // ============================================
 
 function initializeForgotPassword() {
-    const forgotLink = document.querySelector('.forgot-password');
+    const forgotLink = document.getElementById('forgotPasswordLink');
+    if (!forgotLink) return;
 
-    if (forgotLink) {
-        forgotLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            showSuccess('Password reset link sent to your email!');
-        });
-    }
+    forgotLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        const email = document.getElementById('email').value.trim();
+        if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            showNotification(`A password reset link has been sent to ${email}.`, 'success');
+        } else {
+            document.getElementById('email')?.focus();
+            setFieldState('email', 'email-error', 'Enter your email address above first.');
+        }
+    });
 }
 
 // ============================================
 // NOTIFICATION SYSTEM
 // ============================================
 
-function showError(message) {
-    showNotification(message, 'error');
-}
-
-function showSuccess(message) {
-    showNotification(message, 'success');
-}
-
 function showNotification(message, type = 'success') {
-    // Remove existing notification
     removeNotification();
 
+    const icons   = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+    const colors  = { success: '#51cf66', error: '#ff6b6b', info: '#00d9ff' };
+    const bgs     = { success: '#102a18', error: '#2a1020', info: '#0d1a30' };
+
     const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
+    notification.className = `toast-notification toast-${type}`;
+    notification.setAttribute('role', 'alert');
+    notification.setAttribute('aria-live', 'assertive');
     notification.innerHTML = `
-        <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i>
-        <span>${message}</span>
+        <i class="fas ${icons[type] || icons.info}" aria-hidden="true"></i>
+        <span class="toast-message">${escapeHtml(message)}</span>
+        <button class="toast-close" aria-label="Dismiss" onclick="removeNotification()">
+            <i class="fas fa-times" aria-hidden="true"></i>
+        </button>
     `;
+
+    Object.assign(notification.style, {
+        position: 'fixed', top: '20px', right: '20px',
+        background: bgs[type] || bgs.info,
+        borderLeft: `4px solid ${colors[type] || colors.info}`,
+        color: colors[type] || colors.info,
+        padding: '13px 16px', borderRadius: '10px',
+        display: 'flex', alignItems: 'center', gap: '10px',
+        zIndex: '10000', maxWidth: '340px',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)',
+        animation: 'toastSlideIn 0.3s cubic-bezier(0.4,0,0.2,1)',
+        fontSize: '13px', fontFamily: 'Poppins, sans-serif'
+    });
 
     document.body.appendChild(notification);
-    
-    // Add inline styles
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'error' ? '#ff6b6b' : '#51cf66'};
-        color: white;
-        padding: 15px 20px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        z-index: 10000;
-        animation: slideInRight 0.3s ease;
-    `;
-
-    setTimeout(() => removeNotification(), 3000);
+    notification._dismissTimer = setTimeout(removeNotification, 4000);
 }
 
 function removeNotification() {
-    const notification = document.querySelector('.notification');
-    if (notification) {
-        notification.remove();
-    }
+    const n = document.querySelector('.toast-notification');
+    if (!n) return;
+    clearTimeout(n._dismissTimer);
+    n.style.animation = 'toastSlideOut 0.25s cubic-bezier(0.4,0,0.2,1) forwards';
+    setTimeout(() => n?.remove(), 260);
 }
 
-// Add CSS animation
-if (!document.querySelector('style[data-notification]')) {
+// ============================================
+// HELPERS
+// ============================================
+
+function capitalize(str) { return str.charAt(0).toUpperCase() + str.slice(1); }
+
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+
+(function injectToastStyles() {
+    if (document.querySelector('style[data-toast]')) return;
     const style = document.createElement('style');
-    style.setAttribute('data-notification', 'true');
+    style.setAttribute('data-toast', 'true');
     style.textContent = `
-        @keyframes slideInRight {
-            from { transform: translateX(400px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
+        @keyframes toastSlideIn  { from { transform:translateX(380px); opacity:0 } to { transform:translateX(0); opacity:1 } }
+        @keyframes toastSlideOut { from { transform:translateX(0);     opacity:1 } to { transform:translateX(380px); opacity:0 } }
+        .toast-close { background:none; border:none; color:inherit; cursor:pointer; padding:2px 4px; margin-left:auto; opacity:.7; font-size:12px; flex-shrink:0; }
+        .toast-close:hover { opacity:1; }
+        .toast-message { flex:1; line-height:1.4; }
     `;
     document.head.appendChild(style);
-}
-
-// Check if user already logged in
-document.addEventListener('DOMContentLoaded', function() {
-    const userEmail = localStorage.getItem('userEmail');
-    if (userEmail) {
-        // User already logged in, redirect to dashboard
-        window.location.href = 'index.php';
-    }
-});
-
-console.log('Login Features:');
-console.log('✓ Email validation');
-console.log('✓ Password visibility toggle');
-console.log('✓ Remember me functionality');
-console.log('✓ Social login buttons');
-console.log('✓ Form validation');
-console.log('✓ Keyboard shortcuts (Alt+L, Ctrl+Enter)');
+}());
