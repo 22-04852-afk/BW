@@ -8,14 +8,15 @@ $db_name = 'bw_gas_detector';
 // Try MySQL first; fall back to SQLite when MySQL is unavailable
 $conn = null;
 
-// Suppress connection warning so we can handle it ourselves
-$mysql = @new mysqli($db_host, $db_user, $db_pass, $db_name);
+// Enable MySQLi exceptions
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-if (!$mysql->connect_error) {
-    // MySQL is available
+// Try MySQL connection with proper exception handling
+try {
+    $mysql = new mysqli($db_host, $db_user, $db_pass, $db_name);
     $mysql->set_charset('utf8mb4');
     $conn = $mysql;
-} else {
+} catch (Exception $e) {
     // Fall back to SQLite (no MySQL required)
     require_once __DIR__ . '/db_sqlite_compat.php';
     $sqlite_file = __DIR__ . '/bw_gas_detector.sqlite';
