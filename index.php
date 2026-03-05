@@ -99,6 +99,7 @@ $group_b = $conn->query("SELECT item_code, item_name, SUM(quantity) as total FRO
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>(function(){if(localStorage.getItem('theme')==='light'){document.documentElement.classList.add('light-mode');document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('light-mode')})}})()</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BW Gas Detector Sales  - Andison Industrial</title>

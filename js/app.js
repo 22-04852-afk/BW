@@ -5,8 +5,17 @@
 
 // Apply saved theme immediately (before DOMContentLoaded to avoid flash)
 (function () {
-    if (localStorage.getItem('theme') === 'light') {
+    var isLight = localStorage.getItem('theme') === 'light';
+    if (isLight) {
         document.documentElement.classList.add('light-mode');
+        // Apply to body as soon as it exists
+        if (document.body) {
+            document.body.classList.add('light-mode');
+        } else {
+            document.addEventListener('DOMContentLoaded', function() {
+                document.body.classList.add('light-mode');
+            });
+        }
     }
 })();
 
@@ -15,7 +24,7 @@
 //  so all charts — including those in inline PHP scripts — inherit these defaults)
 (function () {
     if (typeof Chart === 'undefined') return;
-    const isLight = document.documentElement.classList.contains('light-mode');
+    var isLight = localStorage.getItem('theme') === 'light';
     Chart.defaults.color       = isLight ? '#3a3a5c' : '#e0e0e0';
     Chart.defaults.borderColor = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.05)';
 })();
@@ -23,6 +32,14 @@
 // Initialize when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Dashboard Initialized');
+    
+    // Ensure theme is applied to body
+    var isLight = localStorage.getItem('theme') === 'light';
+    if (isLight) {
+        document.body.classList.add('light-mode');
+    } else {
+        document.body.classList.remove('light-mode');
+    }
     
     // Initialize UI Elements
     initializeDarkModeToggle();
@@ -57,17 +74,21 @@ function initializeDarkModeToggle() {
     }
 
     toggle.addEventListener('click', function () {
-        const currentlyDark = document.documentElement.classList.contains('light-mode') === false;
+        const currentlyDark = !document.body.classList.contains('light-mode');
         if (currentlyDark) {
             // Switch to light
             document.documentElement.classList.add('light-mode');
+            document.body.classList.add('light-mode');
             localStorage.setItem('theme', 'light');
             toggle.classList.remove('active');
+            console.log('Switched to Light Mode');
         } else {
             // Switch to dark
             document.documentElement.classList.remove('light-mode');
+            document.body.classList.remove('light-mode');
             localStorage.setItem('theme', 'dark');
             toggle.classList.add('active');
+            console.log('Switched to Dark Mode');
         }
     });
 }

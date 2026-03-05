@@ -4,10 +4,52 @@ if (empty($_SESSION['user_id'])) {
     header('Location: login.php', true, 302);
     exit;
 }
+
+// Include database configuration
+require_once 'db_config.php';
+
+// Get statistics from database
+$stats = [
+    'total_delivered' => 0,
+    'in_transit' => 0,
+    'pending' => 0,
+    'total_records' => 0,
+    'total_quantity' => 0
+];
+
+// Count by status
+$result = $conn->query("SELECT status, COUNT(*) as count, COALESCE(SUM(quantity), 0) as qty FROM delivery_records GROUP BY status");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $status = strtolower($row['status']);
+        if (strpos($status, 'deliver') !== false) {
+            $stats['total_delivered'] += intval($row['count']);
+            $stats['total_quantity'] += intval($row['qty']);
+        } elseif (strpos($status, 'transit') !== false) {
+            $stats['in_transit'] += intval($row['count']);
+        } elseif (strpos($status, 'pending') !== false) {
+            $stats['pending'] += intval($row['count']);
+        }
+        $stats['total_records'] += intval($row['count']);
+    }
+}
+
+// Calculate success rate
+$success_rate = $stats['total_records'] > 0 ? round(($stats['total_delivered'] / $stats['total_records']) * 100, 1) : 0;
+
+// Get all delivery records
+$delivery_records = [];
+$result = $conn->query("SELECT * FROM delivery_records ORDER BY id DESC LIMIT 100");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $delivery_records[] = $row;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>(function(){if(localStorage.getItem('theme')==='light'){document.documentElement.classList.add('light-mode');document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('light-mode')})}})()</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Delivery Records - BW Gas Detector</title>
@@ -427,19 +469,19 @@ if (empty($_SESSION['user_id'])) {
         <div class="summary-grid">
             <div class="summary-card">
                 <div class="summary-label">Total Delivered</div>
-                <div class="summary-value">696</div>
+                <div class="summary-value"><?php echo number_format($stats['total_delivered']); ?></div>
             </div>
             <div class="summary-card">
                 <div class="summary-label">In Transit</div>
-                <div class="summary-value">8</div>
+                <div class="summary-value"><?php echo number_format($stats['in_transit']); ?></div>
             </div>
             <div class="summary-card">
                 <div class="summary-label">Pending</div>
-                <div class="summary-value">12</div>
+                <div class="summary-value"><?php echo number_format($stats['pending']); ?></div>
             </div>
             <div class="summary-card">
-                <div class="summary-label">Success Rate</div>
-                <div class="summary-value">99.5%</div>
+                <div class="summary-label">Total Quantity</div>
+                <div class="summary-value"><?php echo number_format($stats['total_quantity']); ?></div>
             </div>
         </div>
 
@@ -457,271 +499,55 @@ if (empty($_SESSION['user_id'])) {
             <table>
                 <thead>
                     <tr>
-                        <th>Tracking #</th>
-                        <th>Client</th>
-                        <th>Product</th>
+                        <th>Serial No.</th>
+                        <th>Invoice No.</th>
+                        <th>Item Code</th>
+                        <th>Description</th>
                         <th>Quantity</th>
-                        <th>Ship Date</th>
-                        <th>Est. Delivery</th>
+                        <th>Date Delivered</th>
                         <th>Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
+                    <?php if (empty($delivery_records)): ?>
                     <tr>
-                        <td>#DEL-202501</td>
-                        <td>Andison Zamora</td>
-                        <td>Gas Detector A-100</td>
-                        <td>25</td>
-                        <td>Jan 28, 2025</td>
-                        <td>Feb 2, 2025</td>
-                        <td><span class="badge delivered">Delivered</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202501', 'Andison Zamora', 'Gas Detector A-100', '25', 'Jan 28, 2025', 'Feb 2, 2025', 'Delivered')">View</a></td>
+                        <td colspan="8" style="text-align: center; padding: 40px; color: #a0a0a0;">
+                            <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
+                            No delivery records found. <a href="upload-data.php" style="color: #f4d03f;">Upload data</a> to get started.
+                        </td>
                     </tr>
+                    <?php else: ?>
+                    <?php foreach ($delivery_records as $record): 
+                        $status_class = 'delivered';
+                        $status_lower = strtolower($record['status'] ?? 'delivered');
+                        if (strpos($status_lower, 'transit') !== false) $status_class = 'in-transit';
+                        elseif (strpos($status_lower, 'pending') !== false) $status_class = 'pending';
+                        elseif (strpos($status_lower, 'cancel') !== false) $status_class = 'cancelled';
+                        
+                        $delivery_date = '';
+                        if (!empty($record['delivery_date'])) {
+                            $delivery_date = date('M j, Y', strtotime($record['delivery_date']));
+                        } elseif (!empty($record['delivery_month']) && !empty($record['delivery_day'])) {
+                            $delivery_date = $record['delivery_month'] . ' ' . $record['delivery_day'];
+                        }
+                    ?>
                     <tr>
-                        <td>#DEL-202502</td>
-                        <td>Industrial Tech Co.</td>
-                        <td>Gas Detector B-200</td>
-                        <td>15</td>
-                        <td>Jan 30, 2025</td>
-                        <td>Feb 3, 2025</td>
-                        <td><span class="badge in-transit">In Transit</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202502', 'Industrial Tech Co.', 'Gas Detector B-200', '15', 'Jan 30, 2025', 'Feb 3, 2025', 'In Transit')">View</a></td>
+                        <td><?php echo htmlspecialchars($record['serial_no'] ?? '-'); ?></td>
+                        <td><?php echo htmlspecialchars($record['invoice_no'] ?? '-'); ?></td>
+                        <td><?php echo htmlspecialchars($record['item_code'] ?? '-'); ?></td>
+                        <td><?php echo htmlspecialchars($record['item_name'] ?? '-'); ?></td>
+                        <td><?php echo htmlspecialchars($record['quantity'] ?? '0'); ?></td>
+                        <td><?php echo htmlspecialchars($delivery_date); ?></td>
+                        <td><span class="badge <?php echo $status_class; ?>"><?php echo htmlspecialchars($record['status'] ?? 'Delivered'); ?></span></td>
+                        <td><a href="#" class="view-btn" onclick="openModal(event, '<?php echo htmlspecialchars($record['serial_no'] ?? ''); ?>', '<?php echo htmlspecialchars($record['invoice_no'] ?? ''); ?>', '<?php echo htmlspecialchars($record['item_code'] ?? ''); ?>', '<?php echo htmlspecialchars($record['item_name'] ?? ''); ?>', '<?php echo htmlspecialchars($record['quantity'] ?? '0'); ?>', '<?php echo htmlspecialchars($delivery_date); ?>', '<?php echo htmlspecialchars($record['status'] ?? 'Delivered'); ?>')">View</a></td>
                     </tr>
-                    <tr>
-                        <td>#DEL-202503</td>
-                        <td>SafeGuard Solutions</td>
-                        <td>Gas Detector A-200</td>
-                        <td>30</td>
-                        <td>Jan 29, 2025</td>
-                        <td>Feb 1, 2025</td>
-                        <td><span class="badge delivered">Delivered</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202503', 'SafeGuard Solutions', 'Gas Detector A-200', '30', 'Jan 29, 2025', 'Feb 1, 2025', 'Delivered')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202504</td>
-                        <td>Summit Corp</td>
-                        <td>Gas Detector B-300</td>
-                        <td>20</td>
-                        <td>Feb 5, 2025</td>
-                        <td>Feb 10, 2025</td>
-                        <td><span class="badge pending">Pending</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202504', 'Summit Corp', 'Gas Detector B-300', '20', 'Feb 5, 2025', 'Feb 10, 2025', 'Pending')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202505</td>
-                        <td>Global Industries</td>
-                        <td>Gas Detector A-500</td>
-                        <td>18</td>
-                        <td>Jan 31, 2025</td>
-                        <td>Feb 5, 2025</td>
-                        <td><span class="badge delivered">Delivered</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202505', 'Global Industries', 'Gas Detector A-500', '18', 'Jan 31, 2025', 'Feb 5, 2025', 'Delivered')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202506</td>
-                        <td>Precision Labs</td>
-                        <td>Gas Detector B-400</td>
-                        <td>12</td>
-                        <td>Feb 4, 2025</td>
-                        <td>Feb 9, 2025</td>
-                        <td><span class="badge in-transit">In Transit</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202506', 'Precision Labs', 'Gas Detector B-400', '12', 'Feb 4, 2025', 'Feb 9, 2025', 'In Transit')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202507</td>
-                        <td>TechVision Inc</td>
-                        <td>Gas Detector A-100</td>
-                        <td>35</td>
-                        <td>Feb 2, 2025</td>
-                        <td>Feb 7, 2025</td>
-                        <td><span class="badge delivered">Delivered</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202507', 'TechVision Inc', 'Gas Detector A-100', '35', 'Feb 2, 2025', 'Feb 7, 2025', 'Delivered')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202508</td>
-                        <td>Quantum Systems</td>
-                        <td>Gas Detector B-500</td>
-                        <td>8</td>
-                        <td>Feb 3, 2025</td>
-                        <td>Feb 8, 2025</td>
-                        <td><span class="badge delivered">Delivered</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202508', 'Quantum Systems', 'Gas Detector B-500', '8', 'Feb 3, 2025', 'Feb 8, 2025', 'Delivered')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202509</td>
-                        <td>EcoTech Solutions</td>
-                        <td>Gas Detector A-150</td>
-                        <td>22</td>
-                        <td>Feb 1, 2025</td>
-                        <td>Feb 6, 2025</td>
-                        <td><span class="badge in-transit">In Transit</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202509', 'EcoTech Solutions', 'Gas Detector A-150', '22', 'Feb 1, 2025', 'Feb 6, 2025', 'In Transit')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202510</td>
-                        <td>Nexus Industries</td>
-                        <td>Gas Detector B-250</td>
-                        <td>16</td>
-                        <td>Feb 2, 2025</td>
-                        <td>Feb 7, 2025</td>
-                        <td><span class="badge in-transit">In Transit</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202510', 'Nexus Industries', 'Gas Detector B-250', '16', 'Feb 2, 2025', 'Feb 7, 2025', 'In Transit')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202511</td>
-                        <td>Alpha Manufacturing</td>
-                        <td>Gas Detector A-300</td>
-                        <td>28</td>
-                        <td>Feb 4, 2025</td>
-                        <td>Feb 9, 2025</td>
-                        <td><span class="badge in-transit">In Transit</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202511', 'Alpha Manufacturing', 'Gas Detector A-300', '28', 'Feb 4, 2025', 'Feb 9, 2025', 'In Transit')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202512</td>
-                        <td>Delta Enterprises</td>
-                        <td>Gas Detector B-350</td>
-                        <td>19</td>
-                        <td>Feb 5, 2025</td>
-                        <td>Feb 10, 2025</td>
-                        <td><span class="badge in-transit">In Transit</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202512', 'Delta Enterprises', 'Gas Detector B-350', '19', 'Feb 5, 2025', 'Feb 10, 2025', 'In Transit')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202513</td>
-                        <td>Gamma Corp</td>
-                        <td>Gas Detector A-400</td>
-                        <td>31</td>
-                        <td>Feb 6, 2025</td>
-                        <td>Feb 11, 2025</td>
-                        <td><span class="badge in-transit">In Transit</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202513', 'Gamma Corp', 'Gas Detector A-400', '31', 'Feb 6, 2025', 'Feb 11, 2025', 'In Transit')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202514</td>
-                        <td>Omega Tech</td>
-                        <td>Gas Detector B-450</td>
-                        <td>23</td>
-                        <td>Feb 7, 2025</td>
-                        <td>Feb 12, 2025</td>
-                        <td><span class="badge in-transit">In Transit</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202514', 'Omega Tech', 'Gas Detector B-450', '23', 'Feb 7, 2025', 'Feb 12, 2025', 'In Transit')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202515</td>
-                        <td>Zenith Systems</td>
-                        <td>Gas Detector A-150</td>
-                        <td>14</td>
-                        <td>Feb 8, 2025</td>
-                        <td>Feb 13, 2025</td>
-                        <td><span class="badge pending">Pending</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202515', 'Zenith Systems', 'Gas Detector A-150', '14', 'Feb 8, 2025', 'Feb 13, 2025', 'Pending')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202516</td>
-                        <td>Vertex Solutions</td>
-                        <td>Gas Detector B-300</td>
-                        <td>26</td>
-                        <td>Feb 9, 2025</td>
-                        <td>Feb 14, 2025</td>
-                        <td><span class="badge pending">Pending</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202516', 'Vertex Solutions', 'Gas Detector B-300', '26', 'Feb 9, 2025', 'Feb 14, 2025', 'Pending')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202517</td>
-                        <td>Horizon Group</td>
-                        <td>Gas Detector A-250</td>
-                        <td>17</td>
-                        <td>Feb 10, 2025</td>
-                        <td>Feb 15, 2025</td>
-                        <td><span class="badge pending">Pending</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202517', 'Horizon Group', 'Gas Detector A-250', '17', 'Feb 10, 2025', 'Feb 15, 2025', 'Pending')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202518</td>
-                        <td>Eclipse Industries</td>
-                        <td>Gas Detector B-400</td>
-                        <td>29</td>
-                        <td>Feb 11, 2025</td>
-                        <td>Feb 16, 2025</td>
-                        <td><span class="badge pending">Pending</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202518', 'Eclipse Industries', 'Gas Detector B-400', '29', 'Feb 11, 2025', 'Feb 16, 2025', 'Pending')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202519</td>
-                        <td>Comet Logistics</td>
-                        <td>Gas Detector A-500</td>
-                        <td>11</td>
-                        <td>Feb 6, 2025</td>
-                        <td>Feb 11, 2025</td>
-                        <td><span class="badge pending">Pending</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202519', 'Comet Logistics', 'Gas Detector A-500', '11', 'Feb 6, 2025', 'Feb 11, 2025', 'Pending')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202520</td>
-                        <td>Phoenix Corp</td>
-                        <td>Gas Detector B-150</td>
-                        <td>24</td>
-                        <td>Feb 7, 2025</td>
-                        <td>Feb 12, 2025</td>
-                        <td><span class="badge pending">Pending</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202520', 'Phoenix Corp', 'Gas Detector B-150', '24', 'Feb 7, 2025', 'Feb 12, 2025', 'Pending')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202521</td>
-                        <td>Aurora Enterprises</td>
-                        <td>Gas Detector A-350</td>
-                        <td>32</td>
-                        <td>Feb 8, 2025</td>
-                        <td>Feb 13, 2025</td>
-                        <td><span class="badge pending">Pending</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202521', 'Aurora Enterprises', 'Gas Detector A-350', '32', 'Feb 8, 2025', 'Feb 13, 2025', 'Pending')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202522</td>
-                        <td>Stellar Manufacturing</td>
-                        <td>Gas Detector B-500</td>
-                        <td>13</td>
-                        <td>Feb 9, 2025</td>
-                        <td>Feb 14, 2025</td>
-                        <td><span class="badge pending">Pending</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202522', 'Stellar Manufacturing', 'Gas Detector B-500', '13', 'Feb 9, 2025', 'Feb 14, 2025', 'Pending')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202523</td>
-                        <td>Luminous Tech</td>
-                        <td>Gas Detector A-200</td>
-                        <td>27</td>
-                        <td>Feb 10, 2025</td>
-                        <td>Feb 15, 2025</td>
-                        <td><span class="badge pending">Pending</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202523', 'Luminous Tech', 'Gas Detector A-200', '27', 'Feb 10, 2025', 'Feb 15, 2025', 'Pending')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202524</td>
-                        <td>Radiant Systems</td>
-                        <td>Gas Detector B-600</td>
-                        <td>9</td>
-                        <td>Feb 11, 2025</td>
-                        <td>Feb 16, 2025</td>
-                        <td><span class="badge pending">Pending</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202524', 'Radiant Systems', 'Gas Detector B-600', '9', 'Feb 11, 2025', 'Feb 16, 2025', 'Pending')">View</a></td>
-                    </tr>
-                    <tr>
-                        <td>#DEL-202525</td>
-                        <td>Brilliant Industries</td>
-                        <td>Gas Detector A-450</td>
-                        <td>33</td>
-                        <td>Feb 12, 2025</td>
-                        <td>Feb 17, 2025</td>
-                        <td><span class="badge pending">Pending</span></td>
-                        <td><a href="#" class="view-btn" onclick="openModal(event, '#DEL-202525', 'Brilliant Industries', 'Gas Detector A-450', '33', 'Feb 12, 2025', 'Feb 17, 2025', 'Pending')">View</a></td>
-                    </tr>
+                    <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
-    </div>
+    </main>
 
     <!-- Detail Modal -->
     <div id="detailModal" class="modal">
@@ -732,27 +558,27 @@ if (empty($_SESSION['user_id'])) {
             </div>
             <div class="modal-body">
                 <div class="modal-row">
-                    <span class="modal-label">Tracking Number</span>
-                    <span class="modal-value" id="modalTracking">#DEL-000000</span>
+                    <span class="modal-label">Serial No.</span>
+                    <span class="modal-value" id="modalTracking">-</span>
                 </div>
                 <div class="modal-row">
-                    <span class="modal-label">Client Name</span>
+                    <span class="modal-label">Invoice No.</span>
                     <span class="modal-value" id="modalClient">-</span>
                 </div>
                 <div class="modal-row">
-                    <span class="modal-label">Product</span>
+                    <span class="modal-label">Item Code</span>
                     <span class="modal-value" id="modalProduct">-</span>
                 </div>
                 <div class="modal-row">
+                    <span class="modal-label">Description</span>
+                    <span class="modal-value" id="modalQuantity">-</span>
+                </div>
+                <div class="modal-row">
                     <span class="modal-label">Quantity</span>
-                    <span class="modal-value" id="modalQuantity">0</span>
+                    <span class="modal-value" id="modalShipDate">0</span>
                 </div>
                 <div class="modal-row">
-                    <span class="modal-label">Ship Date</span>
-                    <span class="modal-value" id="modalShipDate">-</span>
-                </div>
-                <div class="modal-row">
-                    <span class="modal-label">Est. Delivery</span>
+                    <span class="modal-label">Date Delivered</span>
                     <span class="modal-value" id="modalDeliveryDate">-</span>
                 </div>
                 <div class="modal-row full">
@@ -774,19 +600,19 @@ if (empty($_SESSION['user_id'])) {
             return 'badge';
         }
 
-        function openModal(event, tracking, client, product, quantity, shipDate, deliveryDate, status) {
+        function openModal(event, serialNo, invoiceNo, itemCode, description, quantity, deliveryDate, status) {
             event.preventDefault();
-            document.getElementById('modalTracking').textContent = tracking;
-            document.getElementById('modalTrackingId').textContent = `${tracking} Details`;
-            document.getElementById('modalClient').textContent = client;
-            document.getElementById('modalProduct').textContent = product;
-            document.getElementById('modalQuantity').textContent = quantity;
-            document.getElementById('modalShipDate').textContent = shipDate;
-            document.getElementById('modalDeliveryDate').textContent = deliveryDate;
+            document.getElementById('modalTracking').textContent = serialNo || '-';
+            document.getElementById('modalTrackingId').textContent = serialNo ? `${serialNo} Details` : 'Delivery Details';
+            document.getElementById('modalClient').textContent = invoiceNo || '-';
+            document.getElementById('modalProduct').textContent = itemCode || '-';
+            document.getElementById('modalQuantity').textContent = description || '-';
+            document.getElementById('modalShipDate').textContent = quantity || '0';
+            document.getElementById('modalDeliveryDate').textContent = deliveryDate || '-';
             
             const badgeEl = document.getElementById('modalStatusBadge');
             badgeEl.className = getStatusBadgeClass(status);
-            badgeEl.textContent = status;
+            badgeEl.textContent = status || 'Delivered';
             
             document.getElementById('detailModal').classList.add('show');
         }

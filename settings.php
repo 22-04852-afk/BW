@@ -8,6 +8,7 @@ if (empty($_SESSION['user_id'])) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>(function(){if(localStorage.getItem('theme')==='light'){document.documentElement.classList.add('light-mode');document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('light-mode')})}})()</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - BW Gas Detector</title>
@@ -86,13 +87,17 @@ if (empty($_SESSION['user_id'])) {
             cursor: pointer;
             transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            user-select: none;
+            flex-shrink: 0;
         }
 
-
+        .toggle-switch:hover {
+            opacity: 0.9;
+        }
         
         .toggle-switch.active {
-            background: linear-gradient(135deg, #51cf66, #2f5fa7);
-            border-color: #51cf66;
+            background: linear-gradient(135deg, #5bbcff, #2f5fa7);
+            border-color: #5bbcff;
         }
         
         .toggle-slider {
@@ -501,17 +506,45 @@ if (empty($_SESSION['user_id'])) {
             element.classList.toggle('active');
         }
 
-        // Sync dark mode toggle visual state on settings page load
-        (function () {
+        // Initialize dark mode toggle
+        document.addEventListener('DOMContentLoaded', function() {
             const toggle = document.getElementById('darkModeToggle');
             if (!toggle) return;
+            
+            // Set initial state from localStorage
             const isLight = localStorage.getItem('theme') === 'light';
             if (isLight) {
                 toggle.classList.remove('active');
+                document.documentElement.classList.add('light-mode');
+                document.body.classList.add('light-mode');
             } else {
                 toggle.classList.add('active');
+                document.documentElement.classList.remove('light-mode');
+                document.body.classList.remove('light-mode');
             }
-        })();
+            
+            // Add click handler
+            toggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.toggle('active');
+                
+                // Toggle is for "Dark Theme" - active means dark mode ON
+                if (this.classList.contains('active')) {
+                    // Dark mode ON
+                    document.documentElement.classList.remove('light-mode');
+                    document.body.classList.remove('light-mode');
+                    localStorage.setItem('theme', 'dark');
+                    console.log('Theme switched to: Dark Mode');
+                } else {
+                    // Dark mode OFF = Light mode
+                    document.documentElement.classList.add('light-mode');
+                    document.body.classList.add('light-mode');
+                    localStorage.setItem('theme', 'light');
+                    console.log('Theme switched to: Light Mode');
+                }
+            });
+        });
     </script>
 </body>
 </html>

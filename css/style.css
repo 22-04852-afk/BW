@@ -17,6 +17,10 @@
     transition: opacity 0.4s ease, visibility 0.4s ease;
 }
 
+html.light-mode #pageLoader {
+    background: #f5f7fa;
+}
+
 #pageLoader.loader-hidden {
     opacity: 0;
     visibility: hidden;
@@ -68,6 +72,196 @@
     --color-text-lighter: #a0a0a0;
     --color-border: #2a2f45;
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Light Mode Theme */
+html.light-mode,
+body.light-mode {
+    --color-dark-bg: #f5f7fa;
+    --color-dark-secondary: #ffffff;
+    --color-sidebar: #ffffff;
+    --color-primary: #2f5fa7;
+    --color-accent: #2f5fa7;
+    --color-success: #51cf66;
+    --color-danger: #ff6b6b;
+    --color-text-light: #1a1a2e;
+    --color-text-lighter: #6c757d;
+    --color-border: #dee2e6;
+}
+
+html.light-mode,
+body.light-mode {
+    background-color: #f5f7fa;
+    color: #1a1a2e;
+}
+
+html.light-mode .navbar,
+body.light-mode .navbar {
+    background: linear-gradient(135deg, #ffffff 0%, #f0f4f8 100%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+html.light-mode .sidebar,
+body.light-mode .sidebar {
+    background: #ffffff;
+    border-right: 1px solid #dee2e6;
+}
+
+html.light-mode .main-content,
+body.light-mode .main-content {
+    background: #f5f7fa;
+}
+
+html.light-mode .dashboard-title,
+html.light-mode .profile-name,
+body.light-mode .dashboard-title,
+body.light-mode .profile-name {
+    color: #1a1a2e;
+}
+
+html.light-mode .hamburger-btn span,
+body.light-mode .hamburger-btn span {
+    background: #1a1a2e;
+}
+
+html.light-mode .menu-link,
+body.light-mode .menu-link {
+    color: #495057;
+}
+
+html.light-mode .menu-link:hover,
+html.light-mode .menu-item.active .menu-link,
+body.light-mode .menu-link:hover,
+body.light-mode .menu-item.active .menu-link {
+    background: rgba(47, 95, 167, 0.1);
+    color: #2f5fa7;
+}
+
+html.light-mode .profile-btn,
+body.light-mode .profile-btn {
+    background: rgba(47, 95, 167, 0.1);
+    border-color: rgba(47, 95, 167, 0.2);
+    color: #1a1a2e;
+}
+
+html.light-mode .dropdown-menu,
+body.light-mode .dropdown-menu {
+    background: #ffffff;
+    border-color: #dee2e6;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+html.light-mode .dropdown-menu a,
+body.light-mode .dropdown-menu a {
+    color: #495057;
+    border-bottom-color: #dee2e6;
+}
+
+html.light-mode .dropdown-menu a:hover,
+body.light-mode .dropdown-menu a:hover {
+    background: rgba(47, 95, 167, 0.1);
+    color: #2f5fa7;
+}
+
+html.light-mode .settings-section,
+html.light-mode .card,
+html.light-mode .stat-card,
+body.light-mode .settings-section,
+body.light-mode .card,
+body.light-mode .stat-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-color: #dee2e6;
+}
+
+html.light-mode .settings-title,
+html.light-mode .settings-label-text,
+body.light-mode .settings-title,
+body.light-mode .settings-label-text {
+    color: #1a1a2e;
+}
+
+html.light-mode .settings-label-desc,
+body.light-mode .settings-label-desc {
+    color: #6c757d;
+}
+
+/* Light mode - Page Loader */
+body.light-mode #pageLoader,
+html.light-mode #pageLoader {
+    background: #f5f7fa;
+}
+
+/* Light mode - Logo */
+html.light-mode .logo,
+body.light-mode .logo {
+    color: #2f5fa7;
+}
+
+/* Light mode - Cards and sections */
+html.light-mode .upload-section,
+html.light-mode .profile-card,
+html.light-mode .info-item,
+body.light-mode .upload-section,
+body.light-mode .profile-card,
+body.light-mode .info-item {
+    background: linear-gradient(135deg, #ffffff 0%, #f0f4f8 100%);
+    border-color: #dee2e6;
+}
+
+html.light-mode .info-label,
+body.light-mode .info-label {
+    color: #6c757d;
+}
+
+html.light-mode .info-value,
+body.light-mode .info-value {
+    color: #1a1a2e;
+}
+
+/* Light mode - Tables */
+html.light-mode table,
+body.light-mode table {
+    background: #ffffff;
+}
+
+html.light-mode th,
+body.light-mode th {
+    background: #f0f4f8;
+    color: #1a1a2e;
+}
+
+html.light-mode td,
+body.light-mode td {
+    color: #495057;
+    border-color: #dee2e6;
+}
+
+html.light-mode tr:hover,
+body.light-mode tr:hover {
+    background: rgba(47, 95, 167, 0.05);
+}
+
+/* Light mode - Inputs */
+html.light-mode input,
+html.light-mode select,
+html.light-mode textarea,
+body.light-mode input,
+body.light-mode select,
+body.light-mode textarea {
+    background: #ffffff;
+    border-color: #dee2e6;
+    color: #1a1a2e;
+}
+
+html.light-mode input::placeholder,
+body.light-mode input::placeholder {
+    color: #adb5bd;
+}
+
+/* Light mode - Notifications */
+html.light-mode .notification,
+body.light-mode .notification {
+    color: #495057;
 }
 
 html, body {

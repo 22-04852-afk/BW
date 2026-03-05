@@ -8,6 +8,7 @@ if (empty($_SESSION['user_id'])) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>(function(){if(localStorage.getItem('theme')==='light'){document.documentElement.classList.add('light-mode');document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('light-mode')})}})()</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload Data - BW Gas Detector</title>
@@ -621,20 +622,20 @@ if (empty($_SESSION['user_id'])) {
                         </div>
                         <div class="template-content">
                             <h4>📊 Excel File Requirements</h4>
-                            <p>Your Excel file should contain the following columns (in any order). All fields are required:</p>
+                            <p>Your Excel file should contain the following columns (in any order). The system automatically maps common column names:</p>
                             <div class="template-columns">
-                                <span><strong>Delivery_Month</strong></span>
-                                <span><strong>Delivery_Day</strong></span>
-                                <span><strong>Item_Code</strong></span>
-                                <span><strong>Item_Name</strong></span>
-                                <span><strong>Company_Name</strong></span>
-                                <span><strong>Quantity</strong></span>
-                                <span><strong>Status</strong></span>
-                                <span><strong>Notes</strong> (Optional)</span>
+                                <span><strong>Invoice No.</strong></span>
+                                <span><strong>Date</strong></span>
+                                <span><strong>Item</strong></span>
+                                <span><strong>Description</strong></span>
+                                <span><strong>Qty.</strong></span>
+                                <span><strong>Serial No.</strong></span>
+                                <span><strong>Date Delivered</strong></span>
+                                <span><strong>Remarks</strong> (Optional)</span>
                             </div>
                             <p style="margin-top: 15px; font-style: italic;">
                                 <i class="fas fa-lightbulb" style="color: #f4d03f;"></i>
-                                Tip: Download the template to see the exact format expected.
+                                The system also supports: Item_Code, Item_Name, Quantity, Status, Company_Name, etc.
                             </p>
                             <button class="btn-download-template" onclick="downloadTemplate()">
                                 <i class="fas fa-download"></i> Download Template
@@ -721,7 +722,7 @@ if (empty($_SESSION['user_id'])) {
                 </div>
 
                 <div class="upload-actions">
-                    <button class="btn-import" id="importBtn">
+                    <button class="btn-import" id="importBtn" style="display: none; cursor: pointer; position: relative; z-index: 10;">
                         <i class="fas fa-upload"></i> Import Data
                     </button>
                     <button class="btn-cancel" onclick="resetUpload()">
@@ -733,8 +734,12 @@ if (empty($_SESSION['user_id'])) {
     </main>
 
     <script src="js/app.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+    <!-- SheetJS XLSX library - local copy -->
+    <script src="js/xlsx.min.js"></script>
     <script>
+        // Debug: Check if XLSX loaded
+        console.log('XLSX library loaded:', typeof XLSX !== 'undefined');
+        
         const uploadZone = document.getElementById('uploadZone');
         const fileInput = document.getElementById('fileInput');
         const fileInfo = document.getElementById('fileInfo');
@@ -749,6 +754,7 @@ if (empty($_SESSION['user_id'])) {
 
         // Initialize database on page load
         window.addEventListener('load', () => {
+            console.log('Page loaded. Import button:', importBtn);
             fetch('api/setup-db.php')
                 .then(response => response.json())
                 .catch(error => console.log('Database setup complete'));
@@ -800,13 +806,16 @@ if (empty($_SESSION['user_id'])) {
 
             selectedFile = file;
             updateFileInfo(file);
+            // Auto-parse when file is selected
+            parseFile(file);
         }
 
         function updateFileInfo(file) {
             document.getElementById('fileName').textContent = file.name;
             document.getElementById('fileSize').textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
             fileInfo.classList.add('show');
-            document.getElementById('uploadBtn').style.display = 'block';
+            // Hide upload button since we auto-parse
+            document.getElementById('uploadBtn').style.display = 'none';
         }
 
         parseBtn.addEventListener('click', () => {
@@ -815,33 +824,29 @@ if (empty($_SESSION['user_id'])) {
         });
 
         function parseFile(file) {
-            const reader = new FileReader();
             // Show parsing status
             showAlert('info', 'Parsing file... Please wait.');
 
-
-            reader.onload = function(e) {
-                try {
-                    const data = e.target.result;
-                    let rows = [];
-
-                    if (file.name.endsWith('.csv')) {
-                        rows = parseCSV(data);
-                    } else {
-                        // For Excel files, we'll use SheetJS library
-                        parseExcelFile(file);
-                        return;
+            if (file.name.endsWith('.csv')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = e.target.result;
+                        const rows = parseCSV(data);
+                        displayPreview(rows);
+                        showAlert('success', 'File parsed successfully! Review the data and click Import.');
+                    } catch (error) {
+                        showAlert('error', 'Error parsing file: ' + error.message);
                     }
-
-                    displayPreview(rows);
-                    showAlert('success', 'File parsed successfully! Review the data and click Import.');
-
-                } catch (error) {
-                    showAlert('error', 'Error parsing file: ' + error.message);
-                }
-            };
-
-            reader.readAsText(file);
+                };
+                reader.onerror = function(error) {
+                    showAlert('error', 'Error reading file: ' + error.message);
+                };
+                reader.readAsText(file);
+            } else {
+                // For Excel files, use binary parsing
+                parseExcelFile(file);
+            }
         }
 
         function parseCSV(data) {
@@ -863,27 +868,36 @@ if (empty($_SESSION['user_id'])) {
         }
 
         function parseExcelFile(file) {
-            // Load SheetJS library
-            const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js';
-            script.onload = function() {
-                try {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
+            // Process Excel using XLSX library (loaded locally)
+            if (typeof XLSX === 'undefined') {
+                showAlert('error', 'Excel parsing library not loaded. Please refresh the page.');
+                return;
+            }
+            
+            try {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
                         const data = new Uint8Array(e.target.result);
                         const workbook = XLSX.read(data, { type: 'array' });
                         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
                         const rows = XLSX.utils.sheet_to_json(worksheet);
                         
+                        console.log('Parsed rows:', rows);
                         displayPreview(rows);
                         showAlert('success', 'File parsed successfully! Review the data and click Import.');
-                    };
-                    reader.readAsArrayBuffer(file);
-                } catch (error) {
-                    showAlert('error', 'Error parsing Excel file: ' + error.message);
-                }
-            };
-            document.head.appendChild(script);
+                    } catch (error) {
+                        console.error('Excel parse error:', error);
+                        showAlert('error', 'Error parsing Excel file: ' + error.message);
+                    }
+                };
+                reader.onerror = function(error) {
+                    showAlert('error', 'Error reading file: ' + error.message);
+                };
+                reader.readAsArrayBuffer(file);
+            } catch (error) {
+                showAlert('error', 'Error parsing Excel file: ' + error.message);
+            }
         }
 
         function displayPreview(rows) {
@@ -922,6 +936,7 @@ if (empty($_SESSION['user_id'])) {
 
             previewSection.classList.add('show');
             importBtn.style.display = 'block';
+            console.log('Preview shown. Import button visible:', importBtn.style.display);
 
             if (rows.length > 10) {
                 showAlert('info', `Showing first 10 rows of ${rows.length} records.`);
@@ -929,6 +944,7 @@ if (empty($_SESSION['user_id'])) {
         }
 
         importBtn.addEventListener('click', () => {
+            console.log('Import button clicked! parsedData:', parsedData ? parsedData.length : 0);
             if (!parsedData || parsedData.length === 0) return;
 
             importBtn.innerHTML = '<span class="spinner"></span> Importing...';
@@ -1009,32 +1025,36 @@ if (empty($_SESSION['user_id'])) {
         }
 
         function downloadTemplate() {
-            // Create sample template
+            // Create sample template matching actual Excel format
             const templateData = [
                 {
-                    'Delivery_Month': 'January',
-                    'Delivery_Day': '1',
-                    'Item_Code': 'MCX3-BC1',
-                    'Item_Name': 'BW Gas Detector - Model 3 BC1',
-                    'Company_Name': 'Andison Industrial',
-                    'Quantity': '10',
-                    'Status': 'Delivered',
-                    'Notes': 'Sample data'
+                    'Invoice No.': '5268850284',
+                    'Date': '45664',
+                    'Item': 'XT-XWHM-Y-NA',
+                    'Description': 'GasAlertMax XT O2/LEL/H2S/CO',
+                    'Qty.': '40',
+                    'Serial No.': 'MA225-000613',
+                    'Date Delivered': '45729',
+                    'Remarks': '-'
+                },
+                {
+                    'Invoice No.': '5268850284',
+                    'Date': '45664',
+                    'Item': 'XT-XWHM-Y-NA',
+                    'Description': 'GasAlertMax XT O2/LEL/H2S/CO',
+                    'Qty.': '40',
+                    'Serial No.': 'MA225-000614',
+                    'Date Delivered': '45730',
+                    'Remarks': '-'
                 }
             ];
 
-            // Check if SheetJS is available
             if (typeof XLSX === 'undefined') {
-                // Load SheetJS
-                const script = document.createElement('script');
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js';
-                script.onload = function() {
-                    createAndDownloadTemplate(templateData);
-                };
-                document.head.appendChild(script);
-            } else {
-                createAndDownloadTemplate(templateData);
+                showAlert('error', 'Excel library not loaded. Please refresh the page.');
+                return;
             }
+            
+            createAndDownloadTemplate(templateData);
         }
 
         function createAndDownloadTemplate(data) {
@@ -1071,7 +1091,5 @@ if (empty($_SESSION['user_id'])) {
 
         // Profile dropdown
     </script>
-</body>
-</html>
 </body>
 </html>

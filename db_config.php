@@ -42,13 +42,16 @@ try {
 
     $conn->query("CREATE TABLE IF NOT EXISTS delivery_records (
         id             INTEGER PRIMARY KEY AUTOINCREMENT,
-        delivery_month VARCHAR(20)  NOT NULL,
-        delivery_day   INTEGER      NOT NULL,
+        invoice_no     VARCHAR(50),
+        serial_no      VARCHAR(100),
+        delivery_month VARCHAR(20),
+        delivery_day   INTEGER,
+        delivery_date  DATE,
         item_code      VARCHAR(50)  NOT NULL,
         item_name      VARCHAR(255),
-        company_name   VARCHAR(255) NOT NULL,
+        company_name   VARCHAR(255),
         quantity       INTEGER      NOT NULL DEFAULT 0,
-        status         VARCHAR(50)  NOT NULL DEFAULT 'Pending',
+        status         VARCHAR(50)  NOT NULL DEFAULT 'Delivered',
         notes          TEXT,
         created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
         updated_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
