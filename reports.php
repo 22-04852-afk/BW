@@ -920,6 +920,7 @@ if ($result) {
                     <?php endif; ?>
                 `
             },
+            'Delivery Summary Report': {
                 title: 'Delivery Summary Report',
                 date: new Date().toLocaleDateString(),
                 content: `
@@ -1068,13 +1069,17 @@ if ($result) {
                     jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
                 };
                 
-                // Create a styled wrapper for better PDF formatting
+                // Create a styled wrapper for better PDF formatting with logo
                 const styledElement = document.createElement('div');
                 styledElement.innerHTML = `
                     <div style="font-family: Arial, sans-serif; color: #333;">
-                        <h1 style="color: #1a5490; border-bottom: 3px solid #1a5490; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px;">
-                            ${currentReportData.title}
-                        </h1>
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 3px solid #f4d03f;">
+                            <img src="assets/logo.png" style="height: 50px; width: auto; filter: brightness(0) saturate(100%) invert(18%) sepia(89%) saturate(1356%) hue-rotate(196deg) brightness(97%) contrast(91%);" crossorigin="anonymous">
+                            <div>
+                                <h1 style="color: #1a5490; margin: 0; font-size: 22px;">${currentReportData.title}</h1>
+                                <p style="color: #666; margin: 5px 0 0 0; font-size: 11px;">Andison Industrial Sales Inc.</p>
+                            </div>
+                        </div>
                         <p style="color: #666; margin-bottom: 20px; font-size: 12px;">
                             <strong>Generated:</strong> ${new Date().toLocaleString()}
                         </p>
@@ -1097,9 +1102,13 @@ if ($result) {
                 const element = document.createElement('div');
                 element.innerHTML = `
                     <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.8;">
-                        <h1 style="color: #1a5490; border-bottom: 3px solid #1a5490; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px;">
-                            ${report.title}
-                        </h1>
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 3px solid #f4d03f;">
+                            <img src="assets/logo.png" style="height: 50px; width: auto; filter: brightness(0) saturate(100%) invert(18%) sepia(89%) saturate(1356%) hue-rotate(196deg) brightness(97%) contrast(91%);" crossorigin="anonymous">
+                            <div>
+                                <h1 style="color: #1a5490; margin: 0; font-size: 22px;">${report.title}</h1>
+                                <p style="color: #666; margin: 5px 0 0 0; font-size: 11px;">Andison Industrial Sales Inc.</p>
+                            </div>
+                        </div>
                         <p style="color: #666; margin-bottom: 20px; font-size: 12px;">
                             <strong>Generated:</strong> ${new Date().toLocaleString()}
                         </p>
@@ -1117,65 +1126,294 @@ if ($result) {
                     jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
                 };
                 html2pdf().set(opt).from(element).save();
-            } else {
-                const filename = `${reportName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.${format.toLowerCase()}`;
-                showNotification(`Downloading ${reportName} as ${format}...`, 'success');
-                console.log('Export file:', filename);
-                // In a real app, this would trigger actual file download
+                showNotification(`Downloading ${reportName} as PDF...`, 'success');
+            } else if (format === 'CSV') {
+                // Generate Excel XML for CSV (with styled headers)
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = report.content;
+                const tables = tempDiv.querySelectorAll('table');
+                
+                let xmlRows = '';
+                xmlRows += `<Row ss:Height="30"><Cell ss:StyleID="title"><Data ss:Type="String">${report.title}</Data></Cell></Row>`;
+                xmlRows += `<Row><Cell><Data ss:Type="String">Generated: ${new Date().toLocaleString()}</Data></Cell></Row>`;
+                xmlRows += '<Row></Row>';
+                
+                tables.forEach((table, idx) => {
+                    const rows = table.querySelectorAll('tr');
+                    rows.forEach((row, rIdx) => {
+                        const cells = row.querySelectorAll('th, td');
+                        const isHeader = row.querySelector('th') !== null;
+                        let rowXml = '<Row>';
+                        cells.forEach(cell => {
+                            const style = isHeader ? 'ss:StyleID="header"' : 'ss:StyleID="cell"';
+                            const value = cell.textContent.trim();
+                            const numTest = value.replace(/[₱,%,]/g, '');
+                            const type = !isNaN(numTest) && numTest !== '' ? 'Number' : 'String';
+                            const cleanValue = type === 'Number' ? numTest : value;
+                            rowXml += `<Cell ${style}><Data ss:Type="${type}">${cleanValue}</Data></Cell>`;
+                        });
+                        rowXml += '</Row>';
+                        xmlRows += rowXml;
+                    });
+                    xmlRows += '<Row></Row>';
+                });
+                
+                const excelXml = `<` + `?xml version="1.0" encoding="UTF-8"?>
+<` + `?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Styles>
+    <Style ss:ID="Default"><Font ss:FontName="Calibri" ss:Size="11"/></Style>
+    <Style ss:ID="title"><Font ss:FontName="Calibri" ss:Size="16" ss:Bold="1" ss:Color="#1a5490"/></Style>
+    <Style ss:ID="header"><Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2f5fa7" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/></Borders></Style>
+    <Style ss:ID="cell"><Font ss:FontName="Calibri" ss:Size="11"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E0E0E0"/></Borders></Style>
+</Styles>
+<Worksheet ss:Name="${report.title.substring(0, 31)}">
+<Table>${xmlRows}</Table>
+</Worksheet>
+</Workbook>`;
+                
+                const blob = new Blob([excelXml], { type: 'application/vnd.ms-excel' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `${reportName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xls`;
+                link.click();
+                URL.revokeObjectURL(link.href);
+                showNotification(`Downloading ${reportName} as Excel...`, 'success');
+            } else if (format === 'XLSX') {
+                // Generate Excel XML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = report.content;
+                const tables = tempDiv.querySelectorAll('table');
+                
+                let xmlRows = '';
+                let rowNum = 0;
+                
+                // Title row
+                xmlRows += `<Row ss:Height="30"><Cell ss:StyleID="title"><Data ss:Type="String">${report.title}</Data></Cell></Row>`;
+                xmlRows += `<Row><Cell><Data ss:Type="String">Generated: ${new Date().toLocaleString()}</Data></Cell></Row>`;
+                xmlRows += `<Row></Row>`;
+                
+                tables.forEach((table, idx) => {
+                    const rows = table.querySelectorAll('tr');
+                    rows.forEach((row, rIdx) => {
+                        const cells = row.querySelectorAll('th, td');
+                        const isHeader = row.querySelector('th') !== null;
+                        let rowXml = '<Row>';
+                        cells.forEach(cell => {
+                            const style = isHeader ? 'ss:StyleID="header"' : '';
+                            const value = cell.textContent.trim();
+                            const type = !isNaN(value.replace(/[₱,%]/g, '')) && value !== '' ? 'Number' : 'String';
+                            const cleanValue = type === 'Number' ? value.replace(/[₱,%,]/g, '') : value;
+                            rowXml += `<Cell ${style}><Data ss:Type="${type}">${cleanValue}</Data></Cell>`;
+                        });
+                        rowXml += '</Row>';
+                        xmlRows += rowXml;
+                    });
+                    xmlRows += '<Row></Row>';
+                });
+                
+                const excelXml = `<` + `?xml version="1.0" encoding="UTF-8"?>
+<` + `?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Styles>
+    <Style ss:ID="Default"><Font ss:FontName="Calibri" ss:Size="11"/></Style>
+    <Style ss:ID="title"><Font ss:FontName="Calibri" ss:Size="16" ss:Bold="1" ss:Color="#1a5490"/></Style>
+    <Style ss:ID="header"><Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2f5fa7" ss:Pattern="Solid"/></Style>
+</Styles>
+<Worksheet ss:Name="${report.title.substring(0, 31)}">
+<Table>${xmlRows}</Table>
+</Worksheet>
+</Workbook>`;
+                
+                const blob = new Blob([excelXml], { type: 'application/vnd.ms-excel' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `${reportName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xls`;
+                link.click();
+                URL.revokeObjectURL(link.href);
+                showNotification(`Downloading ${reportName} as Excel...`, 'success');
             }
         }
         
         function handleExport(action) {
             const format = action.match(/CSV|XLSX|PDF/)[0];
-            const filename = `BW_Gas_Detector_Export_${new Date().toISOString().split('T')[0]}.${format.toLowerCase()}`;
+            const filename = `BW_Gas_Detector_Export_${new Date().toISOString().split('T')[0]}`;
+            
+            // Get export data from PHP
+            const exportData = {
+                totalRevenue: '<?php echo $totalRevenue; ?>K',
+                totalUnits: <?php echo $totalUnits; ?>,
+                totalOrders: <?php echo $totalOrders; ?>,
+                activeClients: <?php echo $activeClients; ?>,
+                topClients: <?php echo json_encode($topClients); ?>,
+                topProducts: <?php echo json_encode($topProducts); ?>,
+                monthlyBreakdown: <?php echo json_encode($monthlyBreakdown); ?>,
+                statusBreakdown: <?php echo json_encode($statusBreakdown); ?>
+            };
             
             if (format === 'PDF') {
                 const element = document.createElement('div');
                 element.innerHTML = `
                     <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.8;">
-                        <h1 style="color: #1a5490; border-bottom: 3px solid #1a5490; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px;">
-                            BW Gas Detector - Complete Data Export
-                        </h1>
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 3px solid #f4d03f;">
+                            <img src="assets/logo.png" style="height: 50px; width: auto; filter: brightness(0) saturate(100%) invert(18%) sepia(89%) saturate(1356%) hue-rotate(196deg) brightness(97%) contrast(91%);" crossorigin="anonymous">
+                            <div>
+                                <h1 style="color: #1a5490; margin: 0; font-size: 22px;">BW Gas Detector - Complete Data Export</h1>
+                                <p style="color: #666; margin: 5px 0 0 0; font-size: 11px;">Andison Industrial Sales Inc.</p>
+                            </div>
+                        </div>
                         <p style="color: #666; margin-bottom: 20px; font-size: 12px;">
                             <strong>Generated:</strong> ${new Date().toLocaleString()}
                         </p>
                         <h2 style="color: #1a5490; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">Year-to-Date Summary</h2>
                         <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
                             <tr style="background: #e8eef5; border: 1px solid #ddd;">
-                                <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Total Revenue</td>
-                                <td style="padding: 10px; border: 1px solid #ddd;">₱168,500</td>
+                                <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Est. Revenue</td>
+                                <td style="padding: 10px; border: 1px solid #ddd;">₱${exportData.totalRevenue}</td>
                             </tr>
                             <tr style="border: 1px solid #ddd;">
                                 <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Units Delivered</td>
-                                <td style="padding: 10px; border: 1px solid #ddd;">696</td>
+                                <td style="padding: 10px; border: 1px solid #ddd;">${exportData.totalUnits.toLocaleString()}</td>
                             </tr>
                             <tr style="background: #e8eef5; border: 1px solid #ddd;">
-                                <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Units Sold</td>
-                                <td style="padding: 10px; border: 1px solid #ddd;">311</td>
+                                <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Total Orders</td>
+                                <td style="padding: 10px; border: 1px solid #ddd;">${exportData.totalOrders.toLocaleString()}</td>
                             </tr>
                             <tr style="border: 1px solid #ddd;">
                                 <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Active Clients</td>
-                                <td style="padding: 10px; border: 1px solid #ddd;">15</td>
+                                <td style="padding: 10px; border: 1px solid #ddd;">${exportData.activeClients}</td>
                             </tr>
                         </table>
-                        <p style="margin-top: 20px; color: #666; font-size: 13px;">
-                            This is a comprehensive export of all sales, delivery, and product data for the current period.
-                        </p>
+                        <h2 style="color: #1a5490; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">Top Clients</h2>
+                        <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+                            <tr style="background: #2f5fa7; color: white;">
+                                <th style="padding: 10px; border: 1px solid #ddd;">Client</th>
+                                <th style="padding: 10px; border: 1px solid #ddd;">Orders</th>
+                                <th style="padding: 10px; border: 1px solid #ddd;">Units</th>
+                            </tr>
+                            ${exportData.topClients.map(c => `<tr><td style="padding: 10px; border: 1px solid #ddd;">${c.company_name}</td><td style="padding: 10px; border: 1px solid #ddd;">${parseInt(c.order_count).toLocaleString()}</td><td style="padding: 10px; border: 1px solid #ddd;">${parseInt(c.total_qty).toLocaleString()}</td></tr>`).join('')}
+                        </table>
                     </div>
                 `;
                 
                 const opt = {
                     margin: [15, 15, 15, 15],
-                    filename: filename,
+                    filename: filename + '.pdf',
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: { scale: 2, backgroundColor: '#ffffff' },
                     jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
                 };
                 html2pdf().set(opt).from(element).save();
+                showNotification(`Exporting all data as PDF...`, 'success');
+            } else if (format === 'CSV') {
+                // Generate Excel XML for CSV (with styled headers)
+                let xmlRows = '';
+                xmlRows += '<Row ss:Height="30"><Cell ss:StyleID="title" ss:MergeAcross="3"><Data ss:Type="String">BW Gas Detector - Complete Data Export</Data></Cell></Row>';
+                xmlRows += `<Row><Cell><Data ss:Type="String">Generated: ${new Date().toLocaleString()}</Data></Cell></Row>`;
+                xmlRows += '<Row></Row>';
+                
+                // Summary section
+                xmlRows += '<Row><Cell ss:StyleID="section" ss:MergeAcross="1"><Data ss:Type="String">SUMMARY</Data></Cell></Row>';
+                xmlRows += '<Row><Cell ss:StyleID="header"><Data ss:Type="String">Metric</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Value</Data></Cell></Row>';
+                xmlRows += `<Row><Cell ss:StyleID="cell"><Data ss:Type="String">Est. Revenue</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="String">₱${exportData.totalRevenue}</Data></Cell></Row>`;
+                xmlRows += `<Row><Cell ss:StyleID="cell"><Data ss:Type="String">Units Delivered</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${exportData.totalUnits}</Data></Cell></Row>`;
+                xmlRows += `<Row><Cell ss:StyleID="cell"><Data ss:Type="String">Total Orders</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${exportData.totalOrders}</Data></Cell></Row>`;
+                xmlRows += `<Row><Cell ss:StyleID="cell"><Data ss:Type="String">Active Clients</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${exportData.activeClients}</Data></Cell></Row>`;
+                xmlRows += '<Row></Row>';
+                
+                // Top Clients section
+                xmlRows += '<Row><Cell ss:StyleID="section" ss:MergeAcross="2"><Data ss:Type="String">TOP CLIENTS</Data></Cell></Row>';
+                xmlRows += '<Row><Cell ss:StyleID="header"><Data ss:Type="String">Client</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Orders</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Units</Data></Cell></Row>';
+                exportData.topClients.forEach(c => {
+                    xmlRows += `<Row><Cell ss:StyleID="cell"><Data ss:Type="String">${c.company_name}</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${c.order_count}</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${c.total_qty}</Data></Cell></Row>`;
+                });
+                xmlRows += '<Row></Row>';
+                
+                // Top Products section
+                xmlRows += '<Row><Cell ss:StyleID="section" ss:MergeAcross="3"><Data ss:Type="String">TOP PRODUCTS</Data></Cell></Row>';
+                xmlRows += '<Row><Cell ss:StyleID="header"><Data ss:Type="String">Item Code</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Description</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Orders</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Units</Data></Cell></Row>';
+                exportData.topProducts.forEach(p => {
+                    xmlRows += `<Row><Cell ss:StyleID="cell"><Data ss:Type="String">${p.item_code}</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="String">${p.item_name || '-'}</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${p.order_count}</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${p.total_qty}</Data></Cell></Row>`;
+                });
+                
+                const excelXml = `<` + `?xml version="1.0" encoding="UTF-8"?>
+<` + `?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Styles>
+    <Style ss:ID="Default"><Font ss:FontName="Calibri" ss:Size="11"/></Style>
+    <Style ss:ID="title"><Font ss:FontName="Calibri" ss:Size="16" ss:Bold="1" ss:Color="#1a5490"/></Style>
+    <Style ss:ID="section"><Font ss:FontName="Calibri" ss:Size="12" ss:Bold="1" ss:Color="#333333"/><Interior ss:Color="#f4d03f" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="header"><Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2f5fa7" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/></Borders></Style>
+    <Style ss:ID="cell"><Font ss:FontName="Calibri" ss:Size="11"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E0E0E0"/></Borders></Style>
+</Styles>
+<Worksheet ss:Name="Complete Export">
+<Table>
+<Column ss:Width="150"/>
+<Column ss:Width="150"/>
+<Column ss:Width="100"/>
+<Column ss:Width="100"/>
+${xmlRows}</Table>
+</Worksheet>
+</Workbook>`;
+                
+                const blob = new Blob([excelXml], { type: 'application/vnd.ms-excel' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename + '.xls';
+                link.click();
+                URL.revokeObjectURL(link.href);
+                showNotification(`Exporting all data as Excel...`, 'success');
+            } else if (format === 'XLSX') {
+                let xmlRows = '';
+                
+                // Title
+                xmlRows += '<Row ss:Height="30"><Cell ss:StyleID="title"><Data ss:Type="String">BW Gas Detector - Complete Data Export</Data></Cell></Row>';
+                xmlRows += `<Row><Cell><Data ss:Type="String">Generated: ${new Date().toLocaleString()}</Data></Cell></Row>`;
+                xmlRows += '<Row></Row>';
+                
+                // Summary
+                xmlRows += '<Row><Cell ss:StyleID="header"><Data ss:Type="String">Summary</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Value</Data></Cell></Row>';
+                xmlRows += `<Row><Cell><Data ss:Type="String">Est. Revenue</Data></Cell><Cell><Data ss:Type="String">₱${exportData.totalRevenue}</Data></Cell></Row>`;
+                xmlRows += `<Row><Cell><Data ss:Type="String">Units Delivered</Data></Cell><Cell><Data ss:Type="Number">${exportData.totalUnits}</Data></Cell></Row>`;
+                xmlRows += `<Row><Cell><Data ss:Type="String">Total Orders</Data></Cell><Cell><Data ss:Type="Number">${exportData.totalOrders}</Data></Cell></Row>`;
+                xmlRows += `<Row><Cell><Data ss:Type="String">Active Clients</Data></Cell><Cell><Data ss:Type="Number">${exportData.activeClients}</Data></Cell></Row>`;
+                xmlRows += '<Row></Row>';
+                
+                // Top Clients
+                xmlRows += '<Row><Cell ss:StyleID="header"><Data ss:Type="String">Client</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Orders</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Units</Data></Cell></Row>';
+                exportData.topClients.forEach(c => {
+                    xmlRows += `<Row><Cell><Data ss:Type="String">${c.company_name}</Data></Cell><Cell><Data ss:Type="Number">${c.order_count}</Data></Cell><Cell><Data ss:Type="Number">${c.total_qty}</Data></Cell></Row>`;
+                });
+                xmlRows += '<Row></Row>';
+                
+                // Top Products
+                xmlRows += '<Row><Cell ss:StyleID="header"><Data ss:Type="String">Item Code</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Description</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Orders</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Units</Data></Cell></Row>';
+                exportData.topProducts.forEach(p => {
+                    xmlRows += `<Row><Cell><Data ss:Type="String">${p.item_code}</Data></Cell><Cell><Data ss:Type="String">${p.item_name || '-'}</Data></Cell><Cell><Data ss:Type="Number">${p.order_count}</Data></Cell><Cell><Data ss:Type="Number">${p.total_qty}</Data></Cell></Row>`;
+                });
+                
+                const excelXml = `<` + `?xml version="1.0" encoding="UTF-8"?>
+<` + `?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Styles>
+    <Style ss:ID="Default"><Font ss:FontName="Calibri" ss:Size="11"/></Style>
+    <Style ss:ID="title"><Font ss:FontName="Calibri" ss:Size="16" ss:Bold="1" ss:Color="#1a5490"/></Style>
+    <Style ss:ID="header"><Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2f5fa7" ss:Pattern="Solid"/></Style>
+</Styles>
+<Worksheet ss:Name="Complete Export">
+<Table>${xmlRows}</Table>
+</Worksheet>
+</Workbook>`;
+                
+                const blob = new Blob([excelXml], { type: 'application/vnd.ms-excel' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename + '.xls';
+                link.click();
+                URL.revokeObjectURL(link.href);
+                showNotification(`Exporting all data as Excel...`, 'success');
             }
-            
-            showNotification(`Exporting all data as ${format}...`, 'success');
-            console.log('Export file:', filename);
         }
         
         function showNotification(message, type = 'info') {

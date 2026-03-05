@@ -1215,6 +1215,15 @@ if ($result) {
                         <label for="add_groupings">Groupings</label>
                         <input type="text" id="add_groupings" name="groupings" placeholder="e.g., A, B, C">
                     </div>
+                    <div class="form-group">
+                        <label for="add_status">Status</label>
+                        <select id="add_status" name="status">
+                            <option value="Delivered">Delivered</option>
+                            <option value="Pending">Pending</option>
+                            <option value="In Transit">In Transit</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
                     <div class="form-group full-width">
                         <label for="add_notes">Remarks</label>
                         <textarea id="add_notes" name="notes" rows="3" placeholder="Additional remarks..."></textarea>
@@ -1422,6 +1431,15 @@ if ($result) {
                         <label for="edit_groupings">Groupings</label>
                         <input type="text" id="edit_groupings" name="groupings" placeholder="e.g., A, B, C">
                     </div>
+                    <div class="form-group">
+                        <label for="edit_status">Status</label>
+                        <select id="edit_status" name="status">
+                            <option value="Delivered">Delivered</option>
+                            <option value="Pending">Pending</option>
+                            <option value="In Transit">In Transit</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
                     <div class="form-group full-width">
                         <label for="edit_notes">Remarks</label>
                         <textarea id="edit_notes" name="notes" rows="3" placeholder="Additional remarks..."></textarea>
@@ -1604,7 +1622,7 @@ if ($result) {
                 sold_to_day: parseInt(document.getElementById('add_sold_to_day').value) || 0,
                 groupings: document.getElementById('add_groupings').value,
                 notes: document.getElementById('add_notes').value,
-                status: 'Delivered'
+                status: document.getElementById('add_status').value
             };
             
             // Send to API
@@ -1679,6 +1697,7 @@ if ($result) {
             document.getElementById('edit_uom').value = record.uom || '';
             document.getElementById('edit_notes').value = record.notes || '';
             document.getElementById('edit_groupings').value = record.groupings || '';
+            document.getElementById('edit_status').value = record.status || 'Delivered';
             
             // Date fields
             if (record.delivery_date) {
@@ -1736,7 +1755,8 @@ if ($result) {
                 sold_to_month: document.getElementById('edit_sold_to_month').value,
                 sold_to_day: document.getElementById('edit_sold_to_day').value,
                 groupings: document.getElementById('edit_groupings').value,
-                notes: document.getElementById('edit_notes').value
+                notes: document.getElementById('edit_notes').value,
+                status: document.getElementById('edit_status').value
             };
             
             // Send to API

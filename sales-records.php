@@ -22,19 +22,23 @@ $yearExpr = $isMysql
     ? "CASE WHEN delivery_year > 0 THEN delivery_year WHEN delivery_date IS NOT NULL THEN YEAR(delivery_date) ELSE YEAR(created_at) END"
     : "CASE WHEN delivery_year > 0 THEN delivery_year WHEN delivery_date IS NOT NULL THEN CAST(strftime('%Y', delivery_date) AS INTEGER) ELSE CAST(strftime('%Y', created_at) AS INTEGER) END";
 
-// Get available years from data
+// Get available years from data (ordered by record count DESC, then year DESC)
 $availableYears = [];
-$result = $conn->query("SELECT DISTINCT ({$yearExpr}) as year FROM delivery_records WHERE ({$yearExpr}) > 0 ORDER BY year DESC");
-if ($result) {
-    while ($row = $result->fetch_assoc()) {
+$yearCountResult = $conn->query("SELECT ({$yearExpr}) as year, COUNT(*) as cnt FROM delivery_records WHERE ({$yearExpr}) > 0 GROUP BY ({$yearExpr}) ORDER BY cnt DESC, year DESC");
+if ($yearCountResult) {
+    $firstYear = null;
+    while ($row = $yearCountResult->fetch_assoc()) {
         if (intval($row['year']) > 0) {
+            if ($firstYear === null) $firstYear = intval($row['year']); // Year with most records
             $availableYears[] = intval($row['year']);
         }
     }
+    // Sort years DESC for dropdown display
+    rsort($availableYears);
 }
 
-// Default to the most recent year that has data; fall back to current year if no data
-$defaultYear = !empty($availableYears) ? $availableYears[0] : $currentYear;
+// Default to the year with most data; fall back to current year if no data
+$defaultYear = isset($firstYear) ? $firstYear : $currentYear;
 $selectedYear = isset($_GET['year']) ? intval($_GET['year']) : $defaultYear;
 
 // Always include current year in the dropdown (even if no data yet)

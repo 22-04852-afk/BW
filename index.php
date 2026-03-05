@@ -308,23 +308,49 @@ if ($result && $row = $result->fetch_assoc()) {
     <!-- MAIN CONTENT -->
     <main class="main-content" id="mainContent">
         <!-- Welcome Banner Section -->
-        <div class="welcome-banner">
+        <div class="welcome-banner industrial">
+            <div class="banner-overlay"></div>
             <div class="welcome-content">
-                <div class="welcome-text">
-                    <h2>Welcome, <?php echo htmlspecialchars($user_name); ?>! 🎉</h2>
-                    <p><?php echo $stats['monthly_average'] > 0 ? 'Your sales are performing great this month!' : 'Start tracking your sales today!'; ?></p>
-                </div>
-                <div class="welcome-stats">
-                    <div class="stat-card">
-                        <span class="stat-amount">₱<?php echo number_format((intval($stats['total_delivered']) * 500) / 1000, 1); ?>K</span>
-                        <span class="stat-desc">Units delivered this month</span>
+                <div class="welcome-left">
+                    <div class="industrial-icon">
+                        <i class="fas fa-industry"></i>
                     </div>
-                    <button class="btn-primary" onclick="goToReports()">View Details</button>
+                    <div class="welcome-text">
+                        <h2>Welcome back, <?php echo htmlspecialchars($user_name); ?>!</h2>
+                        <p><?php echo $stats['monthly_average'] > 0 ? 'Operations running smoothly. Keep up the great work!' : 'Ready to track your industrial operations!'; ?></p>
+                    </div>
                 </div>
-                <div class="welcome-illustration">
-                    <i class="fas fa-gift"></i>
+                <div class="welcome-center">
+                    <div class="stat-cards-industrial">
+                        <div class="stat-card-ind highlight">
+                            <div class="stat-icon-ind green">
+                                <i class="fas fa-coins"></i>
+                            </div>
+                            <div class="stat-info-ind">
+                                <span class="stat-value-ind">₱<?php echo number_format((intval($stats['total_delivered']) * 500) / 1000, 1); ?>K</span>
+                                <span class="stat-label-ind">Revenue</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="welcome-right">
+                    <div class="quick-actions">
+                        <button class="btn-industrial" onclick="goToReports()">
+                            <i class="fas fa-chart-line"></i>
+                            <span>View Reports</span>
+                        </button>
+                        <button class="btn-industrial secondary" onclick="window.location.href='delivery-records.php'">
+                            <i class="fas fa-truck"></i>
+                            <span>Deliveries</span>
+                        </button>
+                    </div>
+                    <div class="status-indicator">
+                        <span class="status-dot online"></span>
+                        <span class="status-text">System Online</span>
+                    </div>
                 </div>
             </div>
+            <div class="industrial-pattern"></div>
         </div>
 
         <!-- KPI METRICS SECTION -->
