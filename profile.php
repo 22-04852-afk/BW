@@ -14,7 +14,7 @@ if (empty($userEmail)) {
     header('Location: login.php', true, 302);
     exit;
 }
-?><!DOCTYPE html>
+?><!DOCTYPE html>   
 <html lang="en">
 <head>
     <meta charset="UTF-8">
