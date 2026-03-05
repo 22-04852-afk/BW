@@ -403,11 +403,11 @@ foreach ($companies as $c) {
                         <div class="stat-label">Units Sold</div>
                     </div>
                     <div class="stat">
-                        <div class="stat-value">$<?php echo $revenue; ?>K</div>
+                        <div class="stat-value">₱<?php echo $revenue; ?>K</div>
                         <div class="stat-label">Revenue</div>
                     </div>
                 </div>
-                <button class="view-more-btn">View Profile</button>
+                <button class="view-more-btn" onclick="viewCompanyProfile('<?php echo htmlspecialchars(addslashes($company['company_name'])); ?>')">View Profile</button>
             </div>
             <?php endforeach; ?>
             
@@ -419,6 +419,351 @@ foreach ($companies as $c) {
             <?php endif; ?>
         </div>
     </div>
+
+    <!-- Company Profile Modal -->
+    <div class="profile-modal-overlay" id="profileModal">
+        <div class="profile-modal">
+            <div class="profile-modal-header">
+                <h2><i class="fas fa-building"></i> <span id="modalCompanyName">Company Profile</span></h2>
+                <button class="close-modal" onclick="closeProfileModal()">&times;</button>
+            </div>
+            <div class="profile-modal-body" id="profileModalBody">
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .profile-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .profile-modal-overlay.active {
+            display: flex;
+        }
+        .profile-modal {
+            background: #1e1e1e;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .profile-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px 16px 0 0;
+        }
+        .profile-modal-header h2 {
+            margin: 0;
+            font-size: 1.4rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .close-modal {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #fff;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .close-modal:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .profile-modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .loading-spinner {
+            text-align: center;
+            padding: 60px;
+            color: #888;
+            font-size: 1.2rem;
+        }
+        .profile-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .profile-stat {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .profile-stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 4px;
+        }
+        .profile-stat-label {
+            color: #888;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+        .profile-section {
+            margin-bottom: 24px;
+        }
+        .profile-section-title {
+            font-size: 1.1rem;
+            color: #fff;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .profile-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .profile-table th {
+            background: #2a2a2a;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #667eea;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+        .profile-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #333;
+            color: #ddd;
+        }
+        .profile-table tr:hover td {
+            background: #2a2a2a;
+        }
+        .yearly-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+        .yearly-card {
+            background: #2a2a2a;
+            padding: 16px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .yearly-card-year {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+        .yearly-card-stats {
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+        .yearly-card-stats span {
+            display: block;
+            margin: 4px 0;
+        }
+        @media (max-width: 768px) {
+            .profile-summary {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .profile-modal {
+                max-height: 95vh;
+            }
+        }
+    </style>
+
+    <script>
+        function viewCompanyProfile(companyName) {
+            const modal = document.getElementById('profileModal');
+            const modalBody = document.getElementById('profileModalBody');
+            const modalTitle = document.getElementById('modalCompanyName');
+            
+            modalTitle.textContent = companyName;
+            modalBody.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            
+            fetch('api/get-company-profile.php?company=' + encodeURIComponent(companyName), {
+                credentials: 'same-origin'
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        modalBody.innerHTML = '<div style="text-align:center;color:#ff6b6b;padding:40px;">' + data.error + '</div>';
+                        return;
+                    }
+                    
+                    const summary = data.summary;
+                    const revenue = ((summary.total_units * 540) / 1000).toFixed(1);
+                    
+                    let html = `
+                        <div class="profile-summary">
+                            <div class="profile-stat">
+                                <div class="profile-stat-value">${Number(summary.total_orders).toLocaleString()}</div>
+                                <div class="profile-stat-label">Total Orders</div>
+                            </div>
+                            <div class="profile-stat">
+                                <div class="profile-stat-value">${Number(summary.total_units).toLocaleString()}</div>
+                                <div class="profile-stat-label">Units Sold</div>
+                            </div>
+                            <div class="profile-stat">
+                                <div class="profile-stat-value">${summary.unique_products}</div>
+                                <div class="profile-stat-label">Products</div>
+                            </div>
+                            <div class="profile-stat">
+                                <div class="profile-stat-value">₱${revenue}K</div>
+                                <div class="profile-stat-label">Revenue</div>
+                            </div>
+                        </div>
+                        
+                        <div class="profile-section">
+                            <div class="profile-section-title"><i class="fas fa-calendar-alt"></i> Activity Period</div>
+                            <p style="color:#aaa;margin:0;">
+                                <strong style="color:#fff;">First Order:</strong> ${formatDate(summary.first_delivery)} &nbsp;&nbsp;|&nbsp;&nbsp;
+                                <strong style="color:#fff;">Last Order:</strong> ${formatDate(summary.last_delivery)}
+                            </p>
+                        </div>
+                    `;
+                    
+                    // Yearly breakdown
+                    if (data.yearly && data.yearly.length > 0) {
+                        html += `
+                            <div class="profile-section">
+                                <div class="profile-section-title"><i class="fas fa-chart-bar"></i> Yearly Breakdown</div>
+                                <div class="yearly-grid">
+                                    ${data.yearly.map(y => `
+                                        <div class="yearly-card">
+                                            <div class="yearly-card-year">${y.year}</div>
+                                            <div class="yearly-card-stats">
+                                                <span><i class="fas fa-box"></i> ${Number(y.units).toLocaleString()} units</span>
+                                                <span><i class="fas fa-file-invoice"></i> ${y.orders} orders</span>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Products table
+                    if (data.products && data.products.length > 0) {
+                        html += `
+                            <div class="profile-section">
+                                <div class="profile-section-title"><i class="fas fa-box-open"></i> Products Purchased</div>
+                                <table class="profile-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Model</th>
+                                            <th>Total Qty</th>
+                                            <th>Orders</th>
+                                            <th>Last Ordered</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.products.map(p => `
+                                            <tr>
+                                                <td>${p.model}</td>
+                                                <td>${Number(p.total_qty).toLocaleString()}</td>
+                                                <td>${p.order_count}</td>
+                                                <td>${formatDate(p.last_ordered)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    }
+                    
+                    // Recent deliveries
+                    if (data.deliveries && data.deliveries.length > 0) {
+                        html += `
+                            <div class="profile-section">
+                                <div class="profile-section-title"><i class="fas fa-truck"></i> Recent Deliveries</div>
+                                <table class="profile-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Model</th>
+                                            <th>Qty</th>
+                                            <th>Groupings</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.deliveries.map(d => `
+                                            <tr>
+                                                <td>${formatDate(d.delivery_date)}</td>
+                                                <td>${d.model}</td>
+                                                <td>${d.qty}</td>
+                                                <td>${d.groupings || '-'}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    }
+                    
+                    modalBody.innerHTML = html;
+                })
+                .catch(err => {
+                    modalBody.innerHTML = '<div style="text-align:center;color:#ff6b6b;padding:40px;">Error loading profile</div>';
+                    console.error(err);
+                });
+        }
+        
+        function closeProfileModal() {
+            document.getElementById('profileModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+        
+        // Close modal on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeProfileModal();
+        });
+        
+        // Close modal on overlay click
+        document.getElementById('profileModal').addEventListener('click', function(e) {
+            if (e.target === this) closeProfileModal();
+        });
+    </script>
 
     <script src="js/app.js" defer></script>
 </body>

@@ -124,6 +124,7 @@ $column_mappings = [
     // Delivery month variations (from user's Excel format)
     'DELIVERY MONTH TO ANDISON' => 'delivery_month',
     'Delivery Month To Andison' => 'delivery_month',
+    'Delivery Month to Andison' => 'delivery_month',
     'Delivery_Month' => 'delivery_month',
     'Delivery Month' => 'delivery_month',
     
@@ -131,6 +132,8 @@ $column_mappings = [
     'DELIVERY DAY TO ANDISON' => 'delivery_day',
     'DEILVERY DAY TO ANDISON' => 'delivery_day',
     'Delivery Day To Andison' => 'delivery_day',
+    'Delivery Day to Andison' => 'delivery_day',
+    'Delilvery Day to Andison' => 'delivery_day',
     'Delivery_Day' => 'delivery_day',
     'Delivery Day' => 'delivery_day',
     
@@ -165,6 +168,26 @@ $column_mappings = [
     // UOM (Unit of Measure)
     'UOM' => 'uom',
     'Uom' => 'uom',
+    'uom' => 'uom',
+    'Unit' => 'uom',
+    'Unit of Measure' => 'uom',
+    
+    // Sold To Month
+    'Sold To Month' => 'sold_to_month',
+    'SOLD TO MONTH' => 'sold_to_month',
+    'sold_to_month' => 'sold_to_month',
+    
+    // Sold To Day
+    'Sold To Day' => 'sold_to_day',
+    'SOLD TO DAY' => 'sold_to_day',
+    'sold_to_day' => 'sold_to_day',
+    
+    // Groupings
+    'Groupings' => 'groupings',
+    'GROUPINGS' => 'groupings',
+    'groupings' => 'groupings',
+    'Grouping' => 'groupings',
+    'Group' => 'groupings',
 ];
 
 // Build lowercase version of mappings for case-insensitive lookup
@@ -256,11 +279,14 @@ try {
                 }
             }
             
-            // Final defaults
-            if ($year <= 0) $year = intval(date('Y'));
+            // Don't auto-fill year if not provided
+            // if ($year <= 0) $year = intval(date('Y'));
             
-            // Skip completely empty rows
-            if (empty($item_code) && empty($item_name) && empty($invoice_no) && $quantity == 0) {
+            // Skip completely empty rows - only if ALL fields are empty
+            $has_any_data = !empty($item_code) || !empty($item_name) || !empty($invoice_no) || 
+                           $quantity > 0 || !empty($serial_no) || !empty($company_name) ||
+                           !empty($delivery_month) || $delivery_day > 0 || !empty($notes);
+            if (!$has_any_data) {
                 $skipped_count++;
                 $skipped[] = "Row " . ($index + 2) . ": empty row";
                 continue;
@@ -285,49 +311,45 @@ try {
             // Handle "-" as empty
             if ($notes == '-') $notes = '';
             if ($serial_no == '-') $serial_no = '';
-            if ($company_name == '-') $company_name = 'Andison Industrial';
+            if ($company_name == '-') $company_name = '';
             
-            // Append UOM to notes if present
-            if (!empty($uom) && $uom != '-') {
-                $notes = !empty($notes) ? $notes . ' (' . $uom . ')' : $uom;
-            }
+            // Handle UOM - store in its own column (no default)
+            if ($uom == '-') $uom = '';
+            
+            // Extract sold_to_month, sold_to_day, groupings
+            $sold_to_month = isset($mapped['sold_to_month']) ? trim(strval($mapped['sold_to_month'])) : '';
+            $sold_to_day = isset($mapped['sold_to_day']) ? intval($mapped['sold_to_day']) : 0;
+            $groupings = isset($mapped['groupings']) ? trim(strval($mapped['groupings'])) : '';
+            
+            // Handle "-" values
+            if ($sold_to_month == '-') $sold_to_month = '';
+            if ($groupings == '-') $groupings = '';
+            if ($delivery_month == '-') $delivery_month = '';
             
             // Default status if empty
             if (empty($status) || $status == '-') {
                 $status = 'Delivered';
             }
             
-            // Default delivery month if empty
-            if (empty($delivery_month)) {
-                $delivery_month = date('F');
-            }
-            
-            // Default delivery day if empty
-            if ($delivery_day == 0) {
-                $delivery_day = intval(date('j'));
-            }
-
-            // If quantity is still 0 but the row has a serial number or item,
-            // treat as 1 unit (one row = one serialised unit)
-            if ($quantity == 0 && (!empty($serial_no) || !empty($item_name) || !empty($item_code))) {
-                $quantity = 1;
-            }
+            // Don't set default delivery month/day - only store what's in the Excel
+            // Don't auto-fill quantity - if Excel has no quantity, leave it as 0/empty
 
             // Insert into database
             $sql = "INSERT INTO delivery_records 
-                    (invoice_no, serial_no, delivery_month, delivery_day, delivery_year, delivery_date, item_code, item_name, company_name, quantity, status, notes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    (invoice_no, serial_no, delivery_month, delivery_day, delivery_year, delivery_date, item_code, item_name, company_name, quantity, status, notes, uom, sold_to_month, sold_to_day, groupings)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
             $stmt = $conn->prepare($sql);
             if (!$stmt) {
-                throw new Exception("Prepare failed: " . $conn->error);
+                throw new Exception("Prepare failed: " . ($conn->error ?? 'Unknown error'));
             }
 
             // Types: s=invoice_no, s=serial_no, s=delivery_month, i=delivery_day,
             //        i=delivery_year, s=delivery_date, s=item_code, s=item_name,
-            //        s=company_name, i=quantity, s=status, s=notes
+            //        s=company_name, i=quantity, s=status, s=notes, s=uom,
+            //        s=sold_to_month, i=sold_to_day, s=groupings
             $stmt->bind_param(
-                'sssiissssiss',
+                'sssiissssississs',
                 $invoice_no,
                 $serial_no,
                 $delivery_month,
@@ -339,7 +361,11 @@ try {
                 $company_name,
                 $quantity,
                 $status,
-                $notes
+                $notes,
+                $uom,
+                $sold_to_month,
+                $sold_to_day,
+                $groupings
             );
 
             if (!$stmt->execute()) {

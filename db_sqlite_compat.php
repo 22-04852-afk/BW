@@ -30,6 +30,7 @@ class SqliteStmt {
     private PDOStatement $stmt;
     private array        $params   = [];
     public  int          $insert_id = 0;
+    public  int          $affected_rows = 0;
     public  string       $error     = '';
 
     public function __construct(PDO $pdo, string $sql) {
@@ -47,6 +48,7 @@ class SqliteStmt {
             $ok = $this->stmt->execute($this->params);
             if ($ok) {
                 $this->insert_id = (int) $this->pdo->lastInsertId();
+                $this->affected_rows = $this->stmt->rowCount();
             }
             return $ok;
         } catch (Throwable $e) {
@@ -130,6 +132,12 @@ class SqliteConn {
 
     public function set_charset(string $charset): void {
         // SQLite is always UTF-8
+    }
+
+    public function real_escape_string(string $str): string {
+        // Use PDO quote and strip the outer quotes
+        $quoted = $this->pdo->quote($str);
+        return substr($quoted, 1, -1);
     }
 
     public function close(): void {}

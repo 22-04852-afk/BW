@@ -73,33 +73,38 @@ $topQtys     = json_encode(array_column($top_products, 'total_qty'));
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
+            margin-bottom: clamp(20px, 2.5vw, 30px);
             flex-wrap: wrap;
-            gap: 20px;
+            gap: clamp(12px, 1.5vw, 20px);
         }
         .page-title {
-            font-size: 28px;
+            font-size: clamp(20px, 2.5vw, 28px);
             font-weight: 700;
             color: #fff;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: clamp(8px, 1vw, 12px);
         }
         .page-title i { color: #f4d03f; }
 
         .summary-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: clamp(12px, 2vw, 20px);
+            margin-bottom: clamp(20px, 3vw, 30px);
         }
+        @media (max-width: 1400px) { .summary-cards { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 1100px) { .summary-cards { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) { .summary-cards { grid-template-columns: 1fr; } }
+        
         .summary-card {
             background: linear-gradient(135deg, #1e2a38 0%, #2a3f5f 100%);
             border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.1);
-            padding: 25px;
+            padding: clamp(15px, 2vw, 25px);
             text-align: center;
             transition: all 0.3s ease;
+            min-width: 0;
         }
         .summary-card:hover {
             transform: translateY(-3px);
@@ -109,19 +114,20 @@ $topQtys     = json_encode(array_column($top_products, 'total_qty'));
             background: linear-gradient(135deg, #2f5fa7 0%, #00d9ff 100%);
         }
         .summary-card .icon {
-            font-size: 36px;
-            margin-bottom: 12px;
+            font-size: clamp(24px, 3vw, 36px);
+            margin-bottom: clamp(8px, 1vw, 12px);
             color: #f4d03f;
         }
         .summary-card.highlight .icon { color: #fff; }
         .summary-card .value {
-            font-size: 32px;
+            font-size: clamp(20px, 2.5vw, 32px);
             font-weight: 700;
             color: #fff;
             margin-bottom: 5px;
+            word-break: break-word;
         }
         .summary-card .label {
-            font-size: 13px;
+            font-size: clamp(10px, 1.2vw, 13px);
             color: #a0a0a0;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -129,10 +135,10 @@ $topQtys     = json_encode(array_column($top_products, 'total_qty'));
         .summary-card.highlight .label { color: rgba(255,255,255,0.8); }
 
         .section-title {
-            font-size: 20px;
+            font-size: clamp(16px, 1.8vw, 20px);
             font-weight: 600;
             color: #fff;
-            margin: 30px 0 20px;
+            margin: clamp(20px, 2.5vw, 30px) 0 clamp(15px, 1.5vw, 20px);
             padding-bottom: 10px;
             border-bottom: 2px solid #f4d03f;
             display: flex;
@@ -143,46 +149,52 @@ $topQtys     = json_encode(array_column($top_products, 'total_qty'));
 
         .charts-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: clamp(15px, 2vw, 25px);
+            margin-bottom: clamp(20px, 3vw, 30px);
         }
-        @media (max-width: 992px) { .charts-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 1100px) { .charts-grid { grid-template-columns: 1fr; } }
 
         .chart-card {
             background: linear-gradient(135deg, #1e2a38 0%, #2a3f5f 100%);
             border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.1);
-            padding: 25px;
+            padding: clamp(15px, 2vw, 25px);
+            min-width: 0;
+            overflow: hidden;
         }
         .chart-card h3 {
-            font-size: 16px;
+            font-size: clamp(13px, 1.4vw, 16px);
             font-weight: 600;
             color: #fff;
-            margin-bottom: 20px;
+            margin-bottom: clamp(12px, 1.5vw, 20px);
             display: flex;
             align-items: center;
             gap: 10px;
         }
         .chart-card h3 i { color: #f4d03f; }
-        .chart-container { position: relative; height: 300px; }
+        .chart-container { 
+            position: relative; 
+            height: clamp(200px, 30vw, 300px);
+            width: 100%;
+        }
 
         .table-container {
             background: linear-gradient(135deg, #1e2a38 0%, #2a3f5f 100%);
             border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.1);
-            padding: 25px;
+            padding: clamp(15px, 2vw, 25px);
             overflow-x: auto;
-            margin-bottom: 30px;
+            margin-bottom: clamp(20px, 3vw, 30px);
         }
         .table-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: clamp(10px, 1.5vw, 15px);
         }
         .table-header h3 {
-            font-size: 16px;
+            font-size: clamp(13px, 1.4vw, 16px);
             font-weight: 600;
             color: #fff;
             display: flex;
@@ -191,23 +203,24 @@ $topQtys     = json_encode(array_column($top_products, 'total_qty'));
         }
         .table-header h3 i { color: #f4d03f; }
 
-        .sales-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .sales-table { width: 100%; border-collapse: collapse; margin-top: clamp(10px, 1vw, 15px); }
         .sales-table thead th {
             background: rgba(47,95,167,0.3);
-            padding: 14px 18px;
+            padding: clamp(10px, 1.2vw, 14px) clamp(12px, 1.5vw, 18px);
             text-align: left;
             font-weight: 600;
             color: #fff;
-            font-size: 13px;
+            font-size: clamp(11px, 1.1vw, 13px);
             text-transform: uppercase;
             letter-spacing: 0.5px;
             border-bottom: 2px solid #f4d03f;
+            white-space: nowrap;
         }
         .sales-table tbody td {
-            padding: 14px 18px;
+            padding: clamp(10px, 1.2vw, 14px) clamp(12px, 1.5vw, 18px);
             border-bottom: 1px solid rgba(255,255,255,0.1);
             color: #e0e0e0;
-            font-size: 14px;
+            font-size: clamp(12px, 1.2vw, 14px);
         }
         .sales-table tbody tr:hover { background: rgba(47,95,167,0.15); }
 

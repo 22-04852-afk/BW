@@ -8,17 +8,17 @@ require_once __DIR__ . '/../db_config.php';
 $json = file_get_contents('php://input');
 $data = json_decode($json, true);
 
-if (!$data) {
+if (!$data || !isset($data['id'])) {
     echo json_encode([
         'success' => false,
-        'message' => 'Invalid request data'
+        'message' => 'Invalid request data - ID required'
     ]);
     exit;
 }
 
-// No required fields - just need at least some data
-
 try {
+    $id = intval($data['id']);
+    
     // Extract and sanitize data
     $quantity = isset($data['quantity']) ? intval($data['quantity']) : 0;
     $uom = trim($data['uom'] ?? '');
@@ -51,7 +51,7 @@ try {
         $timestamp = strtotime($delivery_date);
         if (empty($delivery_month)) $delivery_month = date('F', $timestamp);
         if ($delivery_day == 0) $delivery_day = intval(date('j', $timestamp));
-        if ($delivery_year == intval(date('Y'))) $delivery_year = intval(date('Y', $timestamp));
+        if ($delivery_year == 0) $delivery_year = intval(date('Y', $timestamp));
     }
     
     // Build delivery_date if we have month, day, year but no date
@@ -62,10 +62,26 @@ try {
         }
     }
     
-    // Insert into database
-    $sql = "INSERT INTO delivery_records 
-            (invoice_no, serial_no, delivery_month, delivery_day, delivery_year, delivery_date, item_code, item_name, company_name, quantity, status, notes, uom, sold_to_month, sold_to_day, groupings)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    // Update database
+    $sql = "UPDATE delivery_records SET 
+            invoice_no = ?, 
+            serial_no = ?, 
+            delivery_month = ?, 
+            delivery_day = ?, 
+            delivery_year = ?, 
+            delivery_date = ?, 
+            item_code = ?, 
+            item_name = ?, 
+            company_name = ?, 
+            quantity = ?, 
+            status = ?, 
+            notes = ?, 
+            uom = ?, 
+            sold_to_month = ?, 
+            sold_to_day = ?, 
+            groupings = ?,
+            updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?";
     
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
@@ -73,7 +89,7 @@ try {
     }
 
     $stmt->bind_param(
-        'sssiissssississs',
+        'sssiissssississi',
         $invoice_no,
         $serial_no,
         $delivery_month,
@@ -89,26 +105,26 @@ try {
         $uom,
         $sold_to_month,
         $sold_to_day,
-        $groupings
+        $groupings,
+        $id
     );
 
     if (!$stmt->execute()) {
         throw new Exception("Execute failed: " . $stmt->error);
     }
     
-    $new_id = $conn->insert_id ?? $stmt->insert_id ?? 0;
     $stmt->close();
 
     echo json_encode([
         'success' => true,
-        'message' => 'Record added successfully',
-        'id' => $new_id
+        'message' => 'Record updated successfully',
+        'id' => $id
     ]);
 
 } catch (Exception $e) {
     echo json_encode([
         'success' => false,
-        'message' => 'Database error: ' . $e->getMessage()
+        'message' => 'Error: ' . $e->getMessage()
     ]);
 }
 ?>

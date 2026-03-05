@@ -39,7 +39,7 @@ $success_rate = $stats['total_records'] > 0 ? round(($stats['total_delivered'] /
 
 // Get all delivery records
 $delivery_records = [];
-$result = $conn->query("SELECT * FROM delivery_records ORDER BY id DESC LIMIT 500");
+$result = $conn->query("SELECT * FROM delivery_records ORDER BY id DESC");
 if ($result) {
     while ($row = $result->fetch_assoc()) {
         $delivery_records[] = $row;
@@ -146,6 +146,46 @@ if ($result) {
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             overflow-x: auto;
+        }
+        
+        /* Hidden rows */
+        tr.hidden-row {
+            display: none;
+        }
+        
+        /* Load More Button */
+        .load-more-btn {
+            background: linear-gradient(135deg, #2f5fa7, #1e3a6e);
+            color: #fff;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .load-more-btn:hover {
+            background: linear-gradient(135deg, #3a6fbd, #2a4a8e);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(47, 95, 167, 0.4);
+        }
+        
+        .load-more-btn i {
+            transition: transform 0.3s ease;
+        }
+        
+        .load-more-btn:hover i {
+            transform: translateY(3px);
+        }
+        
+        .load-more-btn #hiddenCount {
+            font-weight: 400;
+            opacity: 0.8;
         }
         
         table {
@@ -267,12 +307,20 @@ if ($result) {
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.7);
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         .modal.show {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
+            padding: 20px;
+        }
+        
+        body.modal-open {
+            overflow: hidden;
+            padding-right: 0;
         }
 
         .modal-content {
@@ -287,8 +335,26 @@ if ($result) {
 
         /* Larger modal for Add Record */
         .modal-content.modal-large {
-            max-width: 950px;
-            padding: 45px 50px;
+            max-width: 750px;
+            padding: 30px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            box-sizing: border-box;
+            margin: 20px 0;
+        }
+        
+        .modal-content.modal-large::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .modal-content.modal-large::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+        
+        .modal-content.modal-large::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
         }
 
         .modal-header {
@@ -379,6 +445,32 @@ if ($result) {
             letter-spacing: 0;
         }
 
+        /* Export Button */
+        .btn-export {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-export:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(39, 174, 96, 0.3);
+        }
+
+        .btn-export i {
+            font-size: 15px;
+        }
+
         /* Add Record Button */
         .btn-add-record {
             background: linear-gradient(135deg, #2f5fa7 0%, #1e88e5 100%);
@@ -405,12 +497,15 @@ if ($result) {
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 25px 30px;
+            gap: 14px 20px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .form-group {
             display: flex;
             flex-direction: column;
+            min-width: 0;
         }
 
         .form-group.full-width {
@@ -418,9 +513,9 @@ if ($result) {
         }
 
         .form-group label {
-            font-size: 14px;
+            font-size: 11px;
             color: #a0a0a0;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-weight: 600;
@@ -429,14 +524,16 @@ if ($result) {
         .form-group input,
         .form-group select,
         .form-group textarea {
-            padding: 18px 20px;
-            border-radius: 10px;
+            padding: 10px 14px;
+            border-radius: 8px;
             border: 1px solid rgba(255, 255, 255, 0.15);
             background: rgba(255, 255, 255, 0.08);
             color: #fff;
             font-family: 'Poppins', sans-serif;
-            font-size: 16px;
+            font-size: 14px;
             transition: all 0.3s ease;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .form-group input:focus,
@@ -455,13 +552,13 @@ if ($result) {
 
         .form-group textarea {
             resize: vertical;
-            min-height: 100px;
+            min-height: 60px;
         }
 
         .form-actions {
             display: flex;
-            gap: 20px;
-            margin-top: 35px;
+            gap: 15px;
+            margin-top: 20px;
             justify-content: flex-end;
         }
 
@@ -469,10 +566,10 @@ if ($result) {
             background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
             color: #fff;
             border: none;
-            padding: 18px 40px;
-            border-radius: 10px;
+            padding: 12px 28px;
+            border-radius: 8px;
             font-family: 'Poppins', sans-serif;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -487,10 +584,10 @@ if ($result) {
             background: rgba(255, 255, 255, 0.1);
             color: #a0a0a0;
             border: none;
-            padding: 18px 40px;
-            border-radius: 10px;
+            padding: 12px 28px;
+            border-radius: 8px;
             font-family: 'Poppins', sans-serif;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -541,6 +638,22 @@ if ($result) {
         .action-buttons .delete-btn:hover {
             background: rgba(231, 76, 60, 0.25);
             color: #ff6b5b;
+        }
+        
+        .action-buttons .edit-btn {
+            color: #f39c12;
+            text-decoration: none;
+            font-size: 13px;
+            padding: 8px 14px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            background: rgba(243, 156, 18, 0.1);
+            white-space: nowrap;
+        }
+
+        .action-buttons .edit-btn:hover {
+            background: rgba(243, 156, 18, 0.25);
+            color: #f5b041;
         }
 
         /* Delete Confirmation Modal */
@@ -655,6 +768,16 @@ if ($result) {
         [data-theme="light"] .action-buttons .delete-btn:hover {
             background: rgba(231, 76, 60, 0.15);
             color: #e74c3c;
+        }
+
+        [data-theme="light"] .action-buttons .edit-btn {
+            color: #d68910;
+            background: rgba(243, 156, 18, 0.08);
+        }
+
+        [data-theme="light"] .action-buttons .edit-btn:hover {
+            background: rgba(243, 156, 18, 0.15);
+            color: #f39c12;
         }
 
         [data-theme="light"] .delete-modal-content {
@@ -862,7 +985,7 @@ if ($result) {
         </div>
 
         <p style="margin-bottom: 15px; color: #a0a0a0; font-size: 13px;">
-            Showing <?php echo count($delivery_records); ?> of <?php echo number_format($stats['total_records']); ?> records (latest first)
+            Showing <span id="visibleRowCount"><?php echo min(30, count($delivery_records)); ?></span> of <?php echo number_format($stats['total_records']); ?> records (latest first)
         </p>
 
         <!-- Search Bar -->
@@ -872,6 +995,9 @@ if ($result) {
                 <i class="fas fa-search"></i>
             </div>
             <div class="search-count" id="searchCount">Showing all records</div>
+            <button class="btn-export" onclick="exportToExcel()">
+                <i class="fas fa-file-excel"></i> Export
+            </button>
             <button class="btn-add-record" onclick="openAddModal()">
                 <i class="fas fa-plus"></i> Add Record
             </button>
@@ -891,108 +1017,195 @@ if ($result) {
             <table>
                 <thead>
                     <tr>
-                        <th>Serial No.</th>
                         <th>Invoice No.</th>
-                        <th>Item Code</th>
+                        <th>Date</th>
+                        <th>Delivery Month to Andison</th>
+                        <th>Delivery Day to Andison</th>
+                        <th>Year</th>
+                        <th>Item</th>
                         <th>Description</th>
-                        <th>Quantity</th>
+                        <th>Qty.</th>
+                        <th>UOM</th>
+                        <th>Serial No.</th>
+                        <th>Sold To</th>
                         <th>Date Delivered</th>
-                        <th>Status</th>
+                        <th>Sold To Month</th>
+                        <th>Sold To Day</th>
+                        <th>Remarks</th>
+                        <th>Groupings</th>
                         <th style="min-width: 160px;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($delivery_records)): ?>
                     <tr>
-                        <td colspan="8" style="text-align: center; padding: 40px; color: #a0a0a0;">
+                        <td colspan="17" style="text-align: center; padding: 40px; color: #a0a0a0;">
                             <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
                             No delivery records found. <a href="upload-data.php" style="color: #f4d03f;">Upload data</a> to get started.
                         </td>
                     </tr>
                     <?php else: ?>
-                    <?php foreach ($delivery_records as $record): 
-                        $status_class = 'delivered';
-                        $status_lower = strtolower($record['status'] ?? 'delivered');
-                        if (strpos($status_lower, 'transit') !== false) $status_class = 'in-transit';
-                        elseif (strpos($status_lower, 'pending') !== false) $status_class = 'pending';
-                        elseif (strpos($status_lower, 'cancel') !== false) $status_class = 'cancelled';
-                        
+                    <?php $row_index = 0; foreach ($delivery_records as $record): 
                         $delivery_date = '';
                         if (!empty($record['delivery_date'])) {
                             $delivery_date = date('M j, Y', strtotime($record['delivery_date']));
-                        } elseif (!empty($record['delivery_month']) && !empty($record['delivery_day'])) {
-                            $delivery_date = $record['delivery_month'] . ' ' . $record['delivery_day'];
                         }
+                        
+                        // Get sold_to fields - only show if they have actual values
+                        $sold_to_month = !empty($record['sold_to_month']) ? $record['sold_to_month'] : '';
+                        $sold_to_day = !empty($record['sold_to_day']) ? $record['sold_to_day'] : '';
+                        
+                        // Format the Date column from delivery_date
+                        $date_col = '';
+                        if (!empty($record['delivery_date'])) {
+                            $date_col = date('m/d/Y', strtotime($record['delivery_date']));
+                        }
+                        
+                        // Hide rows beyond initial limit (30)
+                        $hidden_class = ($row_index >= 30) ? 'hidden-row' : '';
                     ?>
-                    <tr data-record-id="<?php echo htmlspecialchars($record['id'] ?? ''); ?>">
-                        <td><?php echo htmlspecialchars($record['serial_no'] ?? '-'); ?></td>
-                        <td><?php echo htmlspecialchars($record['invoice_no'] ?? '-'); ?></td>
-                        <td><?php echo htmlspecialchars($record['item_code'] ?? '-'); ?></td>
-                        <td><?php echo htmlspecialchars($record['item_name'] ?? '-'); ?></td>
-                        <td><?php echo htmlspecialchars($record['quantity'] ?? '0'); ?></td>
+                    <tr data-record-id="<?php echo htmlspecialchars($record['id'] ?? ''); ?>" data-row-index="<?php echo $row_index; ?>" class="<?php echo $hidden_class; ?>">
+                        <td><?php echo htmlspecialchars($record['invoice_no'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($date_col); ?></td>
+                        <td><?php echo htmlspecialchars($record['delivery_month'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($record['delivery_day'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($record['delivery_year'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($record['item_code'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($record['item_name'] ?? ''); ?></td>
+                        <td><?php echo (!empty($record['quantity']) && $record['quantity'] > 0) ? htmlspecialchars($record['quantity']) : ''; ?></td>
+                        <td><?php echo htmlspecialchars($record['uom'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($record['serial_no'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($record['company_name'] ?? ''); ?></td>
                         <td><?php echo htmlspecialchars($delivery_date); ?></td>
-                        <td><span class="badge <?php echo $status_class; ?>"><?php echo htmlspecialchars($record['status'] ?? 'Delivered'); ?></span></td>
+                        <td><?php echo htmlspecialchars($sold_to_month); ?></td>
+                        <td><?php echo htmlspecialchars($sold_to_day); ?></td>
+                        <td><?php echo htmlspecialchars($record['notes'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($record['groupings'] ?? ''); ?></td>
                         <td class="action-buttons">
-                            <a href="#" class="view-btn" onclick="openModal(event, '<?php echo htmlspecialchars($record['serial_no'] ?? ''); ?>', '<?php echo htmlspecialchars($record['invoice_no'] ?? ''); ?>', '<?php echo htmlspecialchars($record['item_code'] ?? ''); ?>', '<?php echo htmlspecialchars($record['item_name'] ?? ''); ?>', '<?php echo htmlspecialchars($record['quantity'] ?? '0'); ?>', '<?php echo htmlspecialchars($delivery_date); ?>', '<?php echo htmlspecialchars($record['status'] ?? 'Delivered'); ?>')">View</a>
-                            <a href="#" class="delete-btn" onclick="deleteRecord(event, <?php echo intval($record['id'] ?? 0); ?>, '<?php echo htmlspecialchars($record['item_code'] ?? ''); ?>')" title="Delete Record"><i class="fas fa-trash-alt"></i></a>
+                            <a href="#" class="view-btn" onclick="openModal(event, <?php echo intval($record['id'] ?? 0); ?>)">View</a>
+                            <a href="#" class="edit-btn" onclick="openEditModal(event, <?php echo intval($record['id'] ?? 0); ?>)" title="Edit Record"><i class="fas fa-edit"></i></a>
+                            <a href="#" class="delete-btn" onclick="deleteRecord(event, <?php echo intval($record['id'] ?? 0); ?>, '<?php echo htmlspecialchars($record['serial_no'] ?? ''); ?>')" title="Delete Record"><i class="fas fa-trash-alt"></i></a>
                         </td>
                     </tr>
-                    <?php endforeach; ?>
+                    <?php $row_index++; endforeach; ?>
                     <?php endif; ?>
                 </tbody>
             </table>
+            
+            <?php if (count($delivery_records) > 30): ?>
+            <div id="loadMoreContainer" style="text-align: center; margin-top: 20px; display: flex; gap: 15px; justify-content: center; align-items: center;">
+                <button id="loadMoreBtn" class="load-more-btn" onclick="loadMoreRows()">
+                    <i class="fas fa-chevron-down"></i> See More 
+                    <span id="hiddenCount">(<?php echo count($delivery_records) - 30; ?> more records)</span>
+                </button>
+                <button class="load-more-btn" style="background: linear-gradient(135deg, #51cf66, #37a050);" onclick="showAllRows()">
+                    <i class="fas fa-list"></i> Show All
+                </button>
+            </div>
+            <?php endif; ?>
         </div>
     </main>
 
     <!-- Add Record Modal -->
     <div id="addRecordModal" class="modal">
         <div class="modal-content modal-large">
-            <div class="modal-header" style="margin-bottom: 30px; padding-bottom: 20px;">
-                <h2 style="font-size: 26px;"><i class="fas fa-plus-circle" style="color: #2ecc71; margin-right: 14px; font-size: 28px;"></i>Add New Delivery Record</h2>
-                <button class="close-btn" onclick="closeAddModal()" style="font-size: 36px;">&times;</button>
+            <div class="modal-header" style="margin-bottom: 18px; padding-bottom: 12px;">
+                <h2 style="font-size: 20px;"><i class="fas fa-plus-circle" style="color: #2ecc71; margin-right: 10px; font-size: 20px;"></i>Add New Delivery Record</h2>
+                <button class="close-btn" onclick="closeAddModal()" style="font-size: 28px;">&times;</button>
             </div>
             <form id="addRecordForm" onsubmit="submitAddRecord(event)">
                 <div class="form-grid">
-                    <div class="form-group">
-                        <label for="add_serial_no">Serial No.</label>
-                        <input type="text" id="add_serial_no" name="serial_no" placeholder="e.g., MA225-000613">
-                    </div>
                     <div class="form-group">
                         <label for="add_invoice_no">Invoice No.</label>
                         <input type="text" id="add_invoice_no" name="invoice_no" placeholder="e.g., 5268850284">
                     </div>
                     <div class="form-group">
-                        <label for="add_item_code">Item Code *</label>
-                        <input type="text" id="add_item_code" name="item_code" placeholder="e.g., XT-XWHM-Y-NA" required>
+                        <label for="add_date">Date</label>
+                        <input type="date" id="add_date" name="date">
                     </div>
                     <div class="form-group">
-                        <label for="add_item_name">Description / Item Name</label>
+                        <label for="add_delivery_month">Delivery Month to Andison</label>
+                        <select id="add_delivery_month" name="delivery_month">
+                            <option value="">Select Month...</option>
+                            <option value="January">January</option>
+                            <option value="February">February</option>
+                            <option value="March">March</option>
+                            <option value="April">April</option>
+                            <option value="May">May</option>
+                            <option value="June">June</option>
+                            <option value="July">July</option>
+                            <option value="August">August</option>
+                            <option value="September">September</option>
+                            <option value="October">October</option>
+                            <option value="November">November</option>
+                            <option value="December">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="add_delivery_day">Delivery Day to Andison</label>
+                        <input type="number" id="add_delivery_day" name="delivery_day" placeholder="e.g., 7" min="1" max="31">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_year">Year</label>
+                        <input type="number" id="add_year" name="year" placeholder="e.g., 2025" min="2000" max="2100">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_item_code">Item</label>
+                        <input type="text" id="add_item_code" name="item_code" placeholder="e.g., XT-XWHM-Y-NA">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="add_item_name">Description</label>
                         <input type="text" id="add_item_name" name="item_name" placeholder="e.g., GasAlertMax XT O2/LEL/H2S/CO">
                     </div>
                     <div class="form-group">
-                        <label for="add_company_name">Company / Sold To</label>
-                        <input type="text" id="add_company_name" name="company_name" placeholder="e.g., Andison Industrial">
+                        <label for="add_quantity">Qty.</label>
+                        <input type="number" id="add_quantity" name="quantity" placeholder="e.g., 40" min="0">
                     </div>
                     <div class="form-group">
-                        <label for="add_quantity">Quantity *</label>
-                        <input type="number" id="add_quantity" name="quantity" placeholder="e.g., 40" min="1" required>
+                        <label for="add_uom">UOM</label>
+                        <input type="text" id="add_uom" name="uom" placeholder="e.g., units, pcs">
                     </div>
                     <div class="form-group">
-                        <label for="add_delivery_date">Delivery Date</label>
+                        <label for="add_serial_no">Serial No.</label>
+                        <input type="text" id="add_serial_no" name="serial_no" placeholder="e.g., MA225-000613">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_company_name">Sold To</label>
+                        <input type="text" id="add_company_name" name="company_name" placeholder="e.g., Anden Construction">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_delivery_date">Date Delivered</label>
                         <input type="date" id="add_delivery_date" name="delivery_date">
                     </div>
                     <div class="form-group">
-                        <label for="add_status">Status</label>
-                        <select id="add_status" name="status">
-                            <option value="Delivered">Delivered</option>
-                            <option value="In Transit">In Transit</option>
-                            <option value="Pending">Pending</option>
-                            <option value="Cancelled">Cancelled</option>
+                        <label for="add_sold_to_month">Sold To Month</label>
+                        <select id="add_sold_to_month" name="sold_to_month">
+                            <option value="">Select Month...</option>
+                            <option value="January">January</option>
+                            <option value="February">February</option>
+                            <option value="March">March</option>
+                            <option value="April">April</option>
+                            <option value="May">May</option>
+                            <option value="June">June</option>
+                            <option value="July">July</option>
+                            <option value="August">August</option>
+                            <option value="September">September</option>
+                            <option value="October">October</option>
+                            <option value="November">November</option>
+                            <option value="December">December</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label for="add_sold_to_day">Sold To Day</label>
+                        <input type="number" id="add_sold_to_day" name="sold_to_day" placeholder="e.g., 15" min="1" max="31">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_groupings">Groupings</label>
+                        <input type="text" id="add_groupings" name="groupings" placeholder="e.g., A, B, C">
+                    </div>
                     <div class="form-group full-width">
-                        <label for="add_notes">Notes / Remarks</label>
-                        <textarea id="add_notes" name="notes" rows="3" placeholder="Additional notes..."></textarea>
+                        <label for="add_notes">Remarks</label>
+                        <textarea id="add_notes" name="notes" rows="3" placeholder="Additional remarks..."></textarea>
                     </div>
                 </div>
                 <div class="form-actions">
@@ -1012,32 +1225,68 @@ if ($result) {
             </div>
             <div class="modal-body">
                 <div class="modal-row">
-                    <span class="modal-label">Serial No.</span>
-                    <span class="modal-value" id="modalTracking">-</span>
-                </div>
-                <div class="modal-row">
                     <span class="modal-label">Invoice No.</span>
-                    <span class="modal-value" id="modalClient">-</span>
+                    <span class="modal-value" id="modalInvoiceNo">-</span>
                 </div>
                 <div class="modal-row">
-                    <span class="modal-label">Item Code</span>
-                    <span class="modal-value" id="modalProduct">-</span>
+                    <span class="modal-label">Date</span>
+                    <span class="modal-value" id="modalDate">-</span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Delivery Month</span>
+                    <span class="modal-value" id="modalDeliveryMonth">-</span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Delivery Day</span>
+                    <span class="modal-value" id="modalDeliveryDay">-</span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Year</span>
+                    <span class="modal-value" id="modalYear">-</span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Item</span>
+                    <span class="modal-value" id="modalItem">-</span>
                 </div>
                 <div class="modal-row">
                     <span class="modal-label">Description</span>
-                    <span class="modal-value" id="modalQuantity">-</span>
+                    <span class="modal-value" id="modalDescription">-</span>
                 </div>
                 <div class="modal-row">
-                    <span class="modal-label">Quantity</span>
-                    <span class="modal-value" id="modalShipDate">0</span>
+                    <span class="modal-label">Qty.</span>
+                    <span class="modal-value" id="modalQty">0</span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">UOM</span>
+                    <span class="modal-value" id="modalUom">-</span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Serial No.</span>
+                    <span class="modal-value" id="modalSerialNo">-</span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Sold To</span>
+                    <span class="modal-value" id="modalSoldTo">-</span>
                 </div>
                 <div class="modal-row">
                     <span class="modal-label">Date Delivered</span>
                     <span class="modal-value" id="modalDeliveryDate">-</span>
                 </div>
-                <div class="modal-row full">
-                    <span class="modal-label">Status</span>
-                    <span class="modal-badge" id="modalStatusBadge"></span>
+                <div class="modal-row">
+                    <span class="modal-label">Sold To Month</span>
+                    <span class="modal-value" id="modalSoldToMonth">-</span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Sold To Day</span>
+                    <span class="modal-value" id="modalSoldToDay">-</span>
+                </div>
+                <div class="modal-row full-width">
+                    <span class="modal-label">Remarks</span>
+                    <span class="modal-value" id="modalRemarks">-</span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Groupings</span>
+                    <span class="modal-value" id="modalGroupings">-</span>
                 </div>
             </div>
         </div>
@@ -1063,36 +1312,168 @@ if ($result) {
         </div>
     </div>
 
-    <script src="js/app.js" defer></script>
-    <script>
-        function getStatusBadgeClass(status) {
-            status = status.toLowerCase();
-            if (status.includes('delivered')) return 'badge delivered';
-            if (status.includes('transit')) return 'badge in-transit';
-            if (status.includes('pending')) return 'badge pending';
-            if (status.includes('cancelled')) return 'badge cancelled';
-            return 'badge';
-        }
+    <!-- Edit Record Modal -->
+    <div id="editRecordModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header" style="margin-bottom: 18px; padding-bottom: 12px;">
+                <h2 style="font-size: 20px;"><i class="fas fa-edit" style="color: #f39c12; margin-right: 10px; font-size: 20px;"></i>Edit Delivery Record</h2>
+                <button class="close-btn" onclick="closeEditModal()" style="font-size: 28px;">&times;</button>
+            </div>
+            <form id="editRecordForm" onsubmit="submitEditRecord(event)">
+                <input type="hidden" id="edit_id" name="id">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="edit_invoice_no">Invoice No.</label>
+                        <input type="text" id="edit_invoice_no" name="invoice_no" placeholder="e.g., 5268850284">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_date">Date</label>
+                        <input type="date" id="edit_date" name="date">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_delivery_month">Delivery Month to Andison</label>
+                        <select id="edit_delivery_month" name="delivery_month">
+                            <option value="">Select Month...</option>
+                            <option value="January">January</option>
+                            <option value="February">February</option>
+                            <option value="March">March</option>
+                            <option value="April">April</option>
+                            <option value="May">May</option>
+                            <option value="June">June</option>
+                            <option value="July">July</option>
+                            <option value="August">August</option>
+                            <option value="September">September</option>
+                            <option value="October">October</option>
+                            <option value="November">November</option>
+                            <option value="December">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_delivery_day">Delivery Day to Andison</label>
+                        <input type="number" id="edit_delivery_day" name="delivery_day" placeholder="e.g., 7" min="1" max="31">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_year">Year</label>
+                        <input type="number" id="edit_year" name="year" placeholder="e.g., 2025" min="2000" max="2100">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_item_code">Item</label>
+                        <input type="text" id="edit_item_code" name="item_code" placeholder="e.g., XT-XWHM-Y-NA">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="edit_item_name">Description</label>
+                        <input type="text" id="edit_item_name" name="item_name" placeholder="e.g., GasAlertMax XT O2/LEL/H2S/CO">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_quantity">Qty.</label>
+                        <input type="number" id="edit_quantity" name="quantity" placeholder="e.g., 40" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_uom">UOM</label>
+                        <input type="text" id="edit_uom" name="uom" placeholder="e.g., units, pcs">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_serial_no">Serial No.</label>
+                        <input type="text" id="edit_serial_no" name="serial_no" placeholder="e.g., MA225-000613">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_company_name">Sold To</label>
+                        <input type="text" id="edit_company_name" name="company_name" placeholder="e.g., Anden Construction">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_delivery_date">Date Delivered</label>
+                        <input type="date" id="edit_delivery_date" name="delivery_date">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_sold_to_month">Sold To Month</label>
+                        <select id="edit_sold_to_month" name="sold_to_month">
+                            <option value="">Select Month...</option>
+                            <option value="January">January</option>
+                            <option value="February">February</option>
+                            <option value="March">March</option>
+                            <option value="April">April</option>
+                            <option value="May">May</option>
+                            <option value="June">June</option>
+                            <option value="July">July</option>
+                            <option value="August">August</option>
+                            <option value="September">September</option>
+                            <option value="October">October</option>
+                            <option value="November">November</option>
+                            <option value="December">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_sold_to_day">Sold To Day</label>
+                        <input type="number" id="edit_sold_to_day" name="sold_to_day" placeholder="e.g., 15" min="1" max="31">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_groupings">Groupings</label>
+                        <input type="text" id="edit_groupings" name="groupings" placeholder="e.g., A, B, C">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="edit_notes">Remarks</label>
+                        <textarea id="edit_notes" name="notes" rows="3" placeholder="Additional remarks..."></textarea>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel-form" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="btn-submit" style="background: linear-gradient(135deg, #f39c12, #d68910);"><i class="fas fa-save"></i> Update Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        function openModal(event, serialNo, invoiceNo, itemCode, description, quantity, deliveryDate, status) {
+    <script src="js/app.js" defer></script>
+    <script src="js/xlsx.min.js"></script>
+    <script>
+        // Store all records for modal viewing
+        const recordsData = <?php echo json_encode($delivery_records); ?>;
+        
+        function openModal(event, id) {
             event.preventDefault();
-            document.getElementById('modalTracking').textContent = serialNo || '-';
-            document.getElementById('modalTrackingId').textContent = serialNo ? `${serialNo} Details` : 'Delivery Details';
-            document.getElementById('modalClient').textContent = invoiceNo || '-';
-            document.getElementById('modalProduct').textContent = itemCode || '-';
-            document.getElementById('modalQuantity').textContent = description || '-';
-            document.getElementById('modalShipDate').textContent = quantity || '0';
-            document.getElementById('modalDeliveryDate').textContent = deliveryDate || '-';
             
-            const badgeEl = document.getElementById('modalStatusBadge');
-            badgeEl.className = getStatusBadgeClass(status);
-            badgeEl.textContent = status || 'Delivered';
+            // Find record by ID
+            const record = recordsData.find(r => parseInt(r.id) === parseInt(id));
+            if (!record) {
+                alert('Record not found');
+                return;
+            }
+            
+            // Format dates - show empty if no data
+            let dateCol = '';
+            let deliveryDate = '';
+            if (record.delivery_date) {
+                const d = new Date(record.delivery_date);
+                dateCol = d.toLocaleDateString('en-US');
+                deliveryDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+            
+            // Populate modal - show empty if no data
+            document.getElementById('modalTrackingId').textContent = record.serial_no ? `${record.serial_no} Details` : 'Delivery Details';
+            document.getElementById('modalInvoiceNo').textContent = record.invoice_no || '';
+            document.getElementById('modalDate').textContent = dateCol;
+            document.getElementById('modalDeliveryMonth').textContent = record.delivery_month || '';
+            document.getElementById('modalDeliveryDay').textContent = record.delivery_day || '';
+            document.getElementById('modalYear').textContent = record.delivery_year || '';
+            document.getElementById('modalItem').textContent = record.item_code || '';
+            document.getElementById('modalDescription').textContent = record.item_name || '';
+            document.getElementById('modalQty').textContent = record.quantity || '';
+            document.getElementById('modalUom').textContent = record.uom || '';
+            document.getElementById('modalSerialNo').textContent = record.serial_no || '';
+            document.getElementById('modalSoldTo').textContent = record.company_name || '';
+            document.getElementById('modalDeliveryDate').textContent = deliveryDate;
+            document.getElementById('modalSoldToMonth').textContent = record.sold_to_month || '';
+            document.getElementById('modalSoldToDay').textContent = record.sold_to_day || '';
+            document.getElementById('modalRemarks').textContent = record.notes || '';
+            document.getElementById('modalGroupings').textContent = record.groupings || '';
             
             document.getElementById('detailModal').classList.add('show');
+            document.body.classList.add('modal-open');
         }
 
         function closeModal() {
             document.getElementById('detailModal').classList.remove('show');
+            document.body.classList.remove('modal-open');
         }
 
         // Delete Record Functions
@@ -1106,10 +1487,12 @@ if ($result) {
             
             document.getElementById('deleteItemName').textContent = itemCode || 'this record';
             document.getElementById('deleteConfirmModal').classList.add('show');
+            document.body.classList.add('modal-open');
         }
 
         function closeDeleteModal() {
             document.getElementById('deleteConfirmModal').classList.remove('show');
+            document.body.classList.remove('modal-open');
             deleteRecordId = null;
             deleteRecordRow = null;
         }
@@ -1168,12 +1551,14 @@ if ($result) {
         // Add Record Modal Functions
         function openAddModal() {
             document.getElementById('addRecordModal').classList.add('show');
+            document.body.classList.add('modal-open');
             // Set default date to today
             document.getElementById('add_delivery_date').value = new Date().toISOString().split('T')[0];
         }
 
         function closeAddModal() {
             document.getElementById('addRecordModal').classList.remove('show');
+            document.body.classList.remove('modal-open');
             document.getElementById('addRecordForm').reset();
         }
 
@@ -1188,17 +1573,25 @@ if ($result) {
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
             submitBtn.disabled = true;
             
-            // Gather form data
+            // Gather ALL form data
             const formData = {
-                serial_no: document.getElementById('add_serial_no').value,
                 invoice_no: document.getElementById('add_invoice_no').value,
+                date: document.getElementById('add_date').value,
+                delivery_month: document.getElementById('add_delivery_month').value,
+                delivery_day: parseInt(document.getElementById('add_delivery_day').value) || 0,
+                year: parseInt(document.getElementById('add_year').value) || 0,
                 item_code: document.getElementById('add_item_code').value,
                 item_name: document.getElementById('add_item_name').value,
-                company_name: document.getElementById('add_company_name').value || 'Andison Industrial',
                 quantity: parseInt(document.getElementById('add_quantity').value) || 0,
+                uom: document.getElementById('add_uom').value,
+                serial_no: document.getElementById('add_serial_no').value,
+                company_name: document.getElementById('add_company_name').value,
                 delivery_date: document.getElementById('add_delivery_date').value,
-                status: document.getElementById('add_status').value,
-                notes: document.getElementById('add_notes').value
+                sold_to_month: document.getElementById('add_sold_to_month').value,
+                sold_to_day: parseInt(document.getElementById('add_sold_to_day').value) || 0,
+                groupings: document.getElementById('add_groupings').value,
+                notes: document.getElementById('add_notes').value,
+                status: 'Delivered'
             };
             
             // Send to API
@@ -1209,7 +1602,12 @@ if ($result) {
                 },
                 body: JSON.stringify(formData)
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
             .then(result => {
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
@@ -1247,9 +1645,128 @@ if ($result) {
             }
         });
 
+        // Edit Record Modal Functions
+        function openEditModal(event, id) {
+            event.preventDefault();
+            
+            // Find record by ID
+            const record = recordsData.find(r => parseInt(r.id) === parseInt(id));
+            if (!record) {
+                alert('Record not found');
+                return;
+            }
+            
+            // Populate form fields
+            document.getElementById('edit_id').value = record.id;
+            document.getElementById('edit_invoice_no').value = record.invoice_no || '';
+            document.getElementById('edit_serial_no').value = record.serial_no || '';
+            document.getElementById('edit_item_code').value = record.item_code || '';
+            document.getElementById('edit_item_name').value = record.item_name || '';
+            document.getElementById('edit_company_name').value = record.company_name || '';
+            document.getElementById('edit_quantity').value = record.quantity || '';
+            document.getElementById('edit_uom').value = record.uom || '';
+            document.getElementById('edit_notes').value = record.notes || '';
+            document.getElementById('edit_groupings').value = record.groupings || '';
+            
+            // Date fields
+            if (record.delivery_date) {
+                document.getElementById('edit_date').value = record.delivery_date;
+                document.getElementById('edit_delivery_date').value = record.delivery_date;
+            } else {
+                document.getElementById('edit_date').value = '';
+                document.getElementById('edit_delivery_date').value = '';
+            }
+            
+            // Month/Day fields
+            document.getElementById('edit_delivery_month').value = record.delivery_month || '';
+            document.getElementById('edit_delivery_day').value = record.delivery_day || '';
+            document.getElementById('edit_year').value = record.delivery_year || '';
+            document.getElementById('edit_sold_to_month').value = record.sold_to_month || '';
+            document.getElementById('edit_sold_to_day').value = record.sold_to_day || '';
+            
+            // Show modal
+            document.getElementById('editRecordModal').classList.add('show');
+            document.body.classList.add('modal-open');
+        }
+        
+        function closeEditModal() {
+            document.getElementById('editRecordModal').classList.remove('show');
+            document.body.classList.remove('modal-open');
+            document.getElementById('editRecordForm').reset();
+        }
+        
+        function submitEditRecord(event) {
+            event.preventDefault();
+            
+            const form = document.getElementById('editRecordForm');
+            const submitBtn = form.querySelector('.btn-submit');
+            const originalText = submitBtn.innerHTML;
+            
+            // Show loading state
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+            submitBtn.disabled = true;
+            
+            // Gather form data
+            const formData = {
+                id: document.getElementById('edit_id').value,
+                serial_no: document.getElementById('edit_serial_no').value,
+                invoice_no: document.getElementById('edit_invoice_no').value,
+                item_code: document.getElementById('edit_item_code').value,
+                item_name: document.getElementById('edit_item_name').value,
+                company_name: document.getElementById('edit_company_name').value,
+                quantity: parseInt(document.getElementById('edit_quantity').value) || 0,
+                uom: document.getElementById('edit_uom').value,
+                date: document.getElementById('edit_date').value,
+                delivery_date: document.getElementById('edit_delivery_date').value,
+                delivery_month: document.getElementById('edit_delivery_month').value,
+                delivery_day: document.getElementById('edit_delivery_day').value,
+                year: document.getElementById('edit_year').value,
+                sold_to_month: document.getElementById('edit_sold_to_month').value,
+                sold_to_day: document.getElementById('edit_sold_to_day').value,
+                groupings: document.getElementById('edit_groupings').value,
+                notes: document.getElementById('edit_notes').value
+            };
+            
+            // Send to API
+            fetch('api/update-record.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(result => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                
+                if (result.success) {
+                    alert('Record updated successfully!');
+                    closeEditModal();
+                    // Reload page to show updated record
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + (result.message || 'Failed to update record'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                alert('Error updating record. Please try again.');
+            });
+        }
+        
+        // Close Edit Modal when clicking outside
+        window.addEventListener('click', (e) => {
+            const editModal = document.getElementById('editRecordModal');
+            if (e.target === editModal) {
+                closeEditModal();
+            }
+        });
+
         // Filter functionality
         const filterBtns = document.querySelectorAll('.filter-btn');
-        const tableRows = document.querySelectorAll('table tbody tr');
 
         filterBtns.forEach(btn => {
             btn.addEventListener('click', function() {
@@ -1259,24 +1776,43 @@ if ($result) {
                 this.classList.add('active');
 
                 const filterValue = this.textContent.trim().toLowerCase();
+                const tableRows = document.querySelectorAll('table tbody tr');
 
                 // Show/hide rows based on filter
+                // Since Status column was removed, "All" shows everything
+                // Other filters are kept for backwards compatibility but show nothing without status
                 tableRows.forEach(row => {
-                    const badge = row.querySelector('.badge');
-                    if (badge) {
-                        const badgeText = badge.textContent.trim().toLowerCase();
-                        if (filterValue === 'all' || badgeText === filterValue || badgeText.includes(filterValue)) {
-                            row.style.display = '';
+                    // Skip rows with colspan (empty state)
+                    if (row.querySelector('td[colspan]')) return;
+                    
+                    if (filterValue === 'all') {
+                        row.style.display = '';
+                    } else {
+                        // Check for badge if it exists
+                        const badge = row.querySelector('.badge');
+                        if (badge) {
+                            const badgeText = badge.textContent.trim().toLowerCase();
+                            if (badgeText === filterValue || badgeText.includes(filterValue)) {
+                                row.style.display = '';
+                            } else {
+                                row.style.display = 'none';
+                            }
                         } else {
-                            row.style.display = 'none';
+                            // No badge, show all for "All" filter
+                            row.style.display = '';
                         }
                     }
                 });
+                
+                // Clear search box when filter changes
+                document.getElementById('searchInput').value = '';
                 updateSearchCount();
             });
         });
 
         // Search functionality
+        let searchActive = false;
+        
         function searchTable() {
             const searchInput = document.getElementById('searchInput');
             const filter = searchInput.value.toLowerCase().trim();
@@ -1285,9 +1821,31 @@ if ($result) {
             
             let visibleCount = 0;
             
-            rows.forEach(row => {
+            // When searching, show all rows first (remove hidden-row class temporarily)
+            if (filter !== '') {
+                searchActive = true;
+                rows.forEach(row => {
+                    row.classList.remove('hidden-row');
+                    row.style.display = '';
+                });
+            } else if (searchActive) {
+                // Search cleared - restore hidden rows
+                searchActive = false;
+                rows.forEach((row, index) => {
+                    if (row.querySelector('td[colspan]')) return;
+                    const rowIndex = parseInt(row.getAttribute('data-row-index') || index);
+                    if (rowIndex >= currentVisibleRows) {
+                        row.classList.add('hidden-row');
+                    }
+                    row.style.display = '';
+                });
+            }
+            
+            rows.forEach((row, index) => {
                 // Skip empty state row
-                if (row.querySelector('td[colspan]')) return;
+                if (row.querySelector('td[colspan]')) {
+                    return;
+                }
                 
                 const cells = row.querySelectorAll('td');
                 let found = false;
@@ -1298,7 +1856,12 @@ if ($result) {
                     }
                 });
                 
-                if (found || filter === '') {
+                if (filter === '') {
+                    // No filter - respect hidden-row class
+                    if (!row.classList.contains('hidden-row')) {
+                        visibleCount++;
+                    }
+                } else if (found) {
                     row.style.display = '';
                     visibleCount++;
                 } else {
@@ -1307,6 +1870,12 @@ if ($result) {
             });
             
             updateSearchCount(visibleCount, filter);
+            
+            // Hide load more button when searching
+            const loadMoreContainer = document.getElementById('loadMoreContainer');
+            if (loadMoreContainer) {
+                loadMoreContainer.style.display = (filter !== '') ? 'none' : 'block';
+            }
         }
 
         function updateSearchCount(count, filter) {
@@ -1322,6 +1891,77 @@ if ($result) {
                 searchCount.style.background = 'rgba(255, 255, 255, 0.05)';
                 searchCount.style.color = '#a0a0a0';
             }
+        }
+
+        // Load More functionality
+        let currentVisibleRows = 30;
+        const rowsPerLoad = 30;
+        const totalRecords = <?php echo count($delivery_records); ?>;
+        
+        function updateVisibleCount() {
+            const visibleCountEl = document.getElementById('visibleRowCount');
+            if (visibleCountEl) {
+                visibleCountEl.textContent = Math.min(currentVisibleRows, totalRecords);
+            }
+        }
+        
+        function loadMoreRows() {
+            const hiddenRows = document.querySelectorAll('table tbody tr.hidden-row');
+            let shown = 0;
+            
+            hiddenRows.forEach(row => {
+                if (shown < rowsPerLoad) {
+                    row.classList.remove('hidden-row');
+                    shown++;
+                }
+            });
+            
+            currentVisibleRows += shown;
+            updateVisibleCount();
+            
+            // Update hidden count or hide button
+            const remainingHidden = document.querySelectorAll('table tbody tr.hidden-row').length;
+            const hiddenCountSpan = document.getElementById('hiddenCount');
+            const loadMoreContainer = document.getElementById('loadMoreContainer');
+            
+            if (remainingHidden === 0) {
+                loadMoreContainer.innerHTML = '<p style="color: #51cf66; font-weight: 600;"><i class="fas fa-check-circle"></i> All records loaded</p>';
+            } else {
+                hiddenCountSpan.textContent = `(${remainingHidden} more records)`;
+            }
+        }
+        
+        function showAllRows() {
+            const hiddenRows = document.querySelectorAll('table tbody tr.hidden-row');
+            hiddenRows.forEach(row => {
+                row.classList.remove('hidden-row');
+            });
+            
+            currentVisibleRows = totalRecords;
+            updateVisibleCount();
+            
+            const loadMoreContainer = document.getElementById('loadMoreContainer');
+            if (loadMoreContainer) {
+                loadMoreContainer.innerHTML = '<p style="color: #51cf66; font-weight: 600;"><i class="fas fa-check-circle"></i> All records loaded</p>';
+            }
+        }
+
+        // Export to Excel function - Uses server-side generation for header colors
+        function exportToExcel() {
+            // Show loading state
+            const exportBtn = document.querySelector('.btn-export');
+            const originalText = exportBtn.innerHTML;
+            exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+            exportBtn.disabled = true;
+            
+            // Use PHP endpoint for formatted Excel with header colors
+            window.location.href = 'api/export-delivery.php';
+            
+            // Reset button after a short delay
+            setTimeout(() => {
+                exportBtn.innerHTML = originalText;
+                exportBtn.disabled = false;
+            }, 2000);
         }
 
         // Sidebar toggle
