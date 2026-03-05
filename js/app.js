@@ -71,20 +71,46 @@ function initializeSubmenuToggle() {
 // PROFILE DROPDOWN FUNCTIONALITY
 // ============================================
 
+// ============================================
+// PROFILE DROPDOWN FUNCTIONALITY
+// ============================================
+
 function initializeProfileDropdown() {
     const profileBtn = document.getElementById('profileBtn');
     const profileMenu = document.getElementById('profileMenu');
 
-    if (!profileBtn || !profileMenu) return;
+    if (!profileBtn || !profileMenu) {
+        console.warn('Profile button or menu not found in DOM');
+        return;
+    }
 
+    // Click handler for button
     profileBtn.addEventListener('click', function(e) {
+        e.preventDefault();
         e.stopPropagation();
+        console.log('Profile button clicked, toggling dropdown');
         profileMenu.classList.toggle('active');
     });
 
-    document.addEventListener('click', function(e) {
-        if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) {
+    // Click handler for menu items to close dropdown
+    profileMenu.addEventListener('click', function(e) {
+        if (e.target.tagName === 'A' || e.target.closest('a')) {
             profileMenu.classList.remove('active');
+        }
+    });
+
+    // Click anywhere else to close dropdown
+    document.addEventListener('click', function(e) {
+        if (profileBtn && profileMenu && !profileBtn.contains(e.target) && !profileMenu.contains(e.target)) {
+            profileMenu.classList.remove('active');
+        }
+    });
+
+    // Keyboard support (Escape key)
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && profileMenu.classList.contains('active')) {
+            profileMenu.classList.remove('active');
+            profileBtn.focus();
         }
     });
 }

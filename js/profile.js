@@ -2,62 +2,88 @@
 // USER PROFILE PAGE
 // ============================================
 
+// Timeout to prevent infinite loading
+let profileLoadTimeout;
+
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Profile Page Loaded');
+    console.log('Profile DOM Content Loaded');
     
-    loadProfileData();
-    initializeProfileEvents();
-    initializeProfilePictureUpload();
+    // Set a timeout to ensure page doesn't hang
+    profileLoadTimeout = setTimeout(function() {
+        console.warn('Profile load timeout - showing default content');
+        showDefaultProfile();
+    }, 3000);
+    
+    try {
+        // Initialize events and UI first
+        initializeProfileEvents();
+        initializeProfilePictureUpload();
+        
+        // Load profile data from server
+        loadProfileData();
+        
+        // Clear timeout if everything loaded
+        clearTimeout(profileLoadTimeout);
+    } catch (error) {
+        console.error('Error initializing profile:', error);
+        clearTimeout(profileLoadTimeout);
+    }
 });
+
+function showDefaultProfile() {
+    console.log('Showing default profile content');
+    // Content should already be visible from PHP
+    // Just initialize events
+    try {
+        initializeProfileEvents();
+        initializeProfilePictureUpload();
+    } catch (e) {
+        console.log('Events already initialized');
+    }
+}
 
 // ============================================
 // LOAD PROFILE DATA
 // ============================================
 
 function loadProfileData() {
-    const currentUserProfile = localStorage.getItem('currentUserProfile');
-    const userEmail = localStorage.getItem('userEmail');
-    const loginTime = localStorage.getItem('loginTime');
+    console.log('Loading profile data...');
+    console.log('serverUserData exists:', typeof serverUserData !== 'undefined');
     
-    if (currentUserProfile) {
-        const user = JSON.parse(currentUserProfile);
-        displayProfile(user.firstName, user.lastName, user.email, loginTime);
-    } else if (userEmail) {
-        const name = userEmail.split('@')[0];
-        displayProfile(name, '', userEmail, loginTime);
+    if (typeof serverUserData !== 'undefined' && serverUserData && serverUserData.email) {
+        console.log('Displaying profile for:', serverUserData.email);
+        displayProfile(serverUserData.name, serverUserData.email);
     } else {
-        // User not logged in, redirect to login
-        window.location.href = 'login.php';
+        console.log('No valid server user data');
     }
 }
 
-function displayProfile(firstName, lastName, email, loginTime) {
+function displayProfile(name, email) {
+    console.log('Displaying profile:', name, email);
+    
     // Update header
     const profileNameEl = document.getElementById('profileName');
     const profileEmailEl = document.getElementById('profileEmail');
     
-    if (profileNameEl) {
-        profileNameEl.textContent = `${firstName} ${lastName}`.trim() || 'User';
-    }
-    if (profileEmailEl) {
-        profileEmailEl.textContent = email || '';
-    }
+    if (profileNameEl) profileNameEl.textContent = name || 'User';
+    if (profileEmailEl) profileEmailEl.textContent = email || '';
     
     // Load and display profile picture
-    loadProfilePicture();
+    try {
+        loadProfilePicture();
+    } catch (e) {
+        console.log('Profile picture load skipped');
+    }
     
-    // Update personal information
-    const firstNameEl = document.getElementById('firstName');
-    const lastNameEl = document.getElementById('lastName');
-    
-    if (firstNameEl) firstNameEl.textContent = firstName || '—';
-    if (lastNameEl) lastNameEl.textContent = lastName || '—';
+    // Update full name display
+    const fullNameEl = document.getElementById('fullName');
+    if (fullNameEl) fullNameEl.textContent = name || '—';
     
     // Update account information
     const emailAddressEl = document.getElementById('emailAddress');
     if (emailAddressEl) emailAddressEl.textContent = email || '—';
     
-    // Member since (account creation time)
+    // Member since
     const memberSinceEl = document.getElementById('memberSince');
     if (memberSinceEl) {
         const memberSince = new Date().toLocaleDateString('en-US', {
@@ -71,29 +97,19 @@ function displayProfile(firstName, lastName, email, loginTime) {
     // Last login
     const lastLoginEl = document.getElementById('lastLogin');
     if (lastLoginEl) {
-        if (loginTime) {
-            try {
-                const lastLoginDate = new Date(loginTime);
-                const lastLoginStr = lastLoginDate.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                lastLoginEl.textContent = lastLoginStr;
-            } catch (e) {
-                lastLoginEl.textContent = 'Today';
-            }
-        } else {
-            lastLoginEl.textContent = 'Today';
-        }
+        const today = new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        lastLoginEl.textContent = today;
     }
 
     // Store for edit modal
     window.currentUser = {
-        firstName: firstName,
-        lastName: lastName,
+        name: name,
         email: email
     };
 }
@@ -114,11 +130,8 @@ function initializeProfileEvents() {
     if (editBtn) {
         editBtn.addEventListener('click', function() {
             if (window.currentUser) {
-                const editFirstName = document.getElementById('editFirstName');
-                const editLastName = document.getElementById('editLastName');
-                
-                if (editFirstName) editFirstName.value = window.currentUser.firstName;
-                if (editLastName) editLastName.value = window.currentUser.lastName;
+                const editName = document.getElementById('editName');
+                if (editName) editName.value = window.currentUser.name;
             }
             if (editModal) editModal.classList.add('show');
         });
@@ -134,7 +147,12 @@ function initializeProfileEvents() {
     // Back button
     if (backBtn) {
         backBtn.addEventListener('click', function() {
-            window.location.href = 'index.php';
+            // Go back to previous page or dashboard
+            if (document.referrer && document.referrer.includes(window.location.hostname)) {
+                window.history.back();
+            } else {
+                window.location.href = 'index.php';
+            }
         });
     }
 
@@ -169,48 +187,78 @@ function initializeProfileEvents() {
 // ============================================
 
 function saveProfile() {
-    const editFirstName = document.getElementById('editFirstName');
-    const editLastName = document.getElementById('editLastName');
-    
-    const firstName = editFirstName ? editFirstName.value.trim() : '';
-    const lastName = editLastName ? editLastName.value.trim() : '';
+    const editName = document.getElementById('editName');
+    const newName = editName ? editName.value.trim() : '';
 
-    if (!firstName || !lastName) {
-        showNotification('Please fill in all fields', 'error');
+    if (!newName) {
+        showNotification('Please enter a name', 'error');
         return;
     }
 
-    // Update localStorage
-    const currentProfile = JSON.parse(localStorage.getItem('currentUserProfile') || '{}');
-    currentProfile.firstName = firstName;
-    currentProfile.lastName = lastName;
-    
-    localStorage.setItem('currentUserProfile', JSON.stringify(currentProfile));
-    localStorage.setItem('newUserAccount', JSON.stringify(currentProfile));
-
-    // Update window reference
-    if (window.currentUser) {
-        window.currentUser.firstName = firstName;
-        window.currentUser.lastName = lastName;
+    // Show loading state
+    const submitBtn = document.querySelector('#editForm button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
     }
-    
-    // Update display
-    const profileNameEl = document.getElementById('profileName');
-    const firstNameEl = document.getElementById('firstName');
-    const lastNameEl = document.getElementById('lastName');
-    
-    if (profileNameEl) profileNameEl.textContent = `${firstName} ${lastName}`;
-    if (firstNameEl) firstNameEl.textContent = firstName;
-    if (lastNameEl) lastNameEl.textContent = lastName;
 
-    // Show success message
-    showNotification('Profile updated successfully!', 'success');
+    // Send to server
+    const formData = new FormData();
+    formData.append('name', newName);
 
-    // Close modal
-    setTimeout(function() {
-        const editModal = document.getElementById('editModal');
-        if (editModal) editModal.classList.remove('show');
-    }, 500);
+    fetch('api/update-profile.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update window reference and display
+            if (window.currentUser) {
+                window.currentUser.name = newName;
+            }
+            
+            // Update all display elements
+            const profileNameEl = document.getElementById('profileName');
+            const fullNameEl = document.getElementById('fullName');
+            
+            if (profileNameEl) profileNameEl.textContent = newName;
+            if (fullNameEl) fullNameEl.textContent = newName;
+
+            // Show success message
+            showNotification('Profile updated successfully!', 'success');
+
+            // Close modal
+            setTimeout(function() {
+                const editModal = document.getElementById('editModal');
+                if (editModal) editModal.classList.remove('show');
+                
+                // Reset button
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Save Changes';
+                }
+            }, 500);
+        } else {
+            showNotification(data.message || 'Failed to update profile', 'error');
+            
+            // Reset button
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Save Changes';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error updating profile', 'error');
+        
+        // Reset button
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Save Changes';
+        }
+    });
 }
 
 // ============================================
@@ -279,7 +327,7 @@ function loadProfilePicture() {
 // ============================================
 
 function logout() {
-    // Clear user data
+    // Clear user data from localStorage
     localStorage.removeItem('userEmail');
     localStorage.removeItem('loginTime');
     localStorage.removeItem('newUserAccount');
@@ -288,8 +336,8 @@ function logout() {
     localStorage.removeItem('savedEmail');
     localStorage.removeItem('profilePicture');
 
-    // Redirect to login
-    window.location.href = 'login.php';
+    // Redirect to logout.php to clear session on server
+    window.location.href = 'logout.php';
 }
 
 // ============================================

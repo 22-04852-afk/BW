@@ -1,3 +1,10 @@
+<?php
+session_start();
+if (empty($_SESSION['user_id'])) {
+    header('Location: login.php', true, 302);
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -425,9 +432,8 @@
                     <span class="notification-badge">3</span>
                 </div>
                 <div class="profile-dropdown">
-                    <button class="profile-btn" id="profileBtn" aria-label="Profile menu">
-                        <img src="https://via.placeholder.com/40" alt="User avatar" class="profile-avatar">
-                        <span class="profile-name">John Anderson</span>
+                    <button type="button" class="profile-btn" id="profileBtn" aria-label="Profile menu">
+                        <span class="profile-name"><?php echo htmlspecialchars(isset($_SESSION['user_name']) ? $_SESSION['user_name'] : 'User'); ?></span>
                         <i class="fas fa-chevron-down"></i>
                     </button>
                     <div class="dropdown-menu" id="profileMenu">

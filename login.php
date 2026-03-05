@@ -1,8 +1,8 @@
 <?php
 session_start();
-// If already authenticated server-side, skip the login page entirely
+// If already authenticated server-side, go to profile
 if (!empty($_SESSION['user_id'])) {
-    header('Location: index.php');
+    header('Location: profile.php', true, 302);
     exit;
 }
 ?>

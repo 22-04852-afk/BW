@@ -131,9 +131,8 @@ $group_b = $conn->query("SELECT item_code, item_name, SUM(quantity) as total FRO
                     <span class="notification-badge">3</span>
                 </div>
                 <div class="profile-dropdown">
-                    <button class="profile-btn" id="profileBtn" aria-label="Profile menu">
-                        <img src="https://via.placeholder.com/40" alt="User avatar" class="profile-avatar">
-                        <span class="profile-name"><?php echo htmlspecialchars($user_name); ?></span>
+                    <button type="button" class="profile-btn" id="profileBtn" aria-label="Profile menu">
+                        <span class="profile-name"><?php echo htmlspecialchars(isset($_SESSION['user_name']) ? $_SESSION['user_name'] : 'User'); ?></span>
                         <i class="fas fa-chevron-down"></i>
                     </button>
                     <div class="dropdown-menu" id="profileMenu">
