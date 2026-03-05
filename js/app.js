@@ -290,23 +290,35 @@ function initializeCharts() {
 // ============================================
 
 function initializeSparklineCharts() {
+    // Get monthly data for sparklines
+    const fullMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    let monthlyData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    
+    if (typeof dashboardData !== 'undefined' && dashboardData.monthly_sales) {
+        fullMonths.forEach((month, index) => {
+            monthlyData[index] = dashboardData.monthly_sales[month] || 0;
+        });
+    }
+    
+    // Create different sparkline data variations
     const sparklineIds = ['sparkline1', 'sparkline2', 'sparkline3', 'sparkline4'];
     const sparklineData = [
-        [15, 25, 18, 32, 28, 35, 40, 38],
-        [10, 15, 12, 20, 18, 25, 30, 28],
-        [8, 12, 10, 15, 14, 20, 25, 23],
-        [5, 10, 8, 12, 11, 15, 18, 16]
+        monthlyData,  // Total delivered trend
+        monthlyData.map(v => Math.round(v * 0.7)),  // Sold trend (approx 70% of delivered)
+        monthlyData.filter((_, i) => i % 3 === 0).concat(monthlyData.filter((_, i) => i % 3 === 0)),  // Companies trend
+        monthlyData.map(v => Math.round(v * 0.3))   // Models trend
     ];
 
     sparklineIds.forEach((id, index) => {
         const ctx = document.getElementById(id);
         if (ctx) {
+            const data = sparklineData[index].length > 0 ? sparklineData[index] : [0, 0, 0, 0, 0, 0, 0, 0];
             new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7', 'Day 8'],
+                    labels: fullMonths.slice(0, data.length),
                     datasets: [{
-                        data: sparklineData[index],
+                        data: data,
                         borderColor: '#f4d03f',
                         backgroundColor: 'rgba(244, 208, 63, 0.1)',
                         borderWidth: 1.5,
@@ -340,12 +352,21 @@ function initializeDeliveredChart() {
     const ctx = document.getElementById('deliveredChart');
     if (!ctx) return;
 
+    // Use real data from dashboardData if available
+    let delivered = 696;
+    let pending = 104;
+    
+    if (typeof dashboardData !== 'undefined') {
+        delivered = dashboardData.total_delivered || 0;
+        pending = dashboardData.pending_count || 0;
+    }
+
     new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Delivered', 'Pending'],
             datasets: [{
-                data: [696, 104],
+                data: [delivered, pending],
                 backgroundColor: ['#f4d03f', '#2f5fa7'],
                 borderColor: '#13172c',
                 borderWidth: 2
@@ -374,12 +395,21 @@ function initializeSoldChart() {
     const ctx = document.getElementById('soldChart');
     if (!ctx) return;
 
+    // Use real data from dashboardData if available
+    let sold = 311;
+    let available = 489;
+    
+    if (typeof dashboardData !== 'undefined') {
+        sold = dashboardData.total_sold || 0;
+        available = Math.max(0, dashboardData.total_delivered - sold);
+    }
+
     new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Sold', 'Available'],
             datasets: [{
-                data: [311, 489],
+                data: [sold, available],
                 backgroundColor: ['#51cf66', '#2f5fa7'],
                 borderColor: '#13172c',
                 borderWidth: 2
@@ -408,23 +438,27 @@ function initializeMonthlyComparisonChart() {
     const ctx = document.getElementById('monthlyComparisonChart');
     if (!ctx) return;
 
+    // Use real data from dashboardData if available
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const fullMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    let deliveredData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    
+    if (typeof dashboardData !== 'undefined' && dashboardData.monthly_sales) {
+        fullMonths.forEach((month, index) => {
+            deliveredData[index] = dashboardData.monthly_sales[month] || 0;
+        });
+    }
+
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+            labels: months,
             datasets: [
                 {
                     label: 'Delivered',
-                    data: [18, 14, 42, 46, 83, 25, 41, 39],
+                    data: deliveredData,
                     backgroundColor: '#f4d03f',
                     borderColor: '#d4b000',
-                    borderWidth: 1
-                },
-                {
-                    label: 'Sold',
-                    data: [12, 15, 28, 35, 52, 20, 35, 42],
-                    backgroundColor: '#2f5fa7',
-                    borderColor: '#1e3c72',
                     borderWidth: 1
                 }
             ]
@@ -459,15 +493,26 @@ function initializeClientsChart() {
     const ctx = document.getElementById('clientsChart');
     if (!ctx) return;
 
+    // Use real data from dashboardData if available
+    let labels = ['Client 1', 'Client 2', 'Client 3', 'Client 4', 'Client 5'];
+    let data = [97, 85, 72, 68, 63];
+    
+    if (typeof dashboardData !== 'undefined' && dashboardData.top_clients && dashboardData.top_clients.length > 0) {
+        labels = dashboardData.top_clients.map(c => {
+            // Truncate long names
+            const name = c.company_name || 'Unknown';
+            return name.length > 20 ? name.substring(0, 20) + '...' : name;
+        });
+        data = dashboardData.top_clients.map(c => parseInt(c.total_quantity) || 0);
+    }
+
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['Addison Zamora', 'Client 2', 'Client 3', 'Client 4', 'Client 5',
-                     'Client 6', 'Client 7', 'Client 8', 'Client 9', 'Client 10',
-                     'Client 11', 'Client 12', 'Client 13', 'Client 14', 'Client 15'],
+            labels: labels,
             datasets: [{
-                label: 'Units',
-                data: [97, 85, 72, 68, 63, 58, 52, 48, 45, 42, 38, 35, 30, 28, 25],
+                label: 'Units Delivered',
+                data: data,
                 backgroundColor: '#2f5fa7',
                 borderColor: '#1e3c72',
                 borderWidth: 1
@@ -503,24 +548,27 @@ function initializeTrendChart() {
     const ctx = document.getElementById('trendChart');
     if (!ctx) return;
 
+    // Use real data from dashboardData if available
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const fullMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    let deliveredData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    
+    if (typeof dashboardData !== 'undefined' && dashboardData.monthly_sales) {
+        fullMonths.forEach((month, index) => {
+            deliveredData[index] = dashboardData.monthly_sales[month] || 0;
+        });
+    }
+
     new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+            labels: months,
             datasets: [
                 {
                     label: 'Delivered',
-                    data: [18, 14, 42, 46, 83, 25, 41, 39],
+                    data: deliveredData,
                     borderColor: '#f4d03f',
                     backgroundColor: 'rgba(244, 208, 63, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                },
-                {
-                    label: 'Sold',
-                    data: [12, 15, 28, 35, 52, 20, 35, 42],
-                    borderColor: '#51cf66',
-                    backgroundColor: 'rgba(81, 207, 102, 0.1)',
                     tension: 0.4,
                     fill: true
                 }
@@ -535,6 +583,7 @@ function initializeTrendChart() {
             },
             scales: {
                 y: {
+                    beginAtZero: true,
                     ticks: {},
                     grid: {}
                 },
@@ -548,27 +597,36 @@ function initializeTrendChart() {
 }
 
 // ============================================
-// GROUP A CHART (Bar)
+// GROUP A CHART (Bar) - Top Products
 // ============================================
 
 function initializeGroupAChart() {
     const ctx = document.getElementById('groupAChart');
     if (!ctx) return;
 
+    // Use real product data
+    let labels = ['Product 1', 'Product 2', 'Product 3', 'Product 4', 'Product 5'];
+    let data = [63, 58, 52, 45, 38];
+    
+    if (typeof dashboardData !== 'undefined' && dashboardData.top_products && dashboardData.top_products.length > 0) {
+        // Take first 5 products
+        const products = dashboardData.top_products.slice(0, 5);
+        labels = products.map(p => {
+            const code = p.item_code || 'Unknown';
+            return code.length > 15 ? code.substring(0, 15) + '...' : code;
+        });
+        data = products.map(p => parseInt(p.total) || 0);
+    }
+
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['A-100', 'A-200', 'A-300', 'A-400', 'A-500'],
+            labels: labels,
             datasets: [
                 {
-                    label: 'Delivered',
-                    data: [63, 58, 52, 45, 38],
+                    label: 'Quantity',
+                    data: data,
                     backgroundColor: '#f4d03f'
-                },
-                {
-                    label: 'Sold',
-                    data: [45, 42, 38, 32, 28],
-                    backgroundColor: '#2f5fa7'
                 }
             ]
         },
@@ -577,10 +635,15 @@ function initializeGroupAChart() {
             plugins: {
                 legend: {
                     labels: {}
+                },
+                title: {
+                    display: true,
+                    text: 'Top Products (1-5)'
                 }
             },
             scales: {
                 y: {
+                    beginAtZero: true,
                     ticks: {},
                     grid: {}
                 },
@@ -594,27 +657,38 @@ function initializeGroupAChart() {
 }
 
 // ============================================
-// GROUP B CHART (Bar)
+// GROUP B CHART (Bar) - More Products
 // ============================================
 
 function initializeGroupBChart() {
     const ctx = document.getElementById('groupBChart');
     if (!ctx) return;
 
+    // Use real product data (products 6-10)
+    let labels = ['Product 6', 'Product 7', 'Product 8', 'Product 9', 'Product 10'];
+    let data = [52, 48, 45, 40, 35];
+    
+    if (typeof dashboardData !== 'undefined' && dashboardData.top_products && dashboardData.top_products.length > 5) {
+        // Take products 6-10
+        const products = dashboardData.top_products.slice(5, 10);
+        if (products.length > 0) {
+            labels = products.map(p => {
+                const code = p.item_code || 'Unknown';
+                return code.length > 15 ? code.substring(0, 15) + '...' : code;
+            });
+            data = products.map(p => parseInt(p.total) || 0);
+        }
+    }
+
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['B-100', 'B-200', 'B-300', 'B-400', 'B-500'],
+            labels: labels,
             datasets: [
                 {
-                    label: 'Delivered',
-                    data: [52, 48, 45, 40, 35],
+                    label: 'Quantity',
+                    data: data,
                     backgroundColor: '#51cf66'
-                },
-                {
-                    label: 'Sold',
-                    data: [38, 35, 32, 28, 25],
-                    backgroundColor: '#2f5fa7'
                 }
             ]
         },
@@ -623,10 +697,15 @@ function initializeGroupBChart() {
             plugins: {
                 legend: {
                     labels: {}
+                },
+                title: {
+                    display: true,
+                    text: 'Top Products (6-10)'
                 }
             },
             scales: {
                 y: {
+                    beginAtZero: true,
                     ticks: {},
                     grid: {}
                 },

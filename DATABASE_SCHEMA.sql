@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS `delivery_records` (
   `id` INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `delivery_month` VARCHAR(20) NOT NULL COMMENT 'Month of delivery (e.g., January, February)',
   `delivery_day` INT(2) NOT NULL COMMENT 'Day of delivery (1-31)',
+  `delivery_year` INT(4) DEFAULT NULL COMMENT 'Year of delivery (e.g., 2025, 2026)',
   `item_code` VARCHAR(50) NOT NULL COMMENT 'Item/Product code (e.g., MCX3-BC1)',
   `item_name` VARCHAR(255) NOT NULL COMMENT 'Full item/product name',
   `company_name` VARCHAR(255) NOT NULL COMMENT 'Company/Client name',
@@ -20,13 +21,14 @@ CREATE TABLE IF NOT EXISTS `delivery_records` (
   -- Indexes for better query performance
   KEY `idx_delivery_month` (`delivery_month`),
   KEY `idx_delivery_day` (`delivery_day`),
+  KEY `idx_delivery_year` (`delivery_year`),
   KEY `idx_item_code` (`item_code`),
   KEY `idx_company_name` (`company_name`),
   KEY `idx_status` (`status`),
   KEY `idx_created_at` (`created_at`),
   
   -- Unique constraint to prevent duplicate entries
-  UNIQUE KEY `unique_delivery` (`delivery_month`, `delivery_day`, `item_code`, `company_name`)
+  UNIQUE KEY `unique_delivery` (`delivery_month`, `delivery_day`, `delivery_year`, `item_code`, `company_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Stores delivery records for BW Gas Detector products';
 
 -- Create database if it doesn't exist

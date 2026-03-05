@@ -18,7 +18,7 @@
 }
 
 html.light-mode #pageLoader {
-    background: #f5f7fa;
+    background: #e8f4fc;
 }
 
 #pageLoader.loader-hidden {
@@ -74,93 +74,105 @@ html.light-mode #pageLoader {
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Light Mode Theme */
+/* Light Mode Theme - Light Blue */
 html.light-mode,
 body.light-mode {
-    --color-dark-bg: #f5f7fa;
+    --color-dark-bg: #e8f4fc;
     --color-dark-secondary: #ffffff;
-    --color-sidebar: #ffffff;
-    --color-primary: #2f5fa7;
-    --color-accent: #2f5fa7;
+    --color-sidebar: #f0f8ff;
+    --color-primary: #1e88e5;
+    --color-accent: #1e88e5;
     --color-success: #51cf66;
     --color-danger: #ff6b6b;
-    --color-text-light: #1a1a2e;
-    --color-text-lighter: #6c757d;
-    --color-border: #dee2e6;
+    --color-text-light: #1a3a5c;
+    --color-text-lighter: #5a7a9a;
+    --color-border: #b8d4e8;
 }
 
 html.light-mode,
 body.light-mode {
-    background-color: #f5f7fa;
-    color: #1a1a2e;
+    background-color: #e8f4fc;
+    color: #1a3a5c;
 }
 
 html.light-mode .navbar,
 body.light-mode .navbar {
-    background: linear-gradient(135deg, #ffffff 0%, #f0f4f8 100%);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 100%);
+    box-shadow: 0 2px 8px rgba(30, 136, 229, 0.15);
 }
 
 html.light-mode .sidebar,
 body.light-mode .sidebar {
-    background: #ffffff;
-    border-right: 1px solid #dee2e6;
+    background: linear-gradient(180deg, #f0f8ff 0%, #e3f2fd 100%);
+    border-right: 1px solid #b8d4e8;
 }
 
 html.light-mode .main-content,
 body.light-mode .main-content {
-    background: #f5f7fa;
+    background: #e8f4fc;
 }
 
 html.light-mode .dashboard-title,
 html.light-mode .profile-name,
 body.light-mode .dashboard-title,
 body.light-mode .profile-name {
-    color: #1a1a2e;
+    color: #1a3a5c;
 }
 
 html.light-mode .hamburger-btn span,
 body.light-mode .hamburger-btn span {
-    background: #1a1a2e;
+    background: #1a3a5c;
 }
 
 html.light-mode .menu-link,
 body.light-mode .menu-link {
-    color: #495057;
+    color: #3a6a8a;
+}
+
+html.light-mode .menu-link .menu-label,
+html.light-mode .menu-label,
+body.light-mode .menu-link .menu-label,
+body.light-mode .menu-label {
+    color: #3a6a8a !important;
+}
+
+html.light-mode .menu-link i,
+body.light-mode .menu-link i {
+    color: #1e88e5 !important;
 }
 
 html.light-mode .menu-link:hover,
 html.light-mode .menu-item.active .menu-link,
 body.light-mode .menu-link:hover,
 body.light-mode .menu-item.active .menu-link {
-    background: rgba(47, 95, 167, 0.1);
-    color: #2f5fa7;
+    background: rgba(30, 136, 229, 0.15);
+    color: #1565c0;
 }
 
 html.light-mode .profile-btn,
 body.light-mode .profile-btn {
-    background: rgba(47, 95, 167, 0.1);
-    border-color: rgba(47, 95, 167, 0.2);
-    color: #1a1a2e;
+    background: rgba(30, 136, 229, 0.1);
+    border-color: rgba(30, 136, 229, 0.3);
+    color: #1a3a5c;
 }
 
 html.light-mode .dropdown-menu,
 body.light-mode .dropdown-menu {
     background: #ffffff;
-    border-color: #dee2e6;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border-color: #b8d4e8;
+    box-shadow: 0 8px 24px rgba(30, 136, 229, 0.2);
 }
 
 html.light-mode .dropdown-menu a,
 body.light-mode .dropdown-menu a {
-    color: #495057;
-    border-bottom-color: #dee2e6;
+    color: #3a6a8a;
+    border-bottom-color: #e3f2fd;
 }
 
 html.light-mode .dropdown-menu a:hover,
 body.light-mode .dropdown-menu a:hover {
-    background: rgba(47, 95, 167, 0.1);
-    color: #2f5fa7;
+    background: rgba(30, 136, 229, 0.1);
+    color: #1565c0;
 }
 
 html.light-mode .settings-section,
@@ -169,32 +181,37 @@ html.light-mode .stat-card,
 body.light-mode .settings-section,
 body.light-mode .card,
 body.light-mode .stat-card {
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-    border-color: #dee2e6;
+    background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 100%);
+    border-color: #b8d4e8;
 }
 
 html.light-mode .settings-title,
 html.light-mode .settings-label-text,
 body.light-mode .settings-title,
 body.light-mode .settings-label-text {
-    color: #1a1a2e;
+    color: #1a3a5c;
 }
 
 html.light-mode .settings-label-desc,
 body.light-mode .settings-label-desc {
-    color: #6c757d;
+    color: #5a7a9a;
 }
 
 /* Light mode - Page Loader */
 body.light-mode #pageLoader,
 html.light-mode #pageLoader {
-    background: #f5f7fa;
+    background: #e8f4fc;
 }
 
 /* Light mode - Logo */
 html.light-mode .logo,
 body.light-mode .logo {
-    color: #2f5fa7;
+    color: #1e88e5;
+}
+
+html.light-mode .logo img,
+body.light-mode .logo img {
+    filter: brightness(0.3) saturate(1.5);
 }
 
 /* Light mode - Cards and sections */
@@ -204,18 +221,18 @@ html.light-mode .info-item,
 body.light-mode .upload-section,
 body.light-mode .profile-card,
 body.light-mode .info-item {
-    background: linear-gradient(135deg, #ffffff 0%, #f0f4f8 100%);
-    border-color: #dee2e6;
+    background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 100%);
+    border-color: #b8d4e8;
 }
 
 html.light-mode .info-label,
 body.light-mode .info-label {
-    color: #6c757d;
+    color: #5a7a9a;
 }
 
 html.light-mode .info-value,
 body.light-mode .info-value {
-    color: #1a1a2e;
+    color: #1a3a5c;
 }
 
 /* Light mode - Tables */
@@ -226,19 +243,19 @@ body.light-mode table {
 
 html.light-mode th,
 body.light-mode th {
-    background: #f0f4f8;
-    color: #1a1a2e;
+    background: #e3f2fd;
+    color: #1a3a5c;
 }
 
 html.light-mode td,
 body.light-mode td {
-    color: #495057;
-    border-color: #dee2e6;
+    color: #3a6a8a;
+    border-color: #b8d4e8;
 }
 
 html.light-mode tr:hover,
 body.light-mode tr:hover {
-    background: rgba(47, 95, 167, 0.05);
+    background: rgba(30, 136, 229, 0.08);
 }
 
 /* Light mode - Inputs */
@@ -249,19 +266,296 @@ body.light-mode input,
 body.light-mode select,
 body.light-mode textarea {
     background: #ffffff;
-    border-color: #dee2e6;
-    color: #1a1a2e;
+    border-color: #b8d4e8;
+    color: #1a3a5c;
 }
 
 html.light-mode input::placeholder,
 body.light-mode input::placeholder {
-    color: #adb5bd;
+    color: #8ab4d4;
 }
 
 /* Light mode - Notifications */
 html.light-mode .notification,
 body.light-mode .notification {
-    color: #495057;
+    color: #3a6a8a;
+}
+
+/* Light mode - Page titles and headings */
+html.light-mode .page-title,
+html.light-mode .section-title,
+html.light-mode h1, html.light-mode h2, html.light-mode h3,
+body.light-mode .page-title,
+body.light-mode .section-title,
+body.light-mode h1, body.light-mode h2, body.light-mode h3 {
+    color: #1a3a5c !important;
+}
+
+html.light-mode .page-title i,
+html.light-mode .section-title i,
+body.light-mode .page-title i,
+body.light-mode .section-title i {
+    color: #1e88e5 !important;
+}
+
+/* Light mode - Submenu */
+html.light-mode .submenu,
+body.light-mode .submenu {
+    background: #e3f2fd !important;
+}
+
+html.light-mode .submenu-link,
+html.light-mode .submenu-link span,
+body.light-mode .submenu-link,
+body.light-mode .submenu-link span {
+    color: #3a6a8a !important;
+}
+
+html.light-mode .submenu-link:hover,
+body.light-mode .submenu-link:hover {
+    background: rgba(30, 136, 229, 0.15) !important;
+    color: #1565c0 !important;
+}
+
+html.light-mode .submenu-icon,
+body.light-mode .submenu-icon {
+    color: #5a7a9a !important;
+}
+
+/* Light mode - Stat cards */
+html.light-mode .stat-value,
+html.light-mode .stat-number,
+html.light-mode .gauge-value,
+body.light-mode .stat-value,
+body.light-mode .stat-number,
+body.light-mode .gauge-value {
+    color: #1565c0 !important;
+}
+
+html.light-mode .stat-label,
+html.light-mode .stat-title,
+body.light-mode .stat-label,
+body.light-mode .stat-title {
+    color: #3a6a8a !important;
+}
+
+/* Light mode - Chart containers */
+html.light-mode .chart-container,
+html.light-mode .chart-container-full,
+html.light-mode .table-container,
+body.light-mode .chart-container,
+body.light-mode .chart-container-full,
+body.light-mode .table-container {
+    background: #ffffff !important;
+    border-color: #b8d4e8 !important;
+}
+
+html.light-mode .chart-title,
+body.light-mode .chart-title {
+    color: #1a3a5c !important;
+}
+
+/* Light mode - Menu icons */
+html.light-mode .menu-link i,
+html.light-mode .fa, html.light-mode .fas, html.light-mode .far,
+body.light-mode .menu-link i,
+body.light-mode .fa, body.light-mode .fas, body.light-mode .far {
+    color: inherit;
+}
+
+/* Light mode - Report cards */
+html.light-mode .report-card,
+html.light-mode .company-card,
+body.light-mode .report-card,
+body.light-mode .company-card {
+    background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 100%) !important;
+    border-color: #b8d4e8 !important;
+}
+
+html.light-mode .gauge-card,
+body.light-mode .gauge-card {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%) !important;
+    border-color: #90caf9 !important;
+}
+
+html.light-mode .gauge-card h3,
+body.light-mode .gauge-card h3 {
+    color: #1a3a5c !important;
+}
+
+html.light-mode .report-title,
+html.light-mode .company-name,
+html.light-mode .report-card .report-title,
+body.light-mode .report-title,
+body.light-mode .company-name,
+body.light-mode .report-card .report-title {
+    color: #1a3a5c !important;
+}
+
+html.light-mode .report-description,
+html.light-mode .company-industry,
+body.light-mode .report-description,
+body.light-mode .company-industry {
+    color: #5a7a9a !important;
+}
+
+html.light-mode .report-icon,
+html.light-mode .company-logo,
+body.light-mode .report-icon,
+body.light-mode .company-logo {
+    background: linear-gradient(135deg, #1e88e5, #42a5f5) !important;
+}
+
+/* Light mode - Buttons */
+html.light-mode .btn-report,
+html.light-mode .view-more-btn,
+body.light-mode .btn-report,
+body.light-mode .view-more-btn {
+    background: rgba(30, 136, 229, 0.1) !important;
+    border-color: #b8d4e8 !important;
+    color: #1565c0 !important;
+}
+
+html.light-mode .btn-report:hover,
+html.light-mode .view-more-btn:hover,
+body.light-mode .btn-report:hover,
+body.light-mode .view-more-btn:hover {
+    background: #1e88e5 !important;
+    color: #ffffff !important;
+}
+
+/* Light mode - Filter sections */
+html.light-mode .filter-section,
+html.light-mode .filter-controls,
+body.light-mode .filter-section,
+body.light-mode .filter-controls {
+    background: #ffffff !important;
+    border-color: #b8d4e8 !important;
+}
+
+html.light-mode .filter-btn,
+html.light-mode .filter-search,
+body.light-mode .filter-btn,
+body.light-mode .filter-search {
+    background: #f0f8ff !important;
+    border-color: #b8d4e8 !important;
+    color: #1a3a5c !important;
+}
+
+/* Light mode - Accordion */
+html.light-mode .accordion-header,
+body.light-mode .accordion-header {
+    background: #e3f2fd !important;
+    color: #1a3a5c !important;
+}
+
+html.light-mode .accordion-content,
+body.light-mode .accordion-content {
+    background: #f0f8ff !important;
+}
+
+html.light-mode .checkbox-grid label,
+body.light-mode .checkbox-grid label {
+    color: #3a6a8a !important;
+}
+
+/* Light mode - Horizontal bar container */
+html.light-mode .horizontal-bar-container,
+body.light-mode .horizontal-bar-container {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%) !important;
+}
+
+html.light-mode .horizontal-bar-container h2,
+html.light-mode .bar-row .company-name,
+body.light-mode .horizontal-bar-container h2,
+body.light-mode .bar-row .company-name {
+    color: #1a3a5c !important;
+}
+
+/* Light mode - Sidebar footer */
+html.light-mode .sidebar-footer,
+html.light-mode .version-info,
+body.light-mode .sidebar-footer,
+body.light-mode .version-info {
+    color: #5a7a9a !important;
+}
+
+html.light-mode .sidebar-footer p,
+html.light-mode .company-info,
+html.light-mode .company-year,
+body.light-mode .sidebar-footer p,
+body.light-mode .company-info,
+body.light-mode .company-year {
+    color: #3a6a8a !important;
+}
+
+/* Light mode - Stats row */
+html.light-mode .stat-box,
+html.light-mode .stats-row .stat-box,
+body.light-mode .stat-box,
+body.light-mode .stats-row .stat-box {
+    background: #ffffff !important;
+    border-color: #b8d4e8 !important;
+}
+
+/* Light mode - Date inputs */
+html.light-mode .date-input,
+body.light-mode .date-input {
+    background: #ffffff !important;
+    color: #1a3a5c !important;
+}
+
+/* Light mode - Company info items */
+html.light-mode .company-info .info-item,
+html.light-mode .company-stats .stat,
+body.light-mode .company-info .info-item,
+body.light-mode .company-stats .stat {
+    color: #3a6a8a !important;
+}
+
+/* Light mode - Search inputs */
+html.light-mode .search-input,
+html.light-mode .search-container input,
+body.light-mode .search-input,
+body.light-mode .search-container input {
+    background: #ffffff !important;
+    border-color: #b8d4e8 !important;
+    color: #1a3a5c !important;
+}
+
+/* Light mode - Badge/Status */
+html.light-mode .badge,
+html.light-mode .status-badge,
+body.light-mode .badge,
+body.light-mode .status-badge {
+    color: inherit;
+}
+
+/* Light mode - General text */
+html.light-mode p,
+html.light-mode span,
+html.light-mode label,
+html.light-mode div,
+body.light-mode p,
+body.light-mode span,
+body.light-mode label,
+body.light-mode div {
+    color: inherit;
+}
+
+/* Light mode - Notification badge */
+html.light-mode .notification-badge,
+body.light-mode .notification-badge {
+    background: #e53935 !important;
+    color: #ffffff !important;
+}
+
+/* Light mode - Chevron icons */
+html.light-mode .fa-chevron-down,
+html.light-mode .fa-chevron-right,
+body.light-mode .fa-chevron-down,
+body.light-mode .fa-chevron-right {
+    color: #5a7a9a !important;
 }
 
 html, body {
@@ -488,6 +782,11 @@ html, body {
     padding: 20px 0;
 }
 
+.sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+}
+
 .sidebar-menu {
     list-style: none;
 }
@@ -557,6 +856,7 @@ html, body {
     text-align: center;
     font-size: 12px;
     color: var(--color-text-lighter);
+    margin-top: auto;
 }
 
 /* ============================================
@@ -1330,6 +1630,54 @@ html.light-mode .upload-zone {
     border-color: #b0bdd6 !important;
 }
 
+html.light-mode .files-list {
+    color: #1a1a2e !important;
+}
+
+html.light-mode .files-list .file-info {
+    background: rgba(47, 95, 167, 0.06) !important;
+    border: 1px solid #b0bdd6 !important;
+    border-radius: 8px;
+}
+
+html.light-mode .files-list .file-name {
+    color: #1a1a2e !important;
+}
+
+html.light-mode .files-list .file-size {
+    color: #6b7280 !important;
+}
+
+html.light-mode .sheet-selector {
+    background: rgba(47, 95, 167, 0.06) !important;
+    border-radius: 10px;
+    padding: 15px;
+}
+
+html.light-mode .sheet-selector h4 {
+    color: #2f5fa7 !important;
+}
+
+html.light-mode .sheet-checkbox {
+    background: rgba(47, 95, 167, 0.08) !important;
+}
+
+html.light-mode .sheet-checkbox span {
+    color: #1a1a2e !important;
+}
+
+html.light-mode .chart-preview-section h3 {
+    color: #2f5fa7 !important;
+}
+
+html.light-mode .chart-card {
+    background: rgba(47, 95, 167, 0.08) !important;
+}
+
+html.light-mode .chart-card h4 {
+    color: #1a1a2e !important;
+}
+
 html.light-mode .template-section {
     background: rgba(47, 95, 167, 0.05) !important;
     border-color: #b0bdd6 !important;
@@ -1425,6 +1773,31 @@ html.light-mode .filter-btn.active {
     color: #ffffff !important;
 }
 
+/* Search bar light mode */
+html.light-mode .search-box input {
+    background: #ffffff !important;
+    border-color: #dde2ec !important;
+    color: #1a1a2e !important;
+}
+
+html.light-mode .search-box input::placeholder {
+    color: #7a8a9a !important;
+}
+
+html.light-mode .search-box input:focus {
+    border-color: #2f5fa7 !important;
+    background: #ffffff !important;
+}
+
+html.light-mode .search-box i {
+    color: #7a8a9a !important;
+}
+
+html.light-mode .search-count {
+    background: rgba(47, 95, 167, 0.08) !important;
+    color: #3a3a5c !important;
+}
+
 /* reports.php */
 html.light-mode .report-modal-content {
     background: #ffffff !important;
@@ -1439,4 +1812,42 @@ html.light-mode .page-title {
 html.light-mode .section-title {
     color: #1a1a2e !important;
     border-bottom-color: var(--color-accent) !important;
+}
+
+/* Add Record Form - Light Mode */
+html.light-mode .btn-add-record {
+    background: linear-gradient(135deg, #2f5fa7 0%, #1e88e5 100%) !important;
+}
+
+html.light-mode .form-group label {
+    color: #6b7280 !important;
+}
+
+html.light-mode .form-group input,
+html.light-mode .form-group select,
+html.light-mode .form-group textarea {
+    background: #ffffff !important;
+    border-color: #dde2ec !important;
+    color: #1a1a2e !important;
+}
+
+html.light-mode .form-group input:focus,
+html.light-mode .form-group select:focus,
+html.light-mode .form-group textarea:focus {
+    border-color: #2f5fa7 !important;
+}
+
+html.light-mode .form-group select option {
+    background: #ffffff !important;
+    color: #1a1a2e !important;
+}
+
+html.light-mode .btn-cancel-form {
+    background: #f0f4f8 !important;
+    color: #6b7280 !important;
+}
+
+html.light-mode .btn-cancel-form:hover {
+    background: #e2e8f0 !important;
+    color: #1a1a2e !important;
 }

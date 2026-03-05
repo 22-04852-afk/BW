@@ -1,6 +1,11 @@
 <?php
 header('Content-Type: application/json');
 
+// Increase limits for large imports
+ini_set('memory_limit', '256M');
+ini_set('max_execution_time', 300);
+set_time_limit(300);
+
 // Enable error reporting
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
@@ -68,9 +73,12 @@ $column_mappings = [
     'InvoiceNo' => 'invoice_no',
     'Invoice_No' => 'invoice_no',
     'invoice_no' => 'invoice_no',
+    'INVOICE NO.' => 'invoice_no',
+    'INVOICE NO' => 'invoice_no',
     
     // Item code variations
     'Item' => 'item_code',
+    'ITEM' => 'item_code',
     'Item_Code' => 'item_code',
     'ItemCode' => 'item_code',
     'item_code' => 'item_code',
@@ -79,6 +87,7 @@ $column_mappings = [
     
     // Description/Item name variations
     'Description' => 'item_name',
+    'DESCRIPTION' => 'item_name',
     'Item_Name' => 'item_name',
     'ItemName' => 'item_name',
     'item_name' => 'item_name',
@@ -86,13 +95,16 @@ $column_mappings = [
     
     // Quantity variations
     'Qty.' => 'quantity',
+    'QTY.' => 'quantity',
     'Qty' => 'quantity',
     'Quantity' => 'quantity',
+    'QUANTITY' => 'quantity',
     'quantity' => 'quantity',
     'QTY' => 'quantity',
     
     // Serial number variations
     'Serial No.' => 'serial_no',
+    'SERIAL NO.' => 'serial_no',
     'Serial No' => 'serial_no',
     'SerialNo' => 'serial_no',
     'Serial_No' => 'serial_no',
@@ -100,36 +112,62 @@ $column_mappings = [
     
     // Date variations
     'Date' => 'date',
+    'DATE' => 'date',
     'date' => 'date',
     'Order Date' => 'date',
     
     // Date delivered variations
     'Date Delivered' => 'date_delivered',
+    'DATE DELIVERED' => 'date_delivered',
     'DateDelivered' => 'date_delivered',
     'Date_Delivered' => 'date_delivered',
     'Delivery Date' => 'date_delivered',
     'Delivered Date' => 'date_delivered',
     
+    // Delivery month variations (from user's Excel format)
+    'DELIVERY MONTH TO ANDISON' => 'delivery_month',
+    'Delivery Month To Andison' => 'delivery_month',
+    'Delivery_Month' => 'delivery_month',
+    'Delivery Month' => 'delivery_month',
+    
+    // Delivery day variations (from user's Excel format)
+    'DELIVERY DAY TO ANDISON' => 'delivery_day',
+    'DEILVERY DAY TO ANDISON' => 'delivery_day',
+    'Delivery Day To Andison' => 'delivery_day',
+    'Delivery_Day' => 'delivery_day',
+    'Delivery Day' => 'delivery_day',
+    
+    // Year
+    'YEAR' => 'year',
+    'Year' => 'year',
+    'year' => 'year',
+    
     // Remarks/Notes variations
     'Remarks' => 'notes',
+    'REMARKS' => 'notes',
     'remarks' => 'notes',
     'Notes' => 'notes',
     'notes' => 'notes',
     'Note' => 'notes',
     
-    // Company name variations
+    // Company name / Sold To variations
     'Company_Name' => 'company_name',
     'Company' => 'company_name',
     'Client' => 'company_name',
     'Customer' => 'company_name',
+    'SOLD TO' => 'company_name',
+    'Sold To' => 'company_name',
+    'SOLD TO COMPANIES' => 'company_name',
+    'Sold To Companies' => 'company_name',
     
     // Status variations
     'Status' => 'status',
+    'STATUS' => 'status',
     'status' => 'status',
     
-    // Legacy format support
-    'Delivery_Month' => 'delivery_month',
-    'Delivery_Day' => 'delivery_day',
+    // UOM (Unit of Measure)
+    'UOM' => 'uom',
+    'Uom' => 'uom',
 ];
 
 try {
@@ -173,31 +211,48 @@ try {
             $notes = isset($mapped['notes']) ? trim(strval($mapped['notes'])) : '';
             $company_name = isset($mapped['company_name']) ? trim(strval($mapped['company_name'])) : 'Andison Industrial';
             $status = isset($mapped['status']) ? trim(strval($mapped['status'])) : 'Delivered';
+            $uom = isset($mapped['uom']) ? trim(strval($mapped['uom'])) : '';
+            $year = isset($mapped['year']) ? intval($mapped['year']) : intval(date('Y'));
             
             // Handle dates
             $delivery_date = null;
             $delivery_month = '';
             $delivery_day = 0;
             
-            // Try date_delivered first, then date
-            if (!empty($mapped['date_delivered'])) {
-                $delivery_date = excelDateToDate($mapped['date_delivered']);
-            } elseif (!empty($mapped['date'])) {
-                $delivery_date = excelDateToDate($mapped['date']);
+            // First check if we have direct month/day values from Excel
+            if (!empty($mapped['delivery_month'])) {
+                $delivery_month = trim(strval($mapped['delivery_month']));
             }
-            
-            // Extract month and day from delivery_date
-            if ($delivery_date) {
-                $delivery_month = getMonthFromDate($delivery_date);
-                $delivery_day = getDayFromDate($delivery_date);
-            }
-            
-            // Support legacy format
-            if (empty($delivery_month) && !empty($mapped['delivery_month'])) {
-                $delivery_month = $mapped['delivery_month'];
-            }
-            if ($delivery_day == 0 && !empty($mapped['delivery_day'])) {
+            if (!empty($mapped['delivery_day'])) {
                 $delivery_day = intval($mapped['delivery_day']);
+            }
+            
+            // Try date_delivered if we don't have month/day
+            if ((empty($delivery_month) || $delivery_day == 0) && !empty($mapped['date_delivered'])) {
+                $delivery_date = excelDateToDate($mapped['date_delivered']);
+                if ($delivery_date) {
+                    $delivery_month = getMonthFromDate($delivery_date);
+                    $delivery_day = getDayFromDate($delivery_date);
+                }
+            }
+            
+            // Fallback to date field
+            if ((empty($delivery_month) || $delivery_day == 0) && !empty($mapped['date'])) {
+                $temp_date = excelDateToDate($mapped['date']);
+                if ($temp_date && empty($delivery_month)) {
+                    $delivery_month = getMonthFromDate($temp_date);
+                }
+                if ($temp_date && $delivery_day == 0) {
+                    $delivery_day = getDayFromDate($temp_date);
+                }
+            }
+            
+            // Build delivery_date from month, day, year if we have them
+            if (!empty($delivery_month) && $delivery_day > 0 && $year > 0) {
+                $month_num = date('n', strtotime($delivery_month . ' 1'));
+                if ($month_num) {
+                    $delivery_date = sprintf('%04d-%02d-%02d', $year, $month_num, $delivery_day);
+                }
             }
             
             // Skip empty rows (check if essential fields are empty)
@@ -206,7 +261,7 @@ try {
             }
             
             // Skip rows with placeholder or header data
-            if ($item_code == '-' || $item_code == 'Item' || $notes == 'DESCRIPTION') {
+            if ($item_code == '-' || $item_code == 'Item' || $item_code == 'ITEM') {
                 continue;
             }
             
@@ -214,6 +269,11 @@ try {
             if ($notes == '-') $notes = '';
             if ($serial_no == '-') $serial_no = '';
             if ($company_name == '-') $company_name = 'Andison Industrial';
+            
+            // Append UOM to notes if present
+            if (!empty($uom) && $uom != '-') {
+                $notes = !empty($notes) ? $notes . ' (' . $uom . ')' : $uom;
+            }
             
             // Default status if empty
             if (empty($status) || $status == '-') {
@@ -229,11 +289,16 @@ try {
             if ($delivery_day == 0) {
                 $delivery_day = intval(date('j'));
             }
+            
+            // Default year if not set
+            if ($year <= 0) {
+                $year = intval(date('Y'));
+            }
 
             // Insert into database
             $sql = "INSERT INTO delivery_records 
-                    (invoice_no, serial_no, delivery_month, delivery_day, delivery_date, item_code, item_name, company_name, quantity, status, notes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    (invoice_no, serial_no, delivery_month, delivery_day, delivery_year, delivery_date, item_code, item_name, company_name, quantity, status, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
             $stmt = $conn->prepare($sql);
             if (!$stmt) {
@@ -241,11 +306,12 @@ try {
             }
 
             $stmt->bind_param(
-                'sssississss',
+                'sssiisississ',
                 $invoice_no,
                 $serial_no,
                 $delivery_month,
                 $delivery_day,
+                $year,
                 $delivery_date,
                 $item_code,
                 $item_name,

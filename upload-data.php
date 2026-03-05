@@ -205,6 +205,7 @@ if (empty($_SESSION['user_id'])) {
             background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
             color: #fff;
             display: none;
+            pointer-events: auto !important;
         }
 
         .btn-import:hover {
@@ -459,9 +460,204 @@ if (empty($_SESSION['user_id'])) {
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Success Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1e2a38 0%, #2a3f5f 100%);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            animation: slideUp 0.4s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 20px;
+            animation: bounce 0.5s ease 0.3s;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .modal-icon i {
+            font-size: 40px;
+            color: #fff;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #51cf66;
+            margin-bottom: 10px;
+        }
+
+        .modal-message {
+            color: #a0a0a0;
+            font-size: 14px;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .modal-stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+        }
+
+        .modal-stat {
+            text-align: center;
+        }
+
+        .modal-stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #51cf66;
+        }
+
+        .modal-stat-label {
+            font-size: 12px;
+            color: #7a8a9a;
+            margin-top: 5px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn-modal {
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .btn-modal-primary {
+            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+            color: #fff;
+        }
+
+        .btn-modal-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(81, 207, 102, 0.3);
+        }
+
+        .btn-modal-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #a0a0a0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-modal-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
     </style>
 </head>
 <body>
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal-content">
+            <div class="modal-icon" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);">
+                <i class="fas fa-trash-alt"></i>
+            </div>
+            <h2 class="modal-title" style="color: #ff6b6b;">Delete All Data?</h2>
+            <p class="modal-message">This will permanently delete ALL uploaded records from the database. This action cannot be undone.</p>
+            <div class="modal-stats" id="deleteStats">
+                <div class="modal-stat">
+                    <div class="modal-stat-value" style="color: #ff6b6b;" id="deleteCount">0</div>
+                    <div class="modal-stat-label">Records to Delete</div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-modal" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: #fff;" onclick="confirmDeleteAll()">
+                    <i class="fas fa-trash-alt"></i> Yes, Delete All
+                </button>
+                <button class="btn-modal btn-modal-secondary" onclick="closeDeleteModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal-overlay" id="successModal">
+        <div class="modal-content">
+            <div class="modal-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            <h2 class="modal-title">Import Successful!</h2>
+            <p class="modal-message" id="modalMessage">Your data has been imported successfully.</p>
+            <div class="modal-stats">
+                <div class="modal-stat">
+                    <div class="modal-stat-value" id="modalImported">0</div>
+                    <div class="modal-stat-label">Records Imported</div>
+                </div>
+                <div class="modal-stat">
+                    <div class="modal-stat-value" id="modalFailed">0</div>
+                    <div class="modal-stat-label">Failed</div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-modal btn-modal-primary" onclick="goToDeliveryRecords()">
+                    <i class="fas fa-list"></i> View Records
+                </button>
+                <button class="btn-modal btn-modal-secondary" onclick="closeSuccessModal()">
+                    <i class="fas fa-plus"></i> Import More
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- TOP NAVBAR -->
     <nav class="navbar">
         <div class="navbar-container">
@@ -523,6 +719,14 @@ if (empty($_SESSION['user_id'])) {
                     <a href="sales-overview.php" class="menu-link">
                         <i class="fas fa-chart-pie"></i>
                         <span class="menu-label">Sales Overview</span>
+                    </a>
+                </li>
+
+                <!-- Sales Records -->
+                <li class="menu-item">
+                    <a href="sales-records.php" class="menu-link">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span class="menu-label">Sales Records</span>
                     </a>
                 </li>
 
@@ -652,39 +856,36 @@ if (empty($_SESSION['user_id'])) {
             <div class="upload-section">
                 <h2 class="section-title">
                     <i class="fas fa-cloud-upload-alt"></i>
-                    Upload Excel File
+                    Upload Excel Files
                 </h2>
-                <p class="section-subtitle">Drag and drop your file or click to browse</p>
+                <p class="section-subtitle">Drag and drop your files or click to browse (multiple files supported)</p>
 
                 <div class="upload-zone" id="uploadZone">
                     <div class="upload-icon">
                         <i class="fas fa-file-excel"></i>
                     </div>
-                    <h3>Drag Excel file here</h3>
+                    <h3>Drag Excel files here</h3>
                     <p>or click to select from your computer</p>
                     <div class="upload-formats">
-                        Supported formats: <strong>.xlsx, .xls, .csv</strong> (Max 10MB)
+                        Supported formats: <strong>.xlsx, .xls, .csv</strong> (Max 10MB per file) | <strong>Multiple files allowed</strong>
                     </div>
-                    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
+                    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple />
                 </div>
 
-                <div class="file-info" id="fileInfo">
-                    <div class="file-icon">
-                        <i class="fas fa-file-excel"></i>
-                    </div>
-                    <div class="file-details">
-                        <div class="file-name" id="fileName">file.xlsx</div>
-                        <div class="file-size" id="fileSize">0 MB</div>
-                    </div>
-                    <button class="file-remove" id="fileRemove">Remove</button>
+                <div class="files-list" id="filesList" style="margin-top: 20px; display: none;"></div>
+
+                <!-- Sheet Selector (for multi-sheet Excel files) -->
+                <div class="sheet-selector" id="sheetSelector" style="display: none; margin-top: 20px;">
+                    <h4 style="color: #f4d03f; margin-bottom: 10px;"><i class="fas fa-layer-group"></i> Select Sheets to Import</h4>
+                    <div id="sheetList" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
                 </div>
 
                 <div class="upload-actions">
-                    <button class="btn-upload" id="uploadBtn" onclick="parseFile(selectedFile)" style="flex: 1; display: none;">
-                        <i class="fas fa-upload"></i> Upload File
+                    <button class="btn-upload" id="uploadBtn" onclick="parseAllFiles()" style="flex: 1; display: none;">
+                        <i class="fas fa-cloud-upload-alt"></i> Upload Data
                     </button>
                     <button class="btn-cancel" id="cancelBtn" onclick="resetUpload()" style="flex: 1;">
-                        <i class="fas fa-times"></i> Clear File
+                        <i class="fas fa-times"></i> Clear Files
                     </button>
                 </div>
             </div>
@@ -721,12 +922,60 @@ if (empty($_SESSION['user_id'])) {
                     </table>
                 </div>
 
+                <!-- Chart Preview Section -->
+                <div class="chart-preview-section" id="chartPreviewSection" style="display: none; margin-top: 30px;">
+                    <h3 style="color: #f4d03f; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-chart-bar"></i> Data Visualization Preview
+                    </h3>
+                    <div class="charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
+                        <!-- Summary Donut Charts -->
+                        <div class="chart-card" style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 20px;">
+                            <h4 style="color: #fff; margin-bottom: 15px; font-size: 14px;">Total Quantity by Status</h4>
+                            <canvas id="statusChart" height="200"></canvas>
+                        </div>
+                        <div class="chart-card" style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 20px;">
+                            <h4 style="color: #fff; margin-bottom: 15px; font-size: 14px;">Records by Month</h4>
+                            <canvas id="monthlyChart" height="200"></canvas>
+                        </div>
+                        <div class="chart-card" style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 20px;">
+                            <h4 style="color: #fff; margin-bottom: 15px; font-size: 14px;">Top Companies by Quantity</h4>
+                            <canvas id="companyChart" height="200"></canvas>
+                        </div>
+                        <div class="chart-card" style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 20px;">
+                            <h4 style="color: #fff; margin-bottom: 15px; font-size: 14px;">Quantity by Item/Model</h4>
+                            <canvas id="itemChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="upload-actions">
-                    <button class="btn-import" id="importBtn" style="display: none; cursor: pointer; position: relative; z-index: 10;">
+                    <button class="btn-import" id="importBtn" onclick="doImport()" style="display: none; cursor: pointer; position: relative; z-index: 10;">
                         <i class="fas fa-upload"></i> Import Data
                     </button>
                     <button class="btn-cancel" onclick="resetUpload()">
                         <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </div>
+
+            <!-- Delete All Data Section -->
+            <div class="upload-section" style="border: 1px solid rgba(255, 107, 107, 0.3); background: linear-gradient(135deg, #2a1a1a 0%, #3a1f1f 100%);">
+                <h2 class="section-title" style="color: #ff6b6b;">
+                    <i class="fas fa-trash-alt"></i>
+                    Manage Uploaded Data
+                </h2>
+                <p class="section-subtitle">Clear all uploaded records to start fresh</p>
+
+                <div style="display: flex; align-items: center; gap: 20px; background: rgba(255, 107, 107, 0.1); padding: 20px; border-radius: 12px;">
+                    <div style="flex: 1;">
+                        <p style="color: #fff; margin-bottom: 5px; font-weight: 600;">
+                            <i class="fas fa-database" style="color: #ff6b6b; margin-right: 8px;"></i>
+                            Total Records: <span id="currentRecordCount" style="color: #ff6b6b; font-size: 20px;">Loading...</span>
+                        </p>
+                        <p style="color: #a0a0a0; font-size: 12px;">Delete all data to upload a new Excel file from scratch</p>
+                    </div>
+                    <button onclick="showDeleteModal()" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: #fff; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; font-family: 'Poppins', sans-serif; transition: all 0.3s ease;">
+                        <i class="fas fa-trash-alt"></i> Delete All Data
                     </button>
                 </div>
             </div>
@@ -736,21 +985,27 @@ if (empty($_SESSION['user_id'])) {
     <script src="js/app.js" defer></script>
     <!-- SheetJS XLSX library - local copy -->
     <script src="js/xlsx.min.js"></script>
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <script>
         // Debug: Check if XLSX loaded
         console.log('XLSX library loaded:', typeof XLSX !== 'undefined');
         
         const uploadZone = document.getElementById('uploadZone');
         const fileInput = document.getElementById('fileInput');
-        const fileInfo = document.getElementById('fileInfo');
-        const parseBtn = document.getElementById('parseBtn');
-        const fileRemove = document.getElementById('fileRemove');
+        const filesList = document.getElementById('filesList');
         const previewSection = document.getElementById('previewSection');
         const importBtn = document.getElementById('importBtn');
         const alertContainer = document.getElementById('alertContainer');
+        const sheetSelector = document.getElementById('sheetSelector');
+        const sheetList = document.getElementById('sheetList');
+        const chartPreviewSection = document.getElementById('chartPreviewSection');
 
-        let selectedFile = null;
+        let selectedFiles = [];
         let parsedData = null;
+        let allParsedData = [];
+        let workbookSheets = {}; // Store workbook sheets for selection
+        let previewCharts = {}; // Store chart instances
 
         // Initialize database on page load
         window.addEventListener('load', () => {
@@ -782,71 +1037,451 @@ if (empty($_SESSION['user_id'])) {
             handleFiles(e.target.files);
         });
 
-        fileRemove.addEventListener('click', (e) => {
-            e.stopPropagation();
-            resetUpload();
-        });
-
         function handleFiles(files) {
             if (files.length === 0) return;
 
-            const file = files[0];
             const maxSize = 10 * 1024 * 1024; // 10MB
+            let validFiles = [];
+            let errors = [];
 
-            // Validation
-            if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
-                showAlert('error', 'Invalid file format. Please upload Excel (.xlsx, .xls) or CSV file.');
+            // Validate each file
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                
+                if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
+                    errors.push(`${file.name}: Invalid format`);
+                    continue;
+                }
+
+                if (file.size > maxSize) {
+                    errors.push(`${file.name}: File too large (max 10MB)`);
+                    continue;
+                }
+
+                // Check if file already exists
+                if (!selectedFiles.find(f => f.name === file.name)) {
+                    validFiles.push(file);
+                }
+            }
+
+            if (errors.length > 0) {
+                showAlert('error', errors.join('<br>'));
+            }
+
+            if (validFiles.length > 0) {
+                selectedFiles = [...selectedFiles, ...validFiles];
+                updateFilesList();
+                // Show upload button
+                document.getElementById('uploadBtn').style.display = 'block';
+            }
+        }
+
+        function updateFilesList() {
+            if (selectedFiles.length === 0) {
+                filesList.style.display = 'none';
                 return;
             }
 
-            if (file.size > maxSize) {
-                showAlert('error', 'File is too large. Maximum size is 10MB.');
-                return;
+            filesList.style.display = 'block';
+            let html = '<div style="margin-bottom: 10px; font-weight: 600; color: #f4d03f;"><i class="fas fa-files"></i> ' + selectedFiles.length + ' file(s) selected</div>';
+            
+            selectedFiles.forEach((file, index) => {
+                html += `
+                    <div class="file-info show" style="display: flex; margin-bottom: 10px;">
+                        <div class="file-icon">
+                            <i class="fas fa-file-excel"></i>
+                        </div>
+                        <div class="file-details">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-size">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                        </div>
+                        <button class="file-remove" onclick="removeFile(${index})">Remove</button>
+                    </div>
+                `;
+            });
+            
+            filesList.innerHTML = html;
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            updateFilesList();
+            if (selectedFiles.length === 0) {
+                resetUpload();
             }
-
-            selectedFile = file;
-            updateFileInfo(file);
-            // Auto-parse when file is selected
-            parseFile(file);
         }
 
-        function updateFileInfo(file) {
-            document.getElementById('fileName').textContent = file.name;
-            document.getElementById('fileSize').textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
-            fileInfo.classList.add('show');
-            // Hide upload button since we auto-parse
-            document.getElementById('uploadBtn').style.display = 'none';
-        }
-
-        parseBtn.addEventListener('click', () => {
-            if (!selectedFile) return;
-            parseFile(selectedFile);
-        });
-
-        function parseFile(file) {
-            // Show parsing status
-            showAlert('info', 'Parsing file... Please wait.');
-
-            if (file.name.endsWith('.csv')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = e.target.result;
-                        const rows = parseCSV(data);
-                        displayPreview(rows);
-                        showAlert('success', 'File parsed successfully! Review the data and click Import.');
-                    } catch (error) {
-                        showAlert('error', 'Error parsing file: ' + error.message);
+        async function parseAllFiles() {
+            showAlert('info', `Parsing ${selectedFiles.length} file(s)... Please wait.`);
+            allParsedData = [];
+            workbookSheets = {};
+            
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i];
+                try {
+                    const result = await parseFileWithSheets(file);
+                    if (result.hasMultipleSheets) {
+                        // Show sheet selector
+                        workbookSheets[file.name] = result.sheets;
+                        showSheetSelector(file.name, result.sheets);
+                    } else {
+                        allParsedData = [...allParsedData, ...result.data];
                     }
-                };
-                reader.onerror = function(error) {
-                    showAlert('error', 'Error reading file: ' + error.message);
-                };
-                reader.readAsText(file);
-            } else {
-                // For Excel files, use binary parsing
-                parseExcelFile(file);
+                } catch (error) {
+                    showAlert('error', `Error parsing ${file.name}: ${error.message}`);
+                }
             }
+            
+            if (allParsedData.length > 0) {
+                parsedData = allParsedData;
+                displayPreview(allParsedData);
+                generatePreviewCharts(allParsedData);
+                showAlert('success', `${selectedFiles.length} file(s) parsed successfully! Total ${allParsedData.length} records. Review charts and click Import.`);
+            }
+        }
+
+        function parseFileWithSheets(file) {
+            return new Promise((resolve, reject) => {
+                if (file.name.endsWith('.csv')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const data = e.target.result;
+                            const rows = parseCSV(data);
+                            resolve({ hasMultipleSheets: false, data: rows });
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    reader.onerror = reject;
+                    reader.readAsText(file);
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const data = e.target.result;
+                            const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
+                            
+                            // Check for multiple sheets
+                            if (workbook.SheetNames.length > 1) {
+                                const sheets = {};
+                                workbook.SheetNames.forEach(sheetName => {
+                                    const worksheet = workbook.Sheets[sheetName];
+                                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                                    const rowCount = jsonData.length > 0 ? jsonData.length - 1 : 0;
+                                    sheets[sheetName] = {
+                                        worksheet: worksheet,
+                                        rowCount: rowCount,
+                                        workbook: workbook
+                                    };
+                                });
+                                resolve({ hasMultipleSheets: true, sheets: sheets, workbook: workbook });
+                            } else {
+                                // Single sheet - parse directly
+                                const firstSheet = workbook.SheetNames[0];
+                                const rows = parseWorksheet(workbook.Sheets[firstSheet]);
+                                resolve({ hasMultipleSheets: false, data: rows });
+                            }
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    reader.onerror = reject;
+                    reader.readAsBinaryString(file);
+                }
+            });
+        }
+
+        function parseWorksheet(worksheet) {
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            if (jsonData.length < 2) return [];
+            
+            const headers = jsonData[0].map(h => String(h || '').trim()).filter(h => h !== '');
+            if (headers.length === 0) return [];
+            
+            const rows = [];
+            for (let i = 1; i < jsonData.length; i++) {
+                const rowData = jsonData[i];
+                if (!rowData || rowData.length === 0) continue;
+                
+                const row = {};
+                headers.forEach((header, index) => {
+                    let value = rowData[index];
+                    if (value instanceof Date) {
+                        value = value.toISOString().split('T')[0];
+                    }
+                    row[header] = value !== undefined ? value : '';
+                });
+                
+                if (Object.values(row).some(v => v !== '')) {
+                    rows.push(row);
+                }
+            }
+            return rows;
+        }
+
+        function showSheetSelector(fileName, sheets) {
+            sheetSelector.style.display = 'block';
+            let html = `<p style="color: #a0a0a0; margin-bottom: 15px; font-size: 13px;">File "${fileName}" has ${Object.keys(sheets).length} sheets. Select which to import:</p>`;
+            
+            Object.keys(sheets).forEach((sheetName, index) => {
+                const info = sheets[sheetName];
+                html += `
+                    <label class="sheet-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 15px; background: rgba(255,255,255,0.05); border-radius: 8px; cursor: pointer; margin-bottom: 8px;">
+                        <input type="checkbox" class="sheet-check" data-file="${fileName}" data-sheet="${sheetName}" ${index === 0 ? 'checked' : ''} onchange="updateSelectedSheets()">
+                        <span style="color: #fff; font-weight: 500;">${sheetName}</span>
+                        <span style="color: #a0a0a0; font-size: 12px;">(${info.rowCount} rows)</span>
+                    </label>
+                `;
+            });
+            
+            html += `<button onclick="parseSelectedSheets()" style="margin-top: 15px; background: #2f5fa7; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;"><i class="fas fa-check"></i> Load Selected Sheets</button>`;
+            sheetList.innerHTML = html;
+        }
+
+        function updateSelectedSheets() {
+            // Just for UI feedback
+        }
+
+        async function parseSelectedSheets() {
+            const checkboxes = document.querySelectorAll('.sheet-check:checked');
+            if (checkboxes.length === 0) {
+                showAlert('error', 'Please select at least one sheet');
+                return;
+            }
+            
+            showAlert('info', 'Loading selected sheets...');
+            allParsedData = [];
+            
+            checkboxes.forEach(cb => {
+                const fileName = cb.dataset.file;
+                const sheetName = cb.dataset.sheet;
+                if (workbookSheets[fileName] && workbookSheets[fileName][sheetName]) {
+                    const worksheet = workbookSheets[fileName][sheetName].worksheet;
+                    const rows = parseWorksheet(worksheet);
+                    allParsedData = [...allParsedData, ...rows];
+                }
+            });
+            
+            if (allParsedData.length > 0) {
+                parsedData = allParsedData;
+                displayPreview(allParsedData);
+                generatePreviewCharts(allParsedData);
+                sheetSelector.style.display = 'none';
+                showAlert('success', `Loaded ${allParsedData.length} records from ${checkboxes.length} sheet(s). Review charts and click Import.`);
+            } else {
+                showAlert('warning', 'No data found in selected sheets');
+            }
+        }
+
+        function generatePreviewCharts(data) {
+            if (!data || data.length === 0) return;
+            
+            // Destroy existing charts
+            Object.values(previewCharts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            previewCharts = {};
+            
+            chartPreviewSection.style.display = 'block';
+            
+            // Analyze data for chart generation
+            const headers = Object.keys(data[0]);
+            
+            // Find relevant columns
+            const monthCol = headers.find(h => h.toLowerCase().includes('month') || h.toLowerCase().includes('delivery month'));
+            const companyCol = headers.find(h => h.toLowerCase().includes('company') || h.toLowerCase().includes('sold to') || h.toLowerCase().includes('client'));
+            const qtyCol = headers.find(h => h.toLowerCase().includes('qty') || h.toLowerCase().includes('quantity'));
+            const itemCol = headers.find(h => h.toLowerCase().includes('item') || h.toLowerCase().includes('description') || h.toLowerCase().includes('model'));
+            const statusCol = headers.find(h => h.toLowerCase().includes('status'));
+            
+            // 1. Monthly Distribution Chart
+            if (monthCol) {
+                const monthData = {};
+                data.forEach(row => {
+                    const month = row[monthCol] || 'Unknown';
+                    const qty = parseInt(row[qtyCol]) || 1;
+                    monthData[month] = (monthData[month] || 0) + qty;
+                });
+                
+                const ctx = document.getElementById('monthlyChart').getContext('2d');
+                previewCharts.monthly = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(monthData),
+                        datasets: [{
+                            label: 'Quantity per Month',
+                            data: Object.values(monthData),
+                            backgroundColor: ['#f39c12', '#3498db', '#e74c3c', '#2ecc71', '#9b59b6', '#1abc9c', '#34495e', '#f1c40f', '#e67e22', '#95a5a6', '#d35400', '#c0392b']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                            x: { ticks: { color: '#a0a0a0' }, grid: { display: false } }
+                        }
+                    }
+                });
+            }
+            
+            // 2. Top Companies Chart
+            if (companyCol) {
+                const companyData = {};
+                data.forEach(row => {
+                    const company = row[companyCol] || 'Unknown';
+                    const qty = parseInt(row[qtyCol]) || 1;
+                    companyData[company] = (companyData[company] || 0) + qty;
+                });
+                
+                // Sort and get top 10
+                const sorted = Object.entries(companyData).sort((a, b) => b[1] - a[1]).slice(0, 10);
+                
+                const ctx = document.getElementById('companyChart').getContext('2d');
+                previewCharts.company = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: sorted.map(s => s[0].substring(0, 25)),
+                        datasets: [{
+                            label: 'Quantity',
+                            data: sorted.map(s => s[1]),
+                            backgroundColor: '#3498db'
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { beginAtZero: true, ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                            y: { ticks: { color: '#a0a0a0', font: { size: 10 } }, grid: { display: false } }
+                        }
+                    }
+                });
+            }
+            
+            // 3. Items/Models Chart
+            if (itemCol) {
+                const itemData = {};
+                data.forEach(row => {
+                    const item = row[itemCol] || 'Unknown';
+                    const qty = parseInt(row[qtyCol]) || 1;
+                    itemData[item] = (itemData[item] || 0) + qty;
+                });
+                
+                // Sort and get top 10
+                const sorted = Object.entries(itemData).sort((a, b) => b[1] - a[1]).slice(0, 10);
+                
+                const ctx = document.getElementById('itemChart').getContext('2d');
+                previewCharts.item = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: sorted.map(s => s[0].substring(0, 20)),
+                        datasets: [{
+                            label: 'Quantity',
+                            data: sorted.map(s => s[1]),
+                            backgroundColor: '#e74c3c'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                            x: { ticks: { color: '#a0a0a0', maxRotation: 45, font: { size: 9 } }, grid: { display: false } }
+                        }
+                    }
+                });
+            }
+            
+            // 4. Status/Summary Donut Chart
+            const totalQty = data.reduce((sum, row) => sum + (parseInt(row[qtyCol]) || 1), 0);
+            const totalRecords = data.length;
+            
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            previewCharts.status = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Total Records', 'Total Quantity'],
+                    datasets: [{
+                        data: [totalRecords, totalQty],
+                        backgroundColor: ['#f39c12', '#3498db']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#a0a0a0' } }
+                    }
+                }
+            });
+        }
+
+        function parseFileAsync(file) {
+            return new Promise((resolve, reject) => {
+                if (file.name.endsWith('.csv')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const data = e.target.result;
+                            const rows = parseCSV(data);
+                            resolve(rows);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    reader.onerror = function(error) {
+                        reject(error);
+                    };
+                    reader.readAsText(file);
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const data = e.target.result;
+                            const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
+                            const firstSheet = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[firstSheet];
+                            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                            
+                            if (jsonData.length < 2) {
+                                reject(new Error('File is empty or has no data rows'));
+                                return;
+                            }
+                            
+                            const headers = jsonData[0].map(h => String(h).trim());
+                            const rows = [];
+                            
+                            for (let i = 1; i < jsonData.length; i++) {
+                                const rowData = jsonData[i];
+                                if (!rowData || rowData.length === 0) continue;
+                                
+                                const row = {};
+                                headers.forEach((header, index) => {
+                                    let value = rowData[index];
+                                    if (value instanceof Date) {
+                                        value = value.toISOString().split('T')[0];
+                                    }
+                                    row[header] = value !== undefined ? value : '';
+                                });
+                                
+                                if (Object.values(row).some(v => v !== '')) {
+                                    rows.push(row);
+                                }
+                            }
+                            
+                            resolve(rows);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    reader.onerror = function(error) {
+                        reject(error);
+                    };
+                    reader.readAsBinaryString(file);
+                }
+            });
         }
 
         function parseCSV(data) {
@@ -865,39 +1500,6 @@ if (empty($_SESSION['user_id'])) {
             }
 
             return rows;
-        }
-
-        function parseExcelFile(file) {
-            // Process Excel using XLSX library (loaded locally)
-            if (typeof XLSX === 'undefined') {
-                showAlert('error', 'Excel parsing library not loaded. Please refresh the page.');
-                return;
-            }
-            
-            try {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                        const rows = XLSX.utils.sheet_to_json(worksheet);
-                        
-                        console.log('Parsed rows:', rows);
-                        displayPreview(rows);
-                        showAlert('success', 'File parsed successfully! Review the data and click Import.');
-                    } catch (error) {
-                        console.error('Excel parse error:', error);
-                        showAlert('error', 'Error parsing Excel file: ' + error.message);
-                    }
-                };
-                reader.onerror = function(error) {
-                    showAlert('error', 'Error reading file: ' + error.message);
-                };
-                reader.readAsArrayBuffer(file);
-            } catch (error) {
-                showAlert('error', 'Error parsing Excel file: ' + error.message);
-            }
         }
 
         function displayPreview(rows) {
@@ -943,19 +1545,25 @@ if (empty($_SESSION['user_id'])) {
             }
         }
 
-        importBtn.addEventListener('click', () => {
+        function doImport() {
             console.log('Import button clicked! parsedData:', parsedData ? parsedData.length : 0);
-            if (!parsedData || parsedData.length === 0) return;
+            if (!parsedData || parsedData.length === 0) {
+                showAlert('error', 'No data to import. Please select file(s) first.');
+                return;
+            }
 
             importBtn.innerHTML = '<span class="spinner"></span> Importing...';
             importBtn.disabled = true;
 
             // Prepare data for import
+            const fileNames = selectedFiles.map(f => f.name).join(', ');
             const importData = {
                 data: parsedData,
-                fileName: selectedFile.name,
+                fileName: fileNames,
                 timestamp: new Date().toISOString()
             };
+
+            console.log('Sending import data with', parsedData.length, 'rows from', selectedFiles.length, 'file(s)');
 
             // Send to backend
             fetch('api/import-data.php', {
@@ -965,32 +1573,47 @@ if (empty($_SESSION['user_id'])) {
                 },
                 body: JSON.stringify(importData)
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
             .then(result => {
+                console.log('Import result:', result);
                 importBtn.innerHTML = '<i class="fas fa-upload"></i> Import Data';
                 importBtn.disabled = false;
 
                 if (result.success) {
-                    showAlert('success', `Successfully imported ${result.imported} records from ${selectedFile.name}`);
-                    setTimeout(() => {
-                        resetUpload();
-                    }, 2000);
+                    // Show success popup modal
+                    showSuccessModal(result.imported, result.failed || 0, fileNames);
+                    // Don't auto-reset - let user click 'View Records' or 'Import More'
                 } else {
                     showAlert('error', result.message || 'Import failed. Please try again.');
                 }
             })
             .catch(error => {
+                console.error('Import error:', error);
                 importBtn.innerHTML = '<i class="fas fa-upload"></i> Import Data';
                 importBtn.disabled = false;
                 showAlert('error', 'Error during import: ' + error.message);
             });
-        });
+        }
 
         function resetUpload() {
-            selectedFile = null;
+            selectedFiles = [];
             parsedData = null;
+            allParsedData = [];
+            workbookSheets = {};
             fileInput.value = '';
-            fileInfo.classList.remove('show');
+            filesList.style.display = 'none';
+            filesList.innerHTML = '';
+            sheetSelector.style.display = 'none';
+            sheetList.innerHTML = '';
+            chartPreviewSection.style.display = 'none';
+            // Destroy charts
+            Object.values(previewCharts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            previewCharts = {};
             previewSection.classList.remove('show');
             document.getElementById('uploadBtn').style.display = 'none';
             importBtn.innerHTML = '<i class="fas fa-upload"></i> Import Data';
@@ -1022,6 +1645,23 @@ if (empty($_SESSION['user_id'])) {
             if (type === 'success') {
                 setTimeout(() => alert.remove(), 5000);
             }
+        }
+
+        function showSuccessModal(imported, failed, fileName) {
+            document.getElementById('modalImported').textContent = imported;
+            document.getElementById('modalFailed').textContent = failed;
+            document.getElementById('modalMessage').textContent = 
+                `Successfully imported ${imported} records from "${fileName}"`;
+            document.getElementById('successModal').classList.add('show');
+        }
+
+        function closeSuccessModal() {
+            document.getElementById('successModal').classList.remove('show');
+            resetUpload();
+        }
+
+        function goToDeliveryRecords() {
+            window.location.href = 'delivery-records.php';
         }
 
         function downloadTemplate() {
@@ -1087,6 +1727,60 @@ if (empty($_SESSION['user_id'])) {
                 sidebar.classList.toggle('active');
                 mainContent.classList.toggle('sidebar-closed');
             });
+        }
+
+        // Load current record count
+        async function loadRecordCount() {
+            try {
+                const response = await fetch('api/check-data.php');
+                const data = await response.json();
+                document.getElementById('currentRecordCount').textContent = data.total_records || 0;
+                return data.total_records || 0;
+            } catch (error) {
+                document.getElementById('currentRecordCount').textContent = 'Error';
+                return 0;
+            }
+        }
+
+        // Load record count on page load
+        window.addEventListener('load', () => {
+            loadRecordCount();
+        });
+
+        // Show delete confirmation modal
+        async function showDeleteModal() {
+            const count = await loadRecordCount();
+            document.getElementById('deleteCount').textContent = count;
+            document.getElementById('deleteModal').classList.add('show');
+        }
+
+        // Close delete modal
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('show');
+        }
+
+        // Confirm and delete all data
+        async function confirmDeleteAll() {
+            try {
+                showAlert('info', '<span class="spinner"></span> Deleting all records...');
+                
+                const response = await fetch('api/delete-all-records.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    closeDeleteModal();
+                    showAlert('success', `Successfully deleted ${result.deleted_count} records! You can now upload fresh data.`);
+                    document.getElementById('currentRecordCount').textContent = '0';
+                } else {
+                    showAlert('error', 'Error: ' + result.message);
+                }
+            } catch (error) {
+                showAlert('error', 'Error deleting records: ' + error.message);
+            }
         }
 
         // Profile dropdown

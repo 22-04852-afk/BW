@@ -4,6 +4,111 @@ if (empty($_SESSION['user_id'])) {
     header('Location: login.php', true, 302);
     exit;
 }
+
+// Database connection
+require_once 'db_config.php';
+
+// Initialize variables
+$totalAndison = 0;
+$companyCount = 0;
+$monthlyData = [];
+$topCompanies = [];
+$productsData = [];
+$groupA = [];
+$groupB = [];
+
+// Total delivered to Andison (all records in delivery_records)
+$result = $conn->query("SELECT COUNT(*) as total_orders, COALESCE(SUM(quantity), 0) as total_units FROM delivery_records");
+if ($result && $row = $result->fetch_assoc()) {
+    $totalAndison = intval($row['total_units']);
+}
+
+// Get unique companies count
+$result = $conn->query("SELECT COUNT(DISTINCT company_name) as company_count FROM delivery_records WHERE company_name IS NOT NULL AND company_name != ''");
+if ($result && $row = $result->fetch_assoc()) {
+    $companyCount = intval($row['company_count']);
+}
+
+// Monthly data for charts
+$result = $conn->query("
+    SELECT delivery_month, 
+           COUNT(*) as order_count,
+           COALESCE(SUM(quantity), 0) as total_qty
+    FROM delivery_records 
+    WHERE delivery_month IS NOT NULL AND delivery_month != ''
+    GROUP BY delivery_month 
+    ORDER BY CASE delivery_month
+        WHEN 'January' THEN 1 WHEN 'February' THEN 2 WHEN 'March' THEN 3
+        WHEN 'April' THEN 4 WHEN 'May' THEN 5 WHEN 'June' THEN 6
+        WHEN 'July' THEN 7 WHEN 'August' THEN 8 WHEN 'September' THEN 9
+        WHEN 'October' THEN 10 WHEN 'November' THEN 11 WHEN 'December' THEN 12
+    END
+");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $monthlyData[] = $row;
+    }
+}
+
+// Top 15 companies by quantity
+$result = $conn->query("
+    SELECT company_name, 
+           COUNT(*) as order_count,
+           COALESCE(SUM(quantity), 0) as total_qty
+    FROM delivery_records 
+    WHERE company_name IS NOT NULL AND company_name != ''
+    GROUP BY company_name 
+    ORDER BY total_qty DESC 
+    LIMIT 15
+");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $topCompanies[] = $row;
+    }
+}
+
+// Products/Items data
+$result = $conn->query("
+    SELECT item_name, item_code,
+           COUNT(*) as order_count,
+           COALESCE(SUM(quantity), 0) as total_qty,
+           COUNT(DISTINCT company_name) as company_count
+    FROM delivery_records 
+    WHERE item_name IS NOT NULL
+    GROUP BY item_name, item_code
+    ORDER BY total_qty DESC
+");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $productsData[] = $row;
+    }
+}
+
+// Separate into Group A (MCX3) and Group B (MCXL) models
+foreach ($productsData as $product) {
+    $name = strtoupper($product['item_name'] ?? $product['item_code'] ?? '');
+    if (strpos($name, 'MCX3') !== false) {
+        $groupA[] = $product;
+    } elseif (strpos($name, 'MCXL') !== false) {
+        $groupB[] = $product;
+    }
+}
+
+// Prepare data for JavaScript
+$monthlyLabels = [];
+$monthlyDelivered = [];
+foreach ($monthlyData as $row) {
+    $monthlyLabels[] = substr($row['delivery_month'], 0, 3);
+    $monthlyDelivered[] = intval($row['total_qty']);
+}
+
+$topCompaniesJs = [];
+foreach ($topCompanies as $company) {
+    $topCompaniesJs[] = [
+        'name' => $company['company_name'],
+        'value' => intval($company['total_qty'])
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -544,6 +649,14 @@ if (empty($_SESSION['user_id'])) {
                     </a>
                 </li>
 
+                <!-- Sales Records -->
+                <li class="menu-item">
+                    <a href="sales-records.php" class="menu-link">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span class="menu-label">Sales Records</span>
+                    </a>
+                </li>
+
                 <!-- Delivery Records -->
                 <li class="menu-item">
                     <a href="delivery-records.php" class="menu-link">
@@ -724,14 +837,14 @@ if (empty($_SESSION['user_id'])) {
                     <div class="gauge-chart">
                         <canvas id="gaugeChartAndison"></canvas>
                     </div>
-                    <div class="gauge-value" id="gaugeValueAndison">696</div>
+                    <div class="gauge-value" id="gaugeValueAndison"><?php echo number_format($totalAndison); ?></div>
                 </div>
                 <div class="gauge-card">
                     <h3>Total Quantity of Gas Detectors Sold to Companies</h3>
                     <div class="gauge-chart">
                         <canvas id="gaugeChartCompanies"></canvas>
                     </div>
-                    <div class="gauge-value" id="gaugeValueCompanies">311</div>
+                    <div class="gauge-value" id="gaugeValueCompanies"><?php echo number_format($companyCount); ?></div>
                 </div>
             </div>
 
@@ -761,83 +874,33 @@ if (empty($_SESSION['user_id'])) {
                     <thead>
                         <tr>
                             <th>Month</th>
-                            <th>Delivered to Andison</th>
-                            <th>Sold to Companies</th>
-                            <th>Total Unit Sales</th>
-                            <th>Growth %</th>
+                            <th>Orders</th>
+                            <th>Units Delivered</th>
+                            <th>Est. Revenue</th>
                         </tr>
                     </thead>
                     <tbody>
+                        <?php 
+                        $prevQty = 0;
+                        foreach ($monthlyData as $row): 
+                            $qty = intval($row['total_qty']);
+                            $revenue = number_format(($qty * 540) / 1000, 1);
+                        ?>
                         <tr>
-                            <td><strong>January</strong></td>
-                            <td>98</td>
-                            <td>201</td>
-                            <td>299</td>
-                            <td>+8.2%</td>
+                            <td><strong><?php echo htmlspecialchars($row['delivery_month']); ?></strong></td>
+                            <td><?php echo number_format($row['order_count']); ?></td>
+                            <td><?php echo number_format($qty); ?></td>
+                            <td>$<?php echo $revenue; ?>K</td>
                         </tr>
+                        <?php 
+                            $prevQty = $qty;
+                        endforeach; 
+                        ?>
+                        <?php if (empty($monthlyData)): ?>
                         <tr>
-                            <td><strong>February</strong></td>
-                            <td>112</td>
-                            <td>224</td>
-                            <td>336</td>
-                            <td>+12.4%</td>
+                            <td colspan="4" style="text-align: center; color: #888;">No monthly data available</td>
                         </tr>
-                        <tr>
-                            <td><strong>March</strong></td>
-                            <td>125</td>
-                            <td>248</td>
-                            <td>373</td>
-                            <td>+10.7%</td>
-                        </tr>
-                        <tr>
-                            <td><strong>April</strong></td>
-                            <td>102</td>
-                            <td>215</td>
-                            <td>317</td>
-                            <td>-15.0%</td>
-                        </tr>
-                        <tr>
-                            <td><strong>May</strong></td>
-                            <td>118</td>
-                            <td>265</td>
-                            <td>383</td>
-                            <td>+20.8%</td>
-                        </tr>
-                        <tr>
-                            <td><strong>June</strong></td>
-                            <td>134</td>
-                            <td>289</td>
-                            <td>423</td>
-                            <td>+10.4%</td>
-                        </tr>
-                        <tr>
-                            <td><strong>July</strong></td>
-                            <td>127</td>
-                            <td>273</td>
-                            <td>400</td>
-                            <td>-5.4%</td>
-                        </tr>
-                        <tr>
-                            <td><strong>August</strong></td>
-                            <td>119</td>
-                            <td>256</td>
-                            <td>375</td>
-                            <td>-6.3%</td>
-                        </tr>
-                        <tr>
-                            <td><strong>September</strong></td>
-                            <td>145</td>
-                            <td>291</td>
-                            <td>436</td>
-                            <td>+16.3%</td>
-                        </tr>
-                        <tr>
-                            <td><strong>October</strong></td>
-                            <td>138</td>
-                            <td>312</td>
-                            <td>450</td>
-                            <td>+3.2%</td>
-                        </tr>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -861,34 +924,30 @@ if (empty($_SESSION['user_id'])) {
                     <thead>
                         <tr>
                             <th>Model</th>
-                            <th>Delivered to Andison</th>
-                            <th>Sold to Companies</th>
+                            <th>Orders</th>
+                            <th>Units Delivered</th>
                             <th>Company Distribution</th>
-                            <th>Total Units</th>
+                            <th>Est. Revenue</th>
                         </tr>
                     </thead>
                     <tbody>
+                        <?php foreach ($groupA as $product): 
+                            $qty = intval($product['total_qty']);
+                            $revenue = number_format(($qty * 540) / 1000, 1);
+                        ?>
                         <tr>
-                            <td><strong>A-100</strong></td>
-                            <td>298</td>
-                            <td>534</td>
-                            <td>12 companies</td>
-                            <td>832</td>
+                            <td><strong><?php echo htmlspecialchars($product['item_name'] ?: $product['item_code']); ?></strong></td>
+                            <td><?php echo number_format($product['order_count']); ?></td>
+                            <td><?php echo number_format($qty); ?></td>
+                            <td><?php echo $product['company_count']; ?> companies</td>
+                            <td>$<?php echo $revenue; ?>K</td>
                         </tr>
+                        <?php endforeach; ?>
+                        <?php if (empty($groupA)): ?>
                         <tr>
-                            <td><strong>A-200</strong></td>
-                            <td>356</td>
-                            <td>602</td>
-                            <td>14 companies</td>
-                            <td>958</td>
+                            <td colspan="5" style="text-align: center; color: #888;">No Group A (MCX3) data available</td>
                         </tr>
-                        <tr>
-                            <td><strong>A-500</strong></td>
-                            <td>289</td>
-                            <td>421</td>
-                            <td>9 companies</td>
-                            <td>710</td>
-                        </tr>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -912,34 +971,30 @@ if (empty($_SESSION['user_id'])) {
                     <thead>
                         <tr>
                             <th>Model</th>
-                            <th>Delivered to Andison</th>
-                            <th>Sold to Companies</th>
+                            <th>Orders</th>
+                            <th>Units Delivered</th>
                             <th>Company Distribution</th>
-                            <th>Total Units</th>
+                            <th>Est. Revenue</th>
                         </tr>
                     </thead>
                     <tbody>
+                        <?php foreach ($groupB as $product): 
+                            $qty = intval($product['total_qty']);
+                            $revenue = number_format(($qty * 540) / 1000, 1);
+                        ?>
                         <tr>
-                            <td><strong>B-100</strong></td>
-                            <td>212</td>
-                            <td>389</td>
-                            <td>11 companies</td>
-                            <td>601</td>
+                            <td><strong><?php echo htmlspecialchars($product['item_name'] ?: $product['item_code']); ?></strong></td>
+                            <td><?php echo number_format($product['order_count']); ?></td>
+                            <td><?php echo number_format($qty); ?></td>
+                            <td><?php echo $product['company_count']; ?> companies</td>
+                            <td>$<?php echo $revenue; ?>K</td>
                         </tr>
+                        <?php endforeach; ?>
+                        <?php if (empty($groupB)): ?>
                         <tr>
-                            <td><strong>B-200</strong></td>
-                            <td>298</td>
-                            <td>512</td>
-                            <td>13 companies</td>
-                            <td>810</td>
+                            <td colspan="5" style="text-align: center; color: #888;">No Group B (MCXL) data available</td>
                         </tr>
-                        <tr>
-                            <td><strong>B-500</strong></td>
-                            <td>223</td>
-                            <td>388</td>
-                            <td>10 companies</td>
-                            <td>611</td>
-                        </tr>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -949,6 +1004,21 @@ if (empty($_SESSION['user_id'])) {
     <script src="js/app.js" defer></script>
     <script>
         console.log('=== ANALYTICS PAGE SCRIPT LOADED ===');
+        
+        // Data from PHP
+        const analyticsData = {
+            totalAndison: <?php echo $totalAndison; ?>,
+            companyCount: <?php echo $companyCount; ?>,
+            monthlyLabels: <?php echo json_encode($monthlyLabels); ?>,
+            monthlyDelivered: <?php echo json_encode($monthlyDelivered); ?>,
+            topCompanies: <?php echo json_encode($topCompaniesJs); ?>,
+            groupA: <?php echo json_encode(array_map(function($p) { 
+                return ['name' => $p['item_name'] ?: $p['item_code'], 'qty' => intval($p['total_qty'])]; 
+            }, $groupA)); ?>,
+            groupB: <?php echo json_encode(array_map(function($p) { 
+                return ['name' => $p['item_name'] ?: $p['item_code'], 'qty' => intval($p['total_qty'])]; 
+            }, $groupB)); ?>
+        };
         
         // Gauge Charts for   Andison and Companies
         let gaugeChartAndison;
@@ -1011,33 +1081,22 @@ if (empty($_SESSION['user_id'])) {
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOMContentLoaded event fired');
         
-            // Initialize charts
-            gaugeChartAndison = createGaugeChart('gaugeChartAndison', 696, 800);
-            gaugeChartCompanies = createGaugeChart('gaugeChartCompanies', 311, 400);
+            // Initialize charts with real data
+            const maxAndison = Math.max(analyticsData.totalAndison + 100, 800);
+            const maxCompanies = Math.max(analyticsData.companyCount + 50, 100);
+            gaugeChartAndison = createGaugeChart('gaugeChartAndison', analyticsData.totalAndison, maxAndison);
+            gaugeChartCompanies = createGaugeChart('gaugeChartCompanies', analyticsData.companyCount, maxCompanies);
 
-            // Create Monthly Trend Chart Instance
+            // Create Monthly Trend Chart Instance with real data
             const monthlyTrendCtx = document.getElementById('monthlyTrendChart').getContext('2d');
             monthlyTrendChartInstance = new Chart(monthlyTrendCtx, {
             type: 'line',
             data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+                labels: analyticsData.monthlyLabels.length > 0 ? analyticsData.monthlyLabels : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
                 datasets: [
                     {
-                        label: 'Delivered to Andison',
-                        data: [98, 112, 125, 102, 118, 134, 127, 119, 145, 138],
-                        borderColor: '#2f5fa7',
-                        backgroundColor: 'rgba(47, 95, 167, 0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 5,
-                        pointBackgroundColor: '#2f5fa7',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2
-                    },
-                    {
-                        label: 'Sold to Companies',
-                        data: [201, 224, 248, 215, 265, 289, 273, 256, 291, 312],
+                        label: 'Units Delivered',
+                        data: analyticsData.monthlyDelivered.length > 0 ? analyticsData.monthlyDelivered : [0],
                         borderColor: '#f4d03f',
                         backgroundColor: 'rgba(244, 208, 63, 0.1)',
                         borderWidth: 3,
@@ -1072,22 +1131,16 @@ if (empty($_SESSION['user_id'])) {
             }
         });
 
-        // Create Monthly Bar Chart Instance
+        // Create Monthly Bar Chart Instance with real data
         const monthlyBarCtx = document.getElementById('monthlyBarChart').getContext('2d');
         monthlyBarChartInstance = new Chart(monthlyBarCtx, {
             type: 'bar',
             data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+                labels: analyticsData.monthlyLabels.length > 0 ? analyticsData.monthlyLabels : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
                 datasets: [
                     {
-                        label: 'Delivered to Andison',
-                        data: [98, 112, 125, 102, 118, 134, 127, 119, 145, 138],
-                        backgroundColor: '#2f5fa7',
-                        borderRadius: 6
-                    },
-                    {
-                        label: 'Sold to Companies',
-                        data: [201, 224, 248, 215, 265, 289, 273, 256, 291, 312],
+                        label: 'Units Delivered',
+                        data: analyticsData.monthlyDelivered.length > 0 ? analyticsData.monthlyDelivered : [0],
                         backgroundColor: '#f4d03f',
                         borderRadius: 6
                     }
@@ -1115,15 +1168,17 @@ if (empty($_SESSION['user_id'])) {
             }
         });
 
-        // Group A Doughnut Chart
+        // Group A Doughnut Chart with real data
+        const groupALabels = analyticsData.groupA.map(p => p.name);
+        const groupAValues = analyticsData.groupA.map(p => p.qty);
         const groupACtx = document.getElementById('groupAChart').getContext('2d');
         new Chart(groupACtx, {
             type: 'doughnut',
             data: {
-                labels: ['A-100', 'A-200', 'A-500'],
+                labels: groupALabels.length > 0 ? groupALabels : ['No Data'],
                 datasets: [{
-                    data: [832, 958, 710],
-                    backgroundColor: ['#2f5fa7', '#00d9ff', '#34d399'],
+                    data: groupAValues.length > 0 ? groupAValues : [1],
+                    backgroundColor: ['#2f5fa7', '#00d9ff', '#34d399', '#f4d03f', '#ff6b6b', '#9b59b6'],
                     borderColor: '#13172c',
                     borderWidth: 2
                 }]
@@ -1139,23 +1194,17 @@ if (empty($_SESSION['user_id'])) {
             }
         });
 
-        // Group A Bar Chart
+        // Group A Bar Chart with real data
         const groupABarCtx = document.getElementById('groupABarChart').getContext('2d');
         new Chart(groupABarCtx, {
             type: 'bar',
             data: {
-                labels: ['A-100', 'A-200', 'A-500'],
+                labels: groupALabels.length > 0 ? groupALabels : ['No Data'],
                 datasets: [
                     {
-                        label: 'To Andison',
-                        data: [298, 356, 289],
+                        label: 'Units Delivered',
+                        data: groupAValues.length > 0 ? groupAValues : [0],
                         backgroundColor: '#2f5fa7',
-                        borderRadius: 6
-                    },
-                    {
-                        label: 'To Companies',
-                        data: [534, 602, 421],
-                        backgroundColor: '#f4d03f',
                         borderRadius: 6
                     }
                 ]
@@ -1182,15 +1231,17 @@ if (empty($_SESSION['user_id'])) {
             }
         });
 
-        // Group B Doughnut Chart
+        // Group B Doughnut Chart with real data
+        const groupBLabels = analyticsData.groupB.map(p => p.name);
+        const groupBValues = analyticsData.groupB.map(p => p.qty);
         const groupBCtx = document.getElementById('groupBChart').getContext('2d');
         new Chart(groupBCtx, {
             type: 'doughnut',
             data: {
-                labels: ['B-100', 'B-200', 'B-500'],
+                labels: groupBLabels.length > 0 ? groupBLabels : ['No Data'],
                 datasets: [{
-                    data: [601, 810, 611],
-                    backgroundColor: ['#ff6b6b', '#ff9500', '#00d9ff'],
+                    data: groupBValues.length > 0 ? groupBValues : [1],
+                    backgroundColor: ['#ff6b6b', '#ff9500', '#00d9ff', '#34d399', '#9b59b6', '#2f5fa7'],
                     borderColor: '#13172c',
                     borderWidth: 2
                 }]
@@ -1206,23 +1257,17 @@ if (empty($_SESSION['user_id'])) {
             }
         });
 
-        // Group B Bar Chart
+        // Group B Bar Chart with real data
         const groupBBarCtx = document.getElementById('groupBBarChart').getContext('2d');
         new Chart(groupBBarCtx, {
             type: 'bar',
             data: {
-                labels: ['B-100', 'B-200', 'B-500'],
+                labels: groupBLabels.length > 0 ? groupBLabels : ['No Data'],
                 datasets: [
                     {
-                        label: 'To Andison',
-                        data: [212, 298, 223],
+                        label: 'Units Delivered',
+                        data: groupBValues.length > 0 ? groupBValues : [0],
                         backgroundColor: '#ff6b6b',
-                        borderRadius: 6
-                    },
-                    {
-                        label: 'To Companies',
-                        data: [389, 512, 388],
-                        backgroundColor: '#ff9500',
                         borderRadius: 6
                     }
                 ]
@@ -1303,23 +1348,9 @@ if (empty($_SESSION['user_id'])) {
             }
         });
 
-        // Top 15 Companies Horizontal Bar Chart
-        const topCompaniesData = [
-            { name: 'to Andison Manila', value: 67 },
-            { name: 'Industrial Controls Systems Inc.', value: 21 },
-            { name: 'Linde Philippines Inc.', value: 18 },
-            { name: 'Herma Shipping & Transport Corp.', value: 13 },
-            { name: 'Linseed Field Corporation', value: 12 },
-            { name: 'UTV Construction & Engineering Services', value: 10 },
-            { name: 'Scientific Drilling Inc.', value: 8 },
-            { name: 'Nikkeru Plant Maintenance', value: 8 },
-            { name: 'LS Instrumentation Sales & Service', value: 8 },
-            { name: 'Mitsubishi Power (Philippines) Inc.', value: 6 },
-            { name: 'Joel Chavez Construction', value: 6 },
-            { name: 'Seatrium Subic Shipyard, Inc.', value: 5 },
-            { name: 'Nippon Kaiji', value: 5 },
-            { name: 'Mechatrends Contractors Corporation', value: 5 },
-            { name: 'TVI Resource Development Phils., Inc.', value: 4 }
+        // Top 15 Companies Horizontal Bar Chart with real data
+        const topCompaniesData = analyticsData.topCompanies.length > 0 ? analyticsData.topCompanies : [
+            { name: 'No company data', value: 0 }
         ];
 
         const container = document.getElementById('topCompaniesContainer');

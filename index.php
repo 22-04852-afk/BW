@@ -91,9 +91,44 @@ if ($result) {
     }
 }
 
-// Get Group A and Group B data
-$group_a = $conn->query("SELECT item_code, item_name, SUM(quantity) as total FROM delivery_records WHERE item_code LIKE 'A%' OR item_name LIKE '%Group A%' GROUP BY item_code ORDER BY total DESC LIMIT 10");
-$group_b = $conn->query("SELECT item_code, item_name, SUM(quantity) as total FROM delivery_records WHERE item_code LIKE 'B%' OR item_name LIKE '%Group B%' GROUP BY item_code ORDER BY total DESC LIMIT 10");
+// Get top products by item code
+$top_products = [];
+$result = $conn->query("
+    SELECT item_code, item_name, SUM(quantity) as total 
+    FROM delivery_records 
+    WHERE item_code IS NOT NULL AND item_code != '' AND item_code != '-'
+    GROUP BY item_code 
+    ORDER BY total DESC 
+    LIMIT 10
+");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $top_products[] = $row;
+    }
+}
+
+// Get delivery by company for pie chart
+$company_deliveries = [];
+$result = $conn->query("
+    SELECT company_name, SUM(quantity) as total 
+    FROM delivery_records 
+    WHERE company_name IS NOT NULL AND company_name != '' AND company_name != '-'
+    GROUP BY company_name 
+    ORDER BY total DESC 
+    LIMIT 8
+");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $company_deliveries[] = $row;
+    }
+}
+
+// Get pending count
+$pending_count = 0;
+$result = $conn->query("SELECT COUNT(*) as cnt FROM delivery_records WHERE status = 'Pending' OR status = 'In Transit'");
+if ($result && $row = $result->fetch_assoc()) {
+    $pending_count = intval($row['cnt']);
+}
 
 ?>
 <!DOCTYPE html>
@@ -181,6 +216,14 @@ $group_b = $conn->query("SELECT item_code, item_name, SUM(quantity) as total FRO
                     <a href="sales-overview.php" class="menu-link">
                         <i class="fas fa-chart-pie"></i>
                         <span class="menu-label">Sales Overview</span>
+                    </a>
+                </li>
+
+                <!-- Sales Records -->
+                <li class="menu-item">
+                    <a href="sales-records.php" class="menu-link">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span class="menu-label">Sales Records</span>
                     </a>
                 </li>
 
@@ -273,7 +316,7 @@ $group_b = $conn->query("SELECT item_code, item_name, SUM(quantity) as total FRO
                 </div>
                 <div class="welcome-stats">
                     <div class="stat-card">
-                        <span class="stat-amount">₱<?php echo number_format($stats['total_delivered'] * 500, 1) / 1000; ?>K</span>
+                        <span class="stat-amount">₱<?php echo number_format((intval($stats['total_delivered']) * 500) / 1000, 1); ?>K</span>
                         <span class="stat-desc">Units delivered this month</span>
                     </div>
                     <button class="btn-primary" onclick="goToReports()">View Details</button>
@@ -513,9 +556,16 @@ $group_b = $conn->query("SELECT item_code, item_name, SUM(quantity) as total FRO
         const dashboardData = {
             total_delivered: <?php echo $stats['total_delivered']; ?>,
             total_sold: <?php echo $stats['total_sold']; ?>,
+            total_companies: <?php echo $stats['total_companies']; ?>,
+            active_models: <?php echo $stats['active_models']; ?>,
+            pending_count: <?php echo $pending_count; ?>,
             monthly_sales: <?php echo json_encode($monthly_sales); ?>,
-            top_clients: <?php echo json_encode($top_clients); ?>
+            top_clients: <?php echo json_encode($top_clients); ?>,
+            top_products: <?php echo json_encode($top_products); ?>,
+            company_deliveries: <?php echo json_encode($company_deliveries); ?>
         };
+
+        console.log('Dashboard data loaded:', dashboardData);
 
         // Dismiss loader once everything (fonts, Chart.js, images) is painted
         window.addEventListener('load', function () {

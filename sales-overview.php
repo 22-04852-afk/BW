@@ -4,6 +4,82 @@ if (empty($_SESSION['user_id'])) {
     header('Location: login.php', true, 302);
     exit;
 }
+
+// Include database configuration
+require_once 'db_config.php';
+
+// Get sales statistics from database
+$stats = [
+    'total_units' => 0,
+    'total_orders' => 0,
+    'unique_products' => 0,
+    'avg_order_size' => 0
+];
+
+// Total units delivered
+$result = $conn->query("SELECT COALESCE(SUM(quantity), 0) as total FROM delivery_records");
+if ($result && $row = $result->fetch_assoc()) {
+    $stats['total_units'] = intval($row['total']);
+}
+
+// Total orders (records)
+$result = $conn->query("SELECT COUNT(*) as total FROM delivery_records");
+if ($result && $row = $result->fetch_assoc()) {
+    $stats['total_orders'] = intval($row['total']);
+}
+
+// Unique products
+$result = $conn->query("SELECT COUNT(DISTINCT item_code) as total FROM delivery_records WHERE item_code IS NOT NULL AND item_code != ''");
+if ($result && $row = $result->fetch_assoc()) {
+    $stats['unique_products'] = intval($row['total']);
+}
+
+// Average order size
+if ($stats['total_orders'] > 0) {
+    $stats['avg_order_size'] = round($stats['total_units'] / $stats['total_orders'], 1);
+}
+
+// Monthly sales data
+$months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+$monthly_sales = array_fill_keys($months, 0);
+$result = $conn->query("SELECT delivery_month, COALESCE(SUM(quantity), 0) AS total FROM delivery_records GROUP BY delivery_month");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        if (array_key_exists($row['delivery_month'], $monthly_sales)) {
+            $monthly_sales[$row['delivery_month']] = intval($row['total']);
+        }
+    }
+}
+
+// Top products
+$top_products = [];
+$result = $conn->query("
+    SELECT item_code, item_name, SUM(quantity) as total_qty, COUNT(*) as order_count
+    FROM delivery_records 
+    WHERE item_code IS NOT NULL AND item_code != '' AND item_code != '-'
+    GROUP BY item_code 
+    ORDER BY total_qty DESC 
+    LIMIT 10
+");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $top_products[] = $row;
+    }
+}
+
+// Recent sales
+$recent_sales = [];
+$result = $conn->query("
+    SELECT invoice_no, item_code, item_name, quantity, company_name, delivery_date, delivery_month, delivery_day
+    FROM delivery_records 
+    ORDER BY id DESC 
+    LIMIT 10
+");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $recent_sales[] = $row;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -216,6 +292,14 @@ if (empty($_SESSION['user_id'])) {
                     </a>
                 </li>
 
+                <!-- Sales Records -->
+                <li class="menu-item">
+                    <a href="sales-records.php" class="menu-link">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span class="menu-label">Sales Records</span>
+                    </a>
+                </li>
+
                 <!-- Delivery Records -->
                 <li class="menu-item">
                     <a href="delivery-records.php" class="menu-link">
@@ -304,17 +388,17 @@ if (empty($_SESSION['user_id'])) {
         <div class="page-section">
             <div class="stat-card">
                 <div class="stat-card-content">
-                    <h3>Total Revenue</h3>
-                    <div class="value">$168.5K</div>
+                    <h3>Total Units</h3>
+                    <div class="value"><?php echo number_format($stats['total_units']); ?></div>
                 </div>
                 <div class="stat-card-icon">
-                    <i class="fas fa-dollar-sign"></i>
+                    <i class="fas fa-boxes"></i>
                 </div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-content">
-                    <h3>Units Sold</h3>
-                    <div class="value">311</div>
+                    <h3>Total Orders</h3>
+                    <div class="value"><?php echo number_format($stats['total_orders']); ?></div>
                 </div>
                 <div class="stat-card-icon">
                     <i class="fas fa-shopping-cart"></i>
@@ -322,20 +406,20 @@ if (empty($_SESSION['user_id'])) {
             </div>
             <div class="stat-card">
                 <div class="stat-card-content">
-                    <h3>Active Clients</h3>
-                    <div class="value">15</div>
+                    <h3>Unique Products</h3>
+                    <div class="value"><?php echo $stats['unique_products']; ?></div>
                 </div>
                 <div class="stat-card-icon">
-                    <i class="fas fa-users"></i>
+                    <i class="fas fa-cube"></i>
                 </div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-content">
-                    <h3>Avg Order Value</h3>
-                    <div class="value">$541</div>
+                    <h3>Avg Order Size</h3>
+                    <div class="value"><?php echo $stats['avg_order_size']; ?></div>
                 </div>
                 <div class="stat-card-icon">
-                    <i class="fas fa-tag"></i>
+                    <i class="fas fa-calculator"></i>
                 </div>
             </div>
         </div>
@@ -354,53 +438,44 @@ if (empty($_SESSION['user_id'])) {
 
         <!-- Sales Summary Table -->
         <div class="table-container">
-            <div class="chart-title">Top Performing Metrics</div>
+            <div class="chart-title">Recent Deliveries</div>
             <table>
                 <thead>
                     <tr>
-                        <th>Metric</th>
-                        <th>Current Month</th>
-                        <th>Last Month</th>
-                        <th>Growth</th>
-                        <th>Status</th>
+                        <th>Invoice No.</th>
+                        <th>Item Code</th>
+                        <th>Description</th>
+                        <th>Qty</th>
+                        <th>Company</th>
+                        <th>Delivery Date</th>
                     </tr>
                 </thead>
                 <tbody>
+                    <?php if (empty($recent_sales)): ?>
                     <tr>
-                        <td>Units Delivered</td>
-                        <td>94</td>
-                        <td>88</td>
-                        <td>+6.8%</td>
-                        <td><span class="badge success">on track</span></td>
+                        <td colspan="6" style="text-align: center; padding: 30px; color: #a0a0a0;">
+                            No sales data available. <a href="upload-data.php" style="color: #f4d03f;">Upload data</a> to get started.
+                        </td>
                     </tr>
+                    <?php else: ?>
+                    <?php foreach ($recent_sales as $sale): 
+                        $delivery_date = '';
+                        if (!empty($sale['delivery_date'])) {
+                            $delivery_date = date('M j, Y', strtotime($sale['delivery_date']));
+                        } elseif (!empty($sale['delivery_month'])) {
+                            $delivery_date = $sale['delivery_month'] . ' ' . ($sale['delivery_day'] ?? '');
+                        }
+                    ?>
                     <tr>
-                        <td>Units Sold</td>
-                        <td>52</td>
-                        <td>45</td>
-                        <td>+15.6%</td>
-                        <td><span class="badge success">exceeding</span></td>
+                        <td><?php echo htmlspecialchars($sale['invoice_no'] ?? '-'); ?></td>
+                        <td><?php echo htmlspecialchars($sale['item_code'] ?? '-'); ?></td>
+                        <td><?php echo htmlspecialchars(substr($sale['item_name'] ?? '-', 0, 30)); ?></td>
+                        <td><?php echo htmlspecialchars($sale['quantity'] ?? '0'); ?></td>
+                        <td><?php echo htmlspecialchars(substr($sale['company_name'] ?? '-', 0, 20)); ?></td>
+                        <td><?php echo htmlspecialchars($delivery_date); ?></td>
                     </tr>
-                    <tr>
-                        <td>Revenue Generated</td>
-                        <td>$28,100</td>
-                        <td>$24,300</td>
-                        <td>+15.6%</td>
-                        <td><span class="badge success">excellent</span></td>
-                    </tr>
-                    <tr>
-                        <td>New Clients Acquired</td>
-                        <td>2</td>
-                        <td>1</td>
-                        <td>+100%</td>
-                        <td><span class="badge success">growing</span></td>
-                    </tr>
-                    <tr>
-                        <td>Avg Delivery Time</td>
-                        <td>4.2 days</td>
-                        <td>4.8 days</td>
-                        <td>-12.5%</td>
-                        <td><span class="badge success">improved</span></td>
-                    </tr>
+                    <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -408,18 +483,28 @@ if (empty($_SESSION['user_id'])) {
 
     <script src="js/app.js" defer></script>
     <script>
+        // Data from PHP
+        const salesData = {
+            monthly_sales: <?php echo json_encode($monthly_sales); ?>,
+            top_products: <?php echo json_encode($top_products); ?>
+        };
+
         // Initialize charts for Sales Overview
         function initializeSalesTrendChart() {
             const ctx = document.getElementById('salesTrendChart');
             if (ctx) {
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const fullMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                const monthlyData = fullMonths.map(m => salesData.monthly_sales[m] || 0);
+
                 new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+                        labels: months,
                         datasets: [
                             {
-                                label: 'Units Sold',
-                                data: [28, 35, 42, 38, 45, 52, 58, 48, 55, 52],
+                                label: 'Units Delivered',
+                                data: monthlyData,
                                 borderColor: '#f4d03f',
                                 backgroundColor: 'rgba(244, 208, 63, 0.1)',
                                 borderWidth: 2,
@@ -427,17 +512,6 @@ if (empty($_SESSION['user_id'])) {
                                 tension: 0.4,
                                 pointRadius: 4,
                                 pointBackgroundColor: '#f4d03f'
-                            },
-                            {
-                                label: 'Revenue ($K)',
-                                data: [15, 19, 23, 20, 24, 28, 32, 26, 30, 28],
-                                borderColor: '#00d9ff',
-                                backgroundColor: 'rgba(0, 217, 255, 0.1)',
-                                borderWidth: 2,
-                                fill: true,
-                                tension: 0.4,
-                                pointRadius: 4,
-                                pointBackgroundColor: '#00d9ff'
                             }
                         ]
                     },
@@ -451,6 +525,7 @@ if (empty($_SESSION['user_id'])) {
                         },
                         scales: {
                             y: {
+                                beginAtZero: true,
                                 ticks: {},
                                 grid: {}
                             },
@@ -467,13 +542,22 @@ if (empty($_SESSION['user_id'])) {
         function initializeModelGroupChart() {
             const ctx = document.getElementById('modelGroupChart');
             if (ctx) {
+                // Use top products data
+                let labels = ['Product 1', 'Product 2', 'Product 3', 'Product 4', 'Product 5'];
+                let data = [100, 80, 60, 40, 20];
+                
+                if (salesData.top_products && salesData.top_products.length > 0) {
+                    labels = salesData.top_products.slice(0, 5).map(p => p.item_code || 'Unknown');
+                    data = salesData.top_products.slice(0, 5).map(p => parseInt(p.total_qty) || 0);
+                }
+
                 new Chart(ctx, {
                     type: 'doughnut',
                     data: {
-                        labels: ['Group A', 'Group B'],
+                        labels: labels,
                         datasets: [{
-                            data: [156, 155],
-                            backgroundColor: ['#2f5fa7', '#ff006e'],
+                            data: data,
+                            backgroundColor: ['#2f5fa7', '#f4d03f', '#51cf66', '#ff006e', '#00d9ff'],
                             borderColor: '#13172c',
                             borderWidth: 2
                         }]

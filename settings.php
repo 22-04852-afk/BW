@@ -505,46 +505,7 @@ if (empty($_SESSION['user_id'])) {
         function toggleSetting(element) {
             element.classList.toggle('active');
         }
-
-        // Initialize dark mode toggle
-        document.addEventListener('DOMContentLoaded', function() {
-            const toggle = document.getElementById('darkModeToggle');
-            if (!toggle) return;
-            
-            // Set initial state from localStorage
-            const isLight = localStorage.getItem('theme') === 'light';
-            if (isLight) {
-                toggle.classList.remove('active');
-                document.documentElement.classList.add('light-mode');
-                document.body.classList.add('light-mode');
-            } else {
-                toggle.classList.add('active');
-                document.documentElement.classList.remove('light-mode');
-                document.body.classList.remove('light-mode');
-            }
-            
-            // Add click handler
-            toggle.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                this.classList.toggle('active');
-                
-                // Toggle is for "Dark Theme" - active means dark mode ON
-                if (this.classList.contains('active')) {
-                    // Dark mode ON
-                    document.documentElement.classList.remove('light-mode');
-                    document.body.classList.remove('light-mode');
-                    localStorage.setItem('theme', 'dark');
-                    console.log('Theme switched to: Dark Mode');
-                } else {
-                    // Dark mode OFF = Light mode
-                    document.documentElement.classList.add('light-mode');
-                    document.body.classList.add('light-mode');
-                    localStorage.setItem('theme', 'light');
-                    console.log('Theme switched to: Light Mode');
-                }
-            });
-        });
+        // Dark mode toggle is handled by app.js initializeDarkModeToggle()
     </script>
 </body>
 </html>

@@ -4,6 +4,40 @@ if (empty($_SESSION['user_id'])) {
     header('Location: login.php', true, 302);
     exit;
 }
+
+// Database connection
+require_once 'db_config.php';
+
+// Initialize variables
+$totalUnits = 0;
+$totalOrders = 0;
+$activeClients = 0;
+$totalRevenue = '0';
+$recentDeliveries = [];
+
+// Get total units delivered
+$result = $conn->query("SELECT COUNT(*) as total_orders, COALESCE(SUM(quantity), 0) as total_units FROM delivery_records");
+if ($result && $row = $result->fetch_assoc()) {
+    $totalUnits = intval($row['total_units']);
+    $totalOrders = intval($row['total_orders']);
+}
+
+// Get unique companies count
+$result = $conn->query("SELECT COUNT(DISTINCT company_name) as company_count FROM delivery_records WHERE company_name IS NOT NULL AND company_name != ''");
+if ($result && $row = $result->fetch_assoc()) {
+    $activeClients = intval($row['company_count']);
+}
+
+// Calculate estimated revenue
+$totalRevenue = number_format(($totalUnits * 540) / 1000, 1);
+
+// Get recent deliveries for export
+$result = $conn->query("SELECT * FROM delivery_records ORDER BY id DESC LIMIT 100");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $recentDeliveries[] = $row;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -471,6 +505,14 @@ if (empty($_SESSION['user_id'])) {
                     </a>
                 </li>
 
+                <!-- Sales Records -->
+                <li class="menu-item">
+                    <a href="sales-records.php" class="menu-link">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span class="menu-label">Sales Records</span>
+                    </a>
+                </li>
+
                 <!-- Delivery Records -->
                 <li class="menu-item">
                     <a href="delivery-records.php" class="menu-link">
@@ -659,23 +701,23 @@ if (empty($_SESSION['user_id'])) {
         </div>
 
         <!-- Quick Stats -->
-        <div class="section-title">2025 Year-to-Date Summary</div>
+        <div class="section-title">Year-to-Date Summary</div>
         <div class="stats-row">
             <div class="stat-box">
-                <div class="stat-label">Total Revenue</div>
-                <div class="stat-value">₱168.5K</div>
+                <div class="stat-label">Est. Revenue</div>
+                <div class="stat-value">₱<?php echo $totalRevenue; ?>K</div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">Units Delivered</div>
-                <div class="stat-value">696</div>
+                <div class="stat-value"><?php echo number_format($totalUnits); ?></div>
             </div>
             <div class="stat-box">
-                <div class="stat-label">Units Sold</div>
-                <div class="stat-value">311</div>
+                <div class="stat-label">Total Orders</div>
+                <div class="stat-value"><?php echo number_format($totalOrders); ?></div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">Active Clients</div>
-                <div class="stat-value">15</div>
+                <div class="stat-value"><?php echo number_format($activeClients); ?></div>
             </div>
         </div>
 

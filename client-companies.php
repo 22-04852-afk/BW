@@ -4,6 +4,37 @@ if (empty($_SESSION['user_id'])) {
     header('Location: login.php', true, 302);
     exit;
 }
+
+// Include database configuration
+require_once 'db_config.php';
+
+// Get all unique companies with their stats
+$companies = [];
+$result = $conn->query("
+    SELECT 
+        company_name, 
+        COUNT(*) as total_orders,
+        SUM(quantity) as total_units,
+        COUNT(DISTINCT item_code) as unique_products,
+        MAX(delivery_date) as last_delivery,
+        MAX(delivery_month) as last_month
+    FROM delivery_records 
+    WHERE company_name IS NOT NULL AND company_name != '' AND company_name != '-'
+    GROUP BY company_name 
+    ORDER BY total_units DESC
+");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $companies[] = $row;
+    }
+}
+
+// Get total stats
+$total_companies = count($companies);
+$total_units_all = 0;
+foreach ($companies as $c) {
+    $total_units_all += intval($c['total_units']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -241,6 +272,14 @@ if (empty($_SESSION['user_id'])) {
                     </a>
                 </li>
 
+                <!-- Sales Records -->
+                <li class="menu-item">
+                    <a href="sales-records.php" class="menu-link">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span class="menu-label">Sales Records</span>
+                    </a>
+                </li>
+
                 <!-- Delivery Records -->
                 <li class="menu-item">
                     <a href="delivery-records.php" class="menu-link">
@@ -330,203 +369,54 @@ if (empty($_SESSION['user_id'])) {
         </div>
 
         <div class="companies-grid">
+            <?php 
+            $icons = ['fa-building', 'fa-industry', 'fa-shield-alt', 'fa-mountain', 'fa-globe', 'fa-flask', 'fa-cog', 'fa-warehouse'];
+            $index = 0;
+            foreach ($companies as $company): 
+                $icon = $icons[$index % count($icons)];
+                $revenue = number_format(($company['total_units'] * 540) / 1000, 1);
+                $index++;
+            ?>
             <div class="company-card">
                 <div class="company-logo">
-                    <i class="fas fa-building"></i>
+                    <i class="fas <?php echo $icon; ?>"></i>
                 </div>
-                <div class="company-name">Andison Zamora</div>
-                <div class="company-industry">Manufacturing Sector</div>
+                <div class="company-name"><?php echo htmlspecialchars($company['company_name']); ?></div>
+                <div class="company-industry">Gas Detection Client</div>
                 <div class="company-info">
                     <div class="info-item">
-                        <i class="fas fa-envelope"></i>
-                        <span>contact@andison.com</span>
+                        <i class="fas fa-box"></i>
+                        <span><?php echo $company['unique_products']; ?> Product Types</span>
                     </div>
                     <div class="info-item">
-                        <i class="fas fa-phone"></i>
-                        <span>(555) 123-4567</span>
+                        <i class="fas fa-file-invoice"></i>
+                        <span><?php echo $company['total_orders']; ?> Orders</span>
                     </div>
                     <div class="info-item">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>New York, NY</span>
+                        <i class="fas fa-calendar"></i>
+                        <span>Last: <?php echo $company['last_delivery'] ? date('M d, Y', strtotime($company['last_delivery'])) : 'N/A'; ?></span>
                     </div>
                 </div>
                 <div class="company-stats">
                     <div class="stat">
-                        <div class="stat-value">97</div>
+                        <div class="stat-value"><?php echo number_format($company['total_units']); ?></div>
                         <div class="stat-label">Units Sold</div>
                     </div>
                     <div class="stat">
-                        <div class="stat-value">$52.5K</div>
+                        <div class="stat-value">$<?php echo $revenue; ?>K</div>
                         <div class="stat-label">Revenue</div>
                     </div>
                 </div>
                 <button class="view-more-btn">View Profile</button>
             </div>
-
-            <div class="company-card">
-                <div class="company-logo">
-                    <i class="fas fa-industry"></i>
-                </div>
-                <div class="company-name">Industrial Tech Co.</div>
-                <div class="company-industry">Technology & Safety</div>
-                <div class="company-info">
-                    <div class="info-item">
-                        <i class="fas fa-envelope"></i>
-                        <span>sales@techtech.com</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-phone"></i>
-                        <span>(555) 234-5678</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>Los Angeles, CA</span>
-                    </div>
-                </div>
-                <div class="company-stats">
-                    <div class="stat">
-                        <div class="stat-value">64</div>
-                        <div class="stat-label">Units Sold</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value">$34.6K</div>
-                        <div class="stat-label">Revenue</div>
-                    </div>
-                </div>
-                <button class="view-more-btn">View Profile</button>
+            <?php endforeach; ?>
+            
+            <?php if (empty($companies)): ?>
+            <div class="no-data" style="grid-column: 1/-1; text-align: center; padding: 40px; color: #888;">
+                <i class="fas fa-building" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                <p>No company data available. Import delivery records to see client companies.</p>
             </div>
-
-            <div class="company-card">
-                <div class="company-logo">
-                    <i class="fas fa-shield-alt"></i>
-                </div>
-                <div class="company-name">SafeGuard Solutions</div>
-                <div class="company-industry">Safety Systems</div>
-                <div class="company-info">
-                    <div class="info-item">
-                        <i class="fas fa-envelope"></i>
-                        <span>info@safeguard.com</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-phone"></i>
-                        <span>(555) 345-6789</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>Chicago, IL</span>
-                    </div>
-                </div>
-                <div class="company-stats">
-                    <div class="stat">
-                        <div class="stat-value">45</div>
-                        <div class="stat-label">Units Sold</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value">$24.3K</div>
-                        <div class="stat-label">Revenue</div>
-                    </div>
-                </div>
-                <button class="view-more-btn">View Profile</button>
-            </div>
-
-            <div class="company-card">
-                <div class="company-logo">
-                    <i class="fas fa-mountain"></i>
-                </div>
-                <div class="company-name">Summit Corp</div>
-                <div class="company-industry">Energy Sector</div>
-                <div class="company-info">
-                    <div class="info-item">
-                        <i class="fas fa-envelope"></i>
-                        <span>business@summit.com</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-phone"></i>
-                        <span>(555) 456-7890</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>Houston, TX</span>
-                    </div>
-                </div>
-                <div class="company-stats">
-                    <div class="stat">
-                        <div class="stat-value">31</div>
-                        <div class="stat-label">Units Sold</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value">$16.8K</div>
-                        <div class="stat-label">Revenue</div>
-                    </div>
-                </div>
-                <button class="view-more-btn">View Profile</button>
-            </div>
-
-            <div class="company-card">
-                <div class="company-logo">
-                    <i class="fas fa-globe"></i>
-                </div>
-                <div class="company-name">Global Industries</div>
-                <div class="company-industry">Distribution</div>
-                <div class="company-info">
-                    <div class="info-item">
-                        <i class="fas fa-envelope"></i>
-                        <span>orders@global.com</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-phone"></i>
-                        <span>(555) 567-8901</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>Miami, FL</span>
-                    </div>
-                </div>
-                <div class="company-stats">
-                    <div class="stat">
-                        <div class="stat-value">28</div>
-                        <div class="stat-label">Units Sold</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value">$15.1K</div>
-                        <div class="stat-label">Revenue</div>
-                    </div>
-                </div>
-                <button class="view-more-btn">View Profile</button>
-            </div>
-
-            <div class="company-card">
-                <div class="company-logo">
-                    <i class="fas fa-flask"></i>
-                </div>
-                <div class="company-name">Precision Labs</div>
-                <div class="company-industry">Research & Testing</div>
-                <div class="company-info">
-                    <div class="info-item">
-                        <i class="fas fa-envelope"></i>
-                        <span>lab@precision.com</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-phone"></i>
-                        <span>(555) 678-9012</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>Boston, MA</span>
-                    </div>
-                </div>
-                <div class="company-stats">
-                    <div class="stat">
-                        <div class="stat-value">22</div>
-                        <div class="stat-label">Units Sold</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value">$11.9K</div>
-                        <div class="stat-label">Revenue</div>
-                    </div>
-                </div>
-                <button class="view-more-btn">View Profile</button>
-            </div>
+            <?php endif; ?>
         </div>
     </div>
 
