@@ -38,6 +38,48 @@ if ($result) {
         $recentDeliveries[] = $row;
     }
 }
+
+// Get top 5 products by quantity
+$topProducts = [];
+$result = $conn->query("SELECT item_code, item_name, SUM(quantity) as total_qty, COUNT(*) as order_count FROM delivery_records WHERE item_code IS NOT NULL AND item_code != '' GROUP BY item_code ORDER BY total_qty DESC LIMIT 5");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $topProducts[] = $row;
+    }
+}
+
+// Get top 5 clients by quantity
+$topClients = [];
+$result = $conn->query("SELECT company_name, SUM(quantity) as total_qty, COUNT(*) as order_count FROM delivery_records WHERE company_name IS NOT NULL AND company_name != '' GROUP BY company_name ORDER BY total_qty DESC LIMIT 5");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $topClients[] = $row;
+    }
+}
+
+// Get status breakdown
+$statusBreakdown = ['Delivered' => 0, 'In Transit' => 0, 'Pending' => 0, 'Cancelled' => 0];
+$result = $conn->query("SELECT status, COUNT(*) as cnt FROM delivery_records GROUP BY status");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $s = $row['status'];
+        $statusBreakdown[$s] = intval($row['cnt']);
+    }
+}
+
+// Get monthly breakdown for current year
+$isMysql = ($conn instanceof mysqli);
+$yearExpr = $isMysql
+    ? "CASE WHEN delivery_year > 0 THEN delivery_year WHEN delivery_date IS NOT NULL THEN YEAR(delivery_date) ELSE YEAR(created_at) END"
+    : "CASE WHEN delivery_year > 0 THEN delivery_year WHEN delivery_date IS NOT NULL THEN CAST(strftime('%Y', delivery_date) AS INTEGER) ELSE CAST(strftime('%Y', created_at) AS INTEGER) END";
+$currentYear = date('Y');
+$monthlyBreakdown = [];
+$result = $conn->query("SELECT delivery_month, SUM(quantity) as total_qty, COUNT(*) as order_count FROM delivery_records WHERE ({$yearExpr}) = {$currentYear} GROUP BY delivery_month ORDER BY MIN(delivery_day)");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $monthlyBreakdown[] = $row;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -777,73 +819,30 @@ if ($result) {
     </div>
 
     <script>
-        // Sample report data
+        // Report data built from real database values
         const reportData = {
             'Sales Performance Report': {
                 title: 'Sales Performance Report',
                 date: new Date().toLocaleDateString(),
                 content: `
-                    <h3>Executive Summary</h3>
-                    <p>This report provides a comprehensive overview of sales performance for the first month of 2025.</p>
-                    
-                    <h3>Monthly Sales Trends</h3>
+                    <h3>Summary</h3>
+                    <p><strong>Total Units Delivered:</strong> <?php echo number_format($totalUnits); ?></p>
+                    <p><strong>Total Orders:</strong> <?php echo number_format($totalOrders); ?></p>
+                    <p><strong>Active Clients:</strong> <?php echo number_format($activeClients); ?></p>
+
+                    <h3>Monthly Breakdown (<?php echo $currentYear; ?>)</h3>
+                    <?php if (empty($monthlyBreakdown)): ?>
+                    <p style="color:#a0a0a0;">No data for <?php echo $currentYear; ?> yet.</p>
+                    <?php else: ?>
                     <table class="report-table">
-                        <thead>
-                            <tr>
-                                <th>Week</th>
-                                <th>Sales</th>
-                                <th>Units Sold</th>
-                                <th>Growth %</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>Month</th><th>Orders</th><th>Units</th></tr></thead>
                         <tbody>
-                            <tr><td>Week 1</td><td>₱38,500</td><td>75</td><td>+12%</td></tr>
-                            <tr><td>Week 2</td><td>₱42,300</td><td>82</td><td>+10%</td></tr>
-                            <tr><td>Week 3</td><td>₱45,200</td><td>88</td><td>+7%</td></tr>
-                            <tr><td>Week 4</td><td>₱42,500</td><td>66</td><td>-6%</td></tr>
+                        <?php foreach ($monthlyBreakdown as $m): ?>
+                            <tr><td><?php echo htmlspecialchars($m['delivery_month']); ?></td><td><?php echo number_format($m['order_count']); ?></td><td><?php echo number_format($m['total_qty']); ?></td></tr>
+                        <?php endforeach; ?>
                         </tbody>
                     </table>
-                    
-                    <h3>Revenue Breakdown</h3>
-                    <p><strong>Group A Products:</strong> ₱95,000 (56%)</p>
-                    <p><strong>Group B Products:</strong> ₱73,500 (44%)</p>
-                    
-                    <h3>Key Performance Indicators</h3>
-                    <p><strong>Total Revenue:</strong> ₱168,500</p>
-                    <p><strong>Total Units Sold:</strong> 311</p>
-                    <p><strong>Average Transaction Value:</strong> ₱541.80</p>
-                    <p><strong>Growth vs Last Month:</strong> +8.5%</p>
-                `
-            },
-            'Inventory Status Report': {
-                title: 'Inventory Status Report',
-                date: new Date().toLocaleDateString(),
-                content: `
-                    <h3>Current Stock Levels</h3>
-                    <table class="report-table">
-                        <thead>
-                            <tr>
-                                <th>Product</th>
-                                <th>Current Stock</th>
-                                <th>Min Level</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td>A-100</td><td>145</td><td>50</td><td><span style="color: #51cf66;">✓ Optimal</span></td></tr>
-                            <tr><td>A-500</td><td>98</td><td>40</td><td><span style="color: #51cf66;">✓ Optimal</span></td></tr>
-                            <tr><td>B-100</td><td>132</td><td>60</td><td><span style="color: #51cf66;">✓ Optimal</span></td></tr>
-                            <tr><td>B-500</td><td>45</td><td>50</td><td><span style="color: #ffd60a;">⚠ Low</span></td></tr>
-                        </tbody>
-                    </table>
-                    
-                    <h3>Incoming Shipments</h3>
-                    <p><strong>Expected Delivery:</strong> February 20, 2025</p>
-                    <p><strong>Quantity:</strong> 500 units</p>
-                    <p><strong>Supplier:</strong> TechParts International</p>
-                    
-                    <h3>Inventory Forecast</h3>
-                    <p>Based on current sales trends, inventory levels are expected to remain stable through March. Recommend restocking Group B products to maintain optimal levels.</p>
+                    <?php endif; ?>
                 `
             },
             'Client Analytics Report': {
@@ -851,126 +850,117 @@ if ($result) {
                 date: new Date().toLocaleDateString(),
                 content: `
                     <h3>Client Overview</h3>
-                    <p><strong>Total Active Clients:</strong> 15</p>
-                    <p><strong>New Clients This Month:</strong> 2</p>
-                    <p><strong>Client Retention Rate:</strong> 93.3%</p>
-                    
-                    <h3>Top Clients by Revenue</h3>
+                    <p><strong>Total Active Clients:</strong> <?php echo number_format($activeClients); ?></p>
+
+                    <h3>Top Clients by Units Delivered</h3>
+                    <?php if (empty($topClients)): ?>
+                    <p style="color:#a0a0a0;">No client data yet.</p>
+                    <?php else: ?>
                     <table class="report-table">
-                        <thead>
-                            <tr>
-                                <th>Client Name</th>
-                                <th>Revenue</th>
-                                <th>Units Purchased</th>
-                                <th>Last Order</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>Client</th><th>Orders</th><th>Units</th></tr></thead>
                         <tbody>
-                            <tr><td>EcoTech Solutions</td><td>₱34,500</td><td>65</td><td>Feb 10</td></tr>
-                            <tr><td>Nexus Industries</td><td>₱28,300</td><td>52</td><td>Feb 8</td></tr>
-                            <tr><td>Alpha Manufacturing</td><td>₱22,700</td><td>41</td><td>Feb 5</td></tr>
-                            <tr><td>Delta Enterprises</td><td>₱18,500</td><td>35</td><td>Jan 28</td></tr>
+                        <?php foreach ($topClients as $c): ?>
+                            <tr><td><?php echo htmlspecialchars($c['company_name']); ?></td><td><?php echo number_format($c['order_count']); ?></td><td><?php echo number_format($c['total_qty']); ?></td></tr>
+                        <?php endforeach; ?>
                         </tbody>
                     </table>
-                    
-                    <h3>Client Acquisition & Retention</h3>
-                    <p><strong>Customer Lifetime Value:</strong> ₱11,233 (average)</p>
-                    <p><strong>Churn Rate:</strong> 6.7%</p>
-                    <p><strong>Repeat Purchase Rate:</strong> 86.7%</p>
+                    <?php endif; ?>
                 `
             },
-            'Delivery Summary Report': {
-                title: 'Delivery Summary Report',
+            'Inventory Status Report': {
+                title: 'Inventory Status Report',
                 date: new Date().toLocaleDateString(),
                 content: `
-                    <h3>Delivery Performance</h3>
-                    <p><strong>Total Deliveries:</strong> 696</p>
-                    <p><strong>On-Time Delivery Rate:</strong> 99.5%</p>
-                    <p><strong>Average Delivery Time:</strong> 3.2 days</p>
-                    
-                    <h3>Delivery Status Breakdown</h3>
+                    <h3>Delivery Records Overview</h3>
+                    <p><strong>Total Records in System:</strong> <?php echo number_format($totalOrders); ?></p>
+                    <p><strong>Total Units Tracked:</strong> <?php echo number_format($totalUnits); ?></p>
+                    <p><strong>Unique Clients:</strong> <?php echo number_format($activeClients); ?></p>
+
+                    <h3>Top Items on Record</h3>
+                    <?php if (empty($topProducts)): ?>
+                    <p style="color:#a0a0a0;">No data yet. Import delivery records to see items.</p>
+                    <?php else: ?>
                     <table class="report-table">
-                        <thead>
-                            <tr>
-                                <th>Status</th>
-                                <th>Count</th>
-                                <th>Percentage</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>Item Code</th><th>Description</th><th>Total Units</th></tr></thead>
                         <tbody>
-                            <tr><td>Delivered</td><td>674</td><td>96.8%</td></tr>
-                            <tr><td>In Transit</td><td>12</td><td>1.7%</td></tr>
-                            <tr><td>Pending</td><td>10</td><td>1.5%</td></tr>
+                        <?php foreach ($topProducts as $p): ?>
+                            <tr><td><?php echo htmlspecialchars($p['item_code']); ?></td><td><?php echo htmlspecialchars($p['item_name'] ?: '-'); ?></td><td><?php echo number_format($p['total_qty']); ?></td></tr>
+                        <?php endforeach; ?>
                         </tbody>
                     </table>
-                    
-                    <h3>Logistics Analysis</h3>
-                    <p><strong>Total Distance Covered:</strong> 15,240 km</p>
-                    <p><strong>Average Cost Per Delivery:</strong> ₱42.50</p>
-                    <p><strong>Fuel Efficiency:</strong> 8.2 km/liter</p>
+                    <?php endif; ?>
                 `
             },
             'Financial Report': {
                 title: 'Financial Report',
                 date: new Date().toLocaleDateString(),
                 content: `
-                    <h3>Financial Summary</h3>
-                    <p><strong>Total Revenue:</strong> ₱168,500</p>
-                    <p><strong>Cost of Goods Sold:</strong> ₱67,400</p>
-                    <p><strong>Operating Expenses:</strong> ₱48,250</p>
-                    <p><strong>Net Profit:</strong> ₱52,850</p>
-                    
-                    <h3>Profit Analysis</h3>
+                    <h3>Delivery-Based Financial Summary</h3>
+                    <p><strong>Total Units Delivered:</strong> <?php echo number_format($totalUnits); ?></p>
+                    <p><strong>Total Orders:</strong> <?php echo number_format($totalOrders); ?></p>
+                    <p><strong>Estimated Revenue (@ ₱540/unit):</strong> ₱<?php echo number_format($totalUnits * 540); ?></p>
+                    <?php if ($totalOrders > 0): ?>
+                    <p><strong>Avg Units per Order:</strong> <?php echo round($totalUnits / $totalOrders, 1); ?></p>
+                    <?php endif; ?>
+
+                    <h3>Revenue by Top Client</h3>
+                    <?php if (empty($topClients)): ?>
+                    <p style="color:#a0a0a0;">No client data yet.</p>
+                    <?php else: ?>
                     <table class="report-table">
-                        <thead>
-                            <tr>
-                                <th>Category</th>
-                                <th>Amount</th>
-                                <th>Percentage</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>Client</th><th>Units</th><th>Est. Revenue</th></tr></thead>
                         <tbody>
-                            <tr><td>Gross Profit</td><td>₱101,100</td><td>59.9%</td></tr>
-                            <tr><td>Operating Profit</td><td>₱52,850</td><td>31.4%</td></tr>
-                            <tr><td>Net Profit</td><td>₱52,850</td><td>31.4%</td></tr>
+                        <?php foreach ($topClients as $c):
+                            $rev = number_format($c['total_qty'] * 540);
+                        ?>
+                            <tr><td><?php echo htmlspecialchars($c['company_name']); ?></td><td><?php echo number_format($c['total_qty']); ?></td><td>₱<?php echo $rev; ?></td></tr>
+                        <?php endforeach; ?>
                         </tbody>
                     </table>
-                    
-                    <h3>Financial Forecasts</h3>
-                    <p>Based on current trends, we project for Q1 2025:</p>
-                    <p><strong>Expected Revenue:</strong> ₱480,000 - ₱520,000</p>
-                    <p><strong>Expected Profit Margin:</strong> 30% - 32%</p>
+                    <?php endif; ?>
+                `
+            },
+                title: 'Delivery Summary Report',
+                date: new Date().toLocaleDateString(),
+                content: `
+                    <h3>Delivery Overview</h3>
+                    <p><strong>Total Records:</strong> <?php echo number_format($totalOrders); ?></p>
+
+                    <h3>Status Breakdown</h3>
+                    <?php if ($totalOrders === 0): ?>
+                    <p style="color:#a0a0a0;">No delivery records yet.</p>
+                    <?php else: ?>
+                    <table class="report-table">
+                        <thead><tr><th>Status</th><th>Count</th><th>Percentage</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($statusBreakdown as $status => $cnt):
+                            if ($cnt === 0) continue;
+                            $pct = $totalOrders > 0 ? round(($cnt / $totalOrders) * 100, 1) : 0;
+                        ?>
+                            <tr><td><?php echo htmlspecialchars($status); ?></td><td><?php echo number_format($cnt); ?></td><td><?php echo $pct; ?>%</td></tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <?php endif; ?>
                 `
             },
             'Product Model Report': {
                 title: 'Product Model Report',
                 date: new Date().toLocaleDateString(),
                 content: `
-                    <h3>Sales by Product Model</h3>
+                    <h3>Top Products by Units Delivered</h3>
+                    <?php if (empty($topProducts)): ?>
+                    <p style="color:#a0a0a0;">No product data yet. Import data to see results.</p>
+                    <?php else: ?>
                     <table class="report-table">
-                        <thead>
-                            <tr>
-                                <th>Model</th>
-                                <th>Units Sold</th>
-                                <th>Revenue</th>
-                                <th>Avg Price</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>Item Code</th><th>Description</th><th>Orders</th><th>Units</th></tr></thead>
                         <tbody>
-                            <tr><td>A-100</td><td>145</td><td>₱46,400</td><td>₱320</td></tr>
-                            <tr><td>A-200</td><td>158</td><td>₱71,100</td><td>₱450</td></tr>
-                            <tr><td>B-100</td><td>132</td><td>₱85,800</td><td>₱650</td></tr>
-                            <tr><td>B-500</td><td>45</td><td>₱56,250</td><td>₱1,250</td></tr>
+                        <?php foreach ($topProducts as $p): ?>
+                            <tr><td><?php echo htmlspecialchars($p['item_code']); ?></td><td><?php echo htmlspecialchars($p['item_name'] ?: '-'); ?></td><td><?php echo number_format($p['order_count']); ?></td><td><?php echo number_format($p['total_qty']); ?></td></tr>
+                        <?php endforeach; ?>
                         </tbody>
                     </table>
-                    
-                    <h3>Product Performance Metrics</h3>
-                    <p><strong>Best Selling Model:</strong> A-200 (158 units)</p>
-                    <p><strong>Highest Revenue Model:</strong> B-500 (₱56,250)</p>
-                    <p><strong>Most Popular Category:</strong> Group A (52.4% of sales)</p>
-                    
-                    <h3>Product Popularity Trends</h3>
-                    <p>Group A products continue to dominate market share with steady demand. Group B premium models show strong growth potential with higher profit margins.</p>
+                    <?php endif; ?>
                 `
             }
         };

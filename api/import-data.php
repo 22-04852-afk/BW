@@ -1,4 +1,5 @@
 <?php
+ob_start();
 header('Content-Type: application/json');
 
 // Increase limits for large imports
@@ -6,33 +7,29 @@ ini_set('memory_limit', '256M');
 ini_set('max_execution_time', 300);
 set_time_limit(300);
 
-// Enable error reporting
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 
-// Include database configuration (handles MySQL/SQLite fallback)
 require_once __DIR__ . '/../db_config.php';
 
-// Get JSON data from request
-$json = file_get_contents('php://input');
+function respond(array $d, int $code = 200): never {
+    ob_clean();
+    http_response_code($code);
+    echo json_encode($d);
+    exit;
+}
+
+$json    = file_get_contents('php://input');
 $request = json_decode($json, true);
 
 if (!$request || !isset($request['data'])) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Invalid request data'
-    ]);
-    exit;
+    respond(['success' => false, 'message' => 'Invalid request data'], 400);
 }
 
 $data = $request['data'];
 
 if (empty($data)) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'No data to import'
-    ]);
-    exit;
+    respond(['success' => false, 'message' => 'No data to import'], 400);
 }
 
 // Function to convert Excel serial date to actual date
@@ -170,35 +167,38 @@ $column_mappings = [
     'Uom' => 'uom',
 ];
 
+// Build lowercase version of mappings for case-insensitive lookup
+$lower_mappings = [];
+foreach ($column_mappings as $k => $v) {
+    $lower_mappings[strtolower(trim($k))] = $v;
+}
+
 try {
-    // Use the connection from db_config.php
-    if (!$conn || $conn->connect_error) {
+    if (!$conn || !empty($conn->connect_error)) {
         throw new Exception('Database connection failed');
     }
 
     $imported_count = 0;
-    $failed_count = 0;
-    $errors = [];
-
-    // Check if we're using SQLite (SqliteConn class) or MySQL
-    $is_sqlite = !($conn instanceof mysqli);
+    $failed_count   = 0;
+    $skipped_count  = 0;
+    $errors  = [];
+    $skipped = [];
 
     // Start transaction
     if ($conn instanceof mysqli) {
         $conn->begin_transaction();
     } else {
-        $conn->query('BEGIN TRANSACTION');
+        $conn->query('BEGIN');
     }
 
     foreach ($data as $index => $record) {
         try {
-            // Map columns to database fields
+            // Map columns to database fields (case-insensitive)
             $mapped = [];
             foreach ($record as $col => $value) {
-                $col_trimmed = trim($col);
-                if (isset($column_mappings[$col_trimmed])) {
-                    $db_field = $column_mappings[$col_trimmed];
-                    $mapped[$db_field] = $value;
+                $col_lower = strtolower(trim($col));
+                if (isset($lower_mappings[$col_lower]) && !isset($mapped[$lower_mappings[$col_lower]])) {
+                    $mapped[$lower_mappings[$col_lower]] = $value;
                 }
             }
             
@@ -212,7 +212,8 @@ try {
             $company_name = isset($mapped['company_name']) ? trim(strval($mapped['company_name'])) : 'Andison Industrial';
             $status = isset($mapped['status']) ? trim(strval($mapped['status'])) : 'Delivered';
             $uom = isset($mapped['uom']) ? trim(strval($mapped['uom'])) : '';
-            $year = isset($mapped['year']) ? intval($mapped['year']) : intval(date('Y'));
+            // Year starts at 0; will be filled from explicit YEAR column, delivery_date, or current year
+            $year = isset($mapped['year']) ? intval($mapped['year']) : 0;
             
             // Handle dates
             $delivery_date = null;
@@ -227,41 +228,57 @@ try {
                 $delivery_day = intval($mapped['delivery_day']);
             }
             
-            // Try date_delivered if we don't have month/day
-            if ((empty($delivery_month) || $delivery_day == 0) && !empty($mapped['date_delivered'])) {
+            // Try date_delivered column (may be Excel serial or date string)
+            if (!empty($mapped['date_delivered'])) {
                 $delivery_date = excelDateToDate($mapped['date_delivered']);
                 if ($delivery_date) {
-                    $delivery_month = getMonthFromDate($delivery_date);
-                    $delivery_day = getDayFromDate($delivery_date);
+                    if (empty($delivery_month))  $delivery_month = getMonthFromDate($delivery_date);
+                    if ($delivery_day == 0)       $delivery_day   = getDayFromDate($delivery_date);
+                    if ($year <= 0)               $year           = intval(date('Y', strtotime($delivery_date)));
                 }
             }
             
-            // Fallback to date field
+            // Fallback to generic date field
             if ((empty($delivery_month) || $delivery_day == 0) && !empty($mapped['date'])) {
                 $temp_date = excelDateToDate($mapped['date']);
-                if ($temp_date && empty($delivery_month)) {
-                    $delivery_month = getMonthFromDate($temp_date);
-                }
-                if ($temp_date && $delivery_day == 0) {
-                    $delivery_day = getDayFromDate($temp_date);
+                if ($temp_date) {
+                    if (empty($delivery_month)) $delivery_month = getMonthFromDate($temp_date);
+                    if ($delivery_day == 0)     $delivery_day   = getDayFromDate($temp_date);
+                    if ($year <= 0)             $year           = intval(date('Y', strtotime($temp_date)));
                 }
             }
             
-            // Build delivery_date from month, day, year if we have them
-            if (!empty($delivery_month) && $delivery_day > 0 && $year > 0) {
+            // If we have month+day+year but no delivery_date, build one
+            if (empty($delivery_date) && !empty($delivery_month) && $delivery_day > 0 && $year > 0) {
                 $month_num = date('n', strtotime($delivery_month . ' 1'));
                 if ($month_num) {
                     $delivery_date = sprintf('%04d-%02d-%02d', $year, $month_num, $delivery_day);
                 }
             }
             
-            // Skip empty rows (check if essential fields are empty)
-            if (empty($item_code) && empty($item_name) && $quantity == 0) {
-                continue; // Skip this row silently
+            // Final defaults
+            if ($year <= 0) $year = intval(date('Y'));
+            
+            // Skip completely empty rows
+            if (empty($item_code) && empty($item_name) && empty($invoice_no) && $quantity == 0) {
+                $skipped_count++;
+                $skipped[] = "Row " . ($index + 2) . ": empty row";
+                continue;
             }
             
-            // Skip rows with placeholder or header data
-            if ($item_code == '-' || $item_code == 'Item' || $item_code == 'ITEM') {
+            // Skip total/subtotal rows
+            $name_lower = strtolower($item_name . ' ' . $item_code);
+            if (preg_match('/\b(total|subtotal|grand total|sub-total)\b/', $name_lower)) {
+                $skipped_count++;
+                $skipped[] = "Row " . ($index + 2) . ": total/subtotal row";
+                continue;
+            }
+
+            // Skip repeat-header rows
+            if (in_array(strtolower($item_code), ['item', 'item code', '-', '']) &&
+                in_array(strtolower($item_name), ['description', 'item name', '-', ''])) {
+                $skipped_count++;
+                $skipped[] = "Row " . ($index + 2) . ": header-repeat row";
                 continue;
             }
             
@@ -282,17 +299,18 @@ try {
             
             // Default delivery month if empty
             if (empty($delivery_month)) {
-                $delivery_month = date('F'); // Current month
+                $delivery_month = date('F');
             }
             
             // Default delivery day if empty
             if ($delivery_day == 0) {
                 $delivery_day = intval(date('j'));
             }
-            
-            // Default year if not set
-            if ($year <= 0) {
-                $year = intval(date('Y'));
+
+            // If quantity is still 0 but the row has a serial number or item,
+            // treat as 1 unit (one row = one serialised unit)
+            if ($quantity == 0 && (!empty($serial_no) || !empty($item_name) || !empty($item_code))) {
+                $quantity = 1;
             }
 
             // Insert into database
@@ -305,8 +323,11 @@ try {
                 throw new Exception("Prepare failed: " . $conn->error);
             }
 
+            // Types: s=invoice_no, s=serial_no, s=delivery_month, i=delivery_day,
+            //        i=delivery_year, s=delivery_date, s=item_code, s=item_name,
+            //        s=company_name, i=quantity, s=status, s=notes
             $stmt->bind_param(
-                'sssiisississ',
+                'sssiissssiss',
                 $invoice_no,
                 $serial_no,
                 $delivery_month,
@@ -343,35 +364,25 @@ try {
         $conn->query('COMMIT');
     }
 
-    // Prepare response
     $response = [
-        'success' => true,
+        'success'  => true,
         'imported' => $imported_count,
-        'failed' => $failed_count,
-        'total' => count($data),
-        'message' => "Successfully imported $imported_count records"
+        'failed'   => $failed_count,
+        'skipped'  => $skipped_count,
+        'total'    => count($data),
+        'message'  => "Successfully imported $imported_count records"
     ];
-
-    if (!empty($errors) && $failed_count <= 10) {
-        $response['errors'] = $errors;
-    }
-
-    echo json_encode($response);
+    if (!empty($errors))   $response['errors']       = array_slice($errors,  0, 20);
+    if (!empty($skipped))  $response['skipped_rows'] = array_slice($skipped, 0, 20);
+    respond($response);
 
 } catch (Exception $e) {
-    // Rollback on error
     if (isset($conn)) {
-        if ($conn instanceof mysqli) {
-            $conn->rollback();
-        } else {
-            $conn->query('ROLLBACK');
-        }
+        try {
+            if ($conn instanceof mysqli) $conn->rollback();
+            else $conn->query('ROLLBACK');
+        } catch (Throwable $_) {}
     }
-    
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Import error: ' . $e->getMessage()
-    ]);
+    respond(['success' => false, 'message' => 'Import error: ' . $e->getMessage()], 500);
 }
 ?>

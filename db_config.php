@@ -46,6 +46,7 @@ try {
         serial_no      VARCHAR(100),
         delivery_month VARCHAR(20),
         delivery_day   INTEGER,
+        delivery_year  INTEGER      NOT NULL DEFAULT 0,
         delivery_date  DATE,
         item_code      VARCHAR(50)  NOT NULL,
         item_name      VARCHAR(255),
@@ -56,5 +57,11 @@ try {
         created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
         updated_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
     )");
+
+    // Upgrade: add columns that may be missing from older SQLite databases
+    @$conn->query("ALTER TABLE delivery_records ADD COLUMN invoice_no VARCHAR(50)");
+    @$conn->query("ALTER TABLE delivery_records ADD COLUMN serial_no VARCHAR(100)");
+    @$conn->query("ALTER TABLE delivery_records ADD COLUMN delivery_year INTEGER NOT NULL DEFAULT 0");
+    @$conn->query("ALTER TABLE delivery_records ADD COLUMN delivery_date DATE");
 }
 ?>

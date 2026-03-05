@@ -493,17 +493,22 @@ function initializeClientsChart() {
     const ctx = document.getElementById('clientsChart');
     if (!ctx) return;
 
-    // Use real data from dashboardData if available
-    let labels = ['Client 1', 'Client 2', 'Client 3', 'Client 4', 'Client 5'];
-    let data = [97, 85, 72, 68, 63];
+    let labels = [];
+    let data = [];
     
     if (typeof dashboardData !== 'undefined' && dashboardData.top_clients && dashboardData.top_clients.length > 0) {
         labels = dashboardData.top_clients.map(c => {
-            // Truncate long names
             const name = c.company_name || 'Unknown';
             return name.length > 20 ? name.substring(0, 20) + '...' : name;
         });
         data = dashboardData.top_clients.map(c => parseInt(c.total_quantity) || 0);
+    }
+
+    if (labels.length === 0) {
+        const parent = ctx.parentElement;
+        ctx.style.display = 'none';
+        parent.insertAdjacentHTML('beforeend', '<p style="color:#a0a0a0;text-align:center;padding:30px 0;font-size:13px;">No client data yet. Import data to see results.</p>');
+        return;
     }
 
     new Chart(ctx, {
@@ -604,18 +609,23 @@ function initializeGroupAChart() {
     const ctx = document.getElementById('groupAChart');
     if (!ctx) return;
 
-    // Use real product data
-    let labels = ['Product 1', 'Product 2', 'Product 3', 'Product 4', 'Product 5'];
-    let data = [63, 58, 52, 45, 38];
-    
+    let labels = [];
+    let data = [];
+
     if (typeof dashboardData !== 'undefined' && dashboardData.top_products && dashboardData.top_products.length > 0) {
-        // Take first 5 products
         const products = dashboardData.top_products.slice(0, 5);
         labels = products.map(p => {
             const code = p.item_code || 'Unknown';
             return code.length > 15 ? code.substring(0, 15) + '...' : code;
         });
         data = products.map(p => parseInt(p.total) || 0);
+    }
+
+    if (labels.length === 0) {
+        const parent = ctx.parentElement;
+        ctx.style.display = 'none';
+        parent.insertAdjacentHTML('beforeend', '<p style="color:#a0a0a0;text-align:center;padding:30px 0;font-size:13px;">No product data yet. Import data to see results.</p>');
+        return;
     }
 
     new Chart(ctx, {
@@ -664,12 +674,10 @@ function initializeGroupBChart() {
     const ctx = document.getElementById('groupBChart');
     if (!ctx) return;
 
-    // Use real product data (products 6-10)
-    let labels = ['Product 6', 'Product 7', 'Product 8', 'Product 9', 'Product 10'];
-    let data = [52, 48, 45, 40, 35];
-    
+    let labels = [];
+    let data = [];
+
     if (typeof dashboardData !== 'undefined' && dashboardData.top_products && dashboardData.top_products.length > 5) {
-        // Take products 6-10
         const products = dashboardData.top_products.slice(5, 10);
         if (products.length > 0) {
             labels = products.map(p => {
@@ -678,6 +686,13 @@ function initializeGroupBChart() {
             });
             data = products.map(p => parseInt(p.total) || 0);
         }
+    }
+
+    if (labels.length === 0) {
+        const parent = ctx.parentElement;
+        ctx.style.display = 'none';
+        parent.insertAdjacentHTML('beforeend', '<p style="color:#a0a0a0;text-align:center;padding:30px 0;font-size:13px;">No additional product data yet.</p>');
+        return;
     }
 
     new Chart(ctx, {

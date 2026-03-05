@@ -10,45 +10,48 @@ require_once 'db_config.php';
 
 // Get current year
 $currentYear = date('Y');
-$selectedYear = isset($_GET['year']) ? intval($_GET['year']) : $currentYear;
 
 // All months
 $allMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
+// Detect DB type for compatible year expressions
+$isMysql = ($conn instanceof mysqli);
+
+// Year expression: prefer stored delivery_year; fall back to extracting from delivery_date/created_at
+$yearExpr = $isMysql
+    ? "CASE WHEN delivery_year > 0 THEN delivery_year WHEN delivery_date IS NOT NULL THEN YEAR(delivery_date) ELSE YEAR(created_at) END"
+    : "CASE WHEN delivery_year > 0 THEN delivery_year WHEN delivery_date IS NOT NULL THEN CAST(strftime('%Y', delivery_date) AS INTEGER) ELSE CAST(strftime('%Y', created_at) AS INTEGER) END";
+
 // Get available years from data
 $availableYears = [];
-$result = $conn->query("SELECT DISTINCT delivery_year FROM delivery_records WHERE delivery_year IS NOT NULL AND delivery_year > 0 ORDER BY delivery_year DESC");
+$result = $conn->query("SELECT DISTINCT ({$yearExpr}) as year FROM delivery_records WHERE ({$yearExpr}) > 0 ORDER BY year DESC");
 if ($result) {
     while ($row = $result->fetch_assoc()) {
-        if (intval($row['delivery_year']) > 0) {
-            $availableYears[] = intval($row['delivery_year']);
+        if (intval($row['year']) > 0) {
+            $availableYears[] = intval($row['year']);
         }
     }
 }
-// If no years, try from created_at (SQLite compatible)
-if (empty($availableYears)) {
-    $result = $conn->query("SELECT DISTINCT CAST(strftime('%Y', created_at) AS INTEGER) as year FROM delivery_records WHERE created_at IS NOT NULL ORDER BY year DESC");
-    if ($result) {
-        while ($row = $result->fetch_assoc()) {
-            if (intval($row['year']) > 0) {
-                $availableYears[] = intval($row['year']);
-            }
-        }
-    }
-}
-// Add current year if not in list
+
+// Default to the most recent year that has data; fall back to current year if no data
+$defaultYear = !empty($availableYears) ? $availableYears[0] : $currentYear;
+$selectedYear = isset($_GET['year']) ? intval($_GET['year']) : $defaultYear;
+
+// Always include current year in the dropdown (even if no data yet)
 if (!in_array($currentYear, $availableYears)) {
-    array_unshift($availableYears, $currentYear);
+    $availableYears[] = $currentYear;
+    sort($availableYears);
+    $availableYears = array_reverse($availableYears);
 }
 
 // Monthly Sales Data for Selected Year
 $monthlySales = array_fill_keys($allMonths, ['units' => 0, 'orders' => 0]);
 $result = $conn->query("
-    SELECT delivery_month, 
-           COUNT(*) as order_count, 
-           COALESCE(SUM(quantity), 0) as total_units
-    FROM delivery_records 
-    WHERE (delivery_year = {$selectedYear} OR (delivery_year IS NULL AND YEAR(created_at) = {$selectedYear}))
+    SELECT delivery_month,
+           COUNT(*) as order_count,
+           COALESCE(SUM(CASE WHEN company_name IS NOT NULL AND company_name != '' THEN quantity ELSE 0 END), 0) as total_units
+    FROM delivery_records
+    WHERE ({$yearExpr}) = {$selectedYear}
     GROUP BY delivery_month
 ");
 if ($result) {
@@ -56,7 +59,7 @@ if ($result) {
         $month = $row['delivery_month'];
         if (array_key_exists($month, $monthlySales)) {
             $monthlySales[$month] = [
-                'units' => intval($row['total_units']),
+                'units'  => intval($row['total_units']),
                 'orders' => intval($row['order_count'])
             ];
         }
@@ -66,18 +69,18 @@ if ($result) {
 // Yearly Sales Data (All Years)
 $yearlySales = [];
 $result = $conn->query("
-    SELECT COALESCE(delivery_year, YEAR(created_at)) as year,
-           COUNT(*) as order_count, 
-           COALESCE(SUM(quantity), 0) as total_units
-    FROM delivery_records 
-    GROUP BY COALESCE(delivery_year, YEAR(created_at))
+    SELECT ({$yearExpr}) as year,
+           COUNT(*) as order_count,
+           COALESCE(SUM(CASE WHEN company_name IS NOT NULL AND company_name != '' THEN quantity ELSE 0 END), 0) as total_units
+    FROM delivery_records
+    GROUP BY ({$yearExpr})
     ORDER BY year DESC
 ");
 if ($result) {
     while ($row = $result->fetch_assoc()) {
         $yearlySales[] = [
-            'year' => intval($row['year']),
-            'units' => intval($row['total_units']),
+            'year'   => intval($row['year']),
+            'units'  => intval($row['total_units']),
             'orders' => intval($row['order_count'])
         ];
     }

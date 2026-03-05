@@ -5,81 +5,53 @@ if (empty($_SESSION['user_id'])) {
     exit;
 }
 
-// Include database configuration
 require_once 'db_config.php';
 
-// Get sales statistics from database
-$stats = [
-    'total_units' => 0,
-    'total_orders' => 0,
-    'unique_products' => 0,
-    'avg_order_size' => 0
-];
+$allMonths = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-// Total units delivered
-$result = $conn->query("SELECT COALESCE(SUM(quantity), 0) as total FROM delivery_records");
-if ($result && $row = $result->fetch_assoc()) {
-    $stats['total_units'] = intval($row['total']);
-}
+// Units SOLD to companies (records with company_name)
+$unitsSold = 0;
+$r = $conn->query("SELECT COALESCE(SUM(quantity),0) as t FROM delivery_records WHERE company_name IS NOT NULL AND company_name != ''");
+if ($r && $row = $r->fetch_assoc()) $unitsSold = intval($row['t']);
 
-// Total orders (records)
-$result = $conn->query("SELECT COUNT(*) as total FROM delivery_records");
-if ($result && $row = $result->fetch_assoc()) {
-    $stats['total_orders'] = intval($row['total']);
-}
+// Total deliveries (all records)
+$totalDeliveries = 0;
+$r = $conn->query("SELECT COUNT(*) as t FROM delivery_records");
+if ($r && $row = $r->fetch_assoc()) $totalDeliveries = intval($row['t']);
 
 // Unique products
-$result = $conn->query("SELECT COUNT(DISTINCT item_code) as total FROM delivery_records WHERE item_code IS NOT NULL AND item_code != ''");
-if ($result && $row = $result->fetch_assoc()) {
-    $stats['unique_products'] = intval($row['total']);
-}
-
-// Average order size
-if ($stats['total_orders'] > 0) {
-    $stats['avg_order_size'] = round($stats['total_units'] / $stats['total_orders'], 1);
-}
+$uniqueProducts = 0;
+$r = $conn->query("SELECT COUNT(DISTINCT item_name) as t FROM delivery_records WHERE item_name IS NOT NULL AND item_name != ''");
+if ($r && $row = $r->fetch_assoc()) $uniqueProducts = intval($row['t']);
 
 // Monthly sales data
-$months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-$monthly_sales = array_fill_keys($months, 0);
-$result = $conn->query("SELECT delivery_month, COALESCE(SUM(quantity), 0) AS total FROM delivery_records GROUP BY delivery_month");
-if ($result) {
-    while ($row = $result->fetch_assoc()) {
-        if (array_key_exists($row['delivery_month'], $monthly_sales)) {
+$monthly_sales = array_fill_keys($allMonths, 0);
+$r = $conn->query("SELECT delivery_month, COALESCE(SUM(quantity),0) AS total FROM delivery_records WHERE delivery_month IS NOT NULL AND delivery_month != '' GROUP BY delivery_month");
+if ($r) {
+    while ($row = $r->fetch_assoc()) {
+        if (array_key_exists($row['delivery_month'], $monthly_sales))
             $monthly_sales[$row['delivery_month']] = intval($row['total']);
-        }
     }
 }
 
 // Top products
 $top_products = [];
-$result = $conn->query("
-    SELECT item_code, item_name, SUM(quantity) as total_qty, COUNT(*) as order_count
-    FROM delivery_records 
-    WHERE item_code IS NOT NULL AND item_code != '' AND item_code != '-'
-    GROUP BY item_code 
-    ORDER BY total_qty DESC 
-    LIMIT 10
-");
-if ($result) {
-    while ($row = $result->fetch_assoc()) {
-        $top_products[] = $row;
-    }
+$r = $conn->query("SELECT item_name, SUM(quantity) as total_qty FROM delivery_records WHERE item_name IS NOT NULL AND item_name != '' GROUP BY item_name ORDER BY total_qty DESC LIMIT 5");
+if ($r) {
+    while ($row = $r->fetch_assoc()) $top_products[] = $row;
 }
 
-// Recent sales
+// Recent deliveries
 $recent_sales = [];
-$result = $conn->query("
-    SELECT invoice_no, item_code, item_name, quantity, company_name, delivery_date, delivery_month, delivery_day
-    FROM delivery_records 
-    ORDER BY id DESC 
-    LIMIT 10
-");
-if ($result) {
-    while ($row = $result->fetch_assoc()) {
-        $recent_sales[] = $row;
-    }
+$r = $conn->query("SELECT invoice_no, item_name, quantity, company_name, delivery_date, delivery_month, delivery_day FROM delivery_records ORDER BY id DESC LIMIT 10");
+if ($r) {
+    while ($row = $r->fetch_assoc()) $recent_sales[] = $row;
 }
+
+$monthLabels = json_encode(array_map(function($m){ return substr($m,0,3); }, $allMonths));
+$monthUnits  = json_encode(array_values(array_map(function($m) use ($monthly_sales){ return $monthly_sales[$m]; }, $allMonths)));
+$topLabels   = json_encode(array_column($top_products, 'item_name'));
+$topQtys     = json_encode(array_column($top_products, 'total_qty'));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -97,158 +69,190 @@ if ($result) {
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <style>
-        .page-section {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .stat-card {
-            background: linear-gradient(135deg, #1e2a38 0%, #2a3f5f 100%);
-            padding: 25px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .page-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-        
-        .stat-card-content h3 {
-            font-size: 13px;
-            color: #a0a0a0;
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-        
-        .stat-card-content .value {
-            font-size: 32px;
-            font-weight: 700;
-            color: #fff;
-        }
-        
-        .stat-card-icon {
-            font-size: 48px;
-            color: #f4d03f;
-            opacity: 0.7;
-        }
-        
-        .chart-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 20px;
             margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
         }
-        
-        .chart-container-full {
-            background: #13172c;
-            padding: 25px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            min-height: 350px;
-        }
-        
-        .chart-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #e0e0e0;
-            margin-bottom: 20px;
-        }
-        
-        .table-container {
-            background: #13172c;
-            padding: 25px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            overflow-x: auto;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        table thead {
-            background: rgba(255, 255, 255, 0.05);
-            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        table th {
-            padding: 15px;
-            text-align: left;
-            font-size: 12px;
-            color: #a0a0a0;
-            text-transform: uppercase;
-            font-weight: 600;
-        }
-        
-        table td {
-            padding: 15px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            color: #e0e0e0;
-            font-size: 14px;
-        }
-        
-        table tr:hover {
-            background: rgba(255, 255, 255, 0.02);
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        
-        .badge.success {
-            background: rgba(81, 207, 102, 0.2);
-            color: #51cf66;
-        }
-        
-        .badge.pending {
-            background: rgba(255, 214, 10, 0.2);
-            color: #ffd60a;
-        }
-        
         .page-title {
             font-size: 28px;
             font-weight: 700;
             color: #fff;
-            margin-bottom: 30px;
             display: flex;
             align-items: center;
             gap: 12px;
         }
-        
-        @media (max-width: 768px) {
-            .chart-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .page-section {
-                grid-template-columns: 1fr;
-            }
+        .page-title i { color: #f4d03f; }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
         }
+        .summary-card {
+            background: linear-gradient(135deg, #1e2a38 0%, #2a3f5f 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .summary-card:hover {
+            transform: translateY(-3px);
+            border-color: #f4d03f;
+        }
+        .summary-card.highlight {
+            background: linear-gradient(135deg, #2f5fa7 0%, #00d9ff 100%);
+        }
+        .summary-card .icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+            color: #f4d03f;
+        }
+        .summary-card.highlight .icon { color: #fff; }
+        .summary-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+        .summary-card .label {
+            font-size: 13px;
+            color: #a0a0a0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .summary-card.highlight .label { color: rgba(255,255,255,0.8); }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #fff;
+            margin: 30px 0 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f4d03f;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title i { color: #f4d03f; }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 992px) { .charts-grid { grid-template-columns: 1fr; } }
+
+        .chart-card {
+            background: linear-gradient(135deg, #1e2a38 0%, #2a3f5f 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 25px;
+        }
+        .chart-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .chart-card h3 i { color: #f4d03f; }
+        .chart-container { position: relative; height: 300px; }
+
+        .table-container {
+            background: linear-gradient(135deg, #1e2a38 0%, #2a3f5f 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 25px;
+            overflow-x: auto;
+            margin-bottom: 30px;
+        }
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .table-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .table-header h3 i { color: #f4d03f; }
+
+        .sales-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .sales-table thead th {
+            background: rgba(47,95,167,0.3);
+            padding: 14px 18px;
+            text-align: left;
+            font-weight: 600;
+            color: #fff;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #f4d03f;
+        }
+        .sales-table tbody td {
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+        .sales-table tbody tr:hover { background: rgba(47,95,167,0.15); }
+
+        /* Light mode */
+        [data-theme="light"] .page-title,
+        [data-theme="light"] .section-title,
+        [data-theme="light"] .chart-card h3,
+        [data-theme="light"] .table-header h3 { color: #1a3a5c; }
+        [data-theme="light"] .summary-card {
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            border: 1px solid #c5ddf0;
+        }
+        [data-theme="light"] .summary-card .value { color: #1a3a5c; }
+        [data-theme="light"] .summary-card .label { color: #5a6a7a; }
+        [data-theme="light"] .chart-card,
+        [data-theme="light"] .table-container {
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            border: 1px solid #c5ddf0;
+        }
+        [data-theme="light"] .sales-table thead th {
+            background: rgba(30,136,229,0.1);
+            color: #1a3a5c;
+            border-bottom: 2px solid #1e88e5;
+        }
+        [data-theme="light"] .sales-table tbody td { color: #333; border-bottom: 1px solid #e0e0e0; }
+        [data-theme="light"] .sales-table tbody tr:hover { background: rgba(30,136,229,0.05); }
+        [data-theme="light"] .section-title { border-bottom: 2px solid #1e88e5; }
+        [data-theme="light"] .section-title i,
+        [data-theme="light"] .chart-card h3 i,
+        [data-theme="light"] .table-header h3 i { color: #1e88e5; }
+        [data-theme="light"] .summary-card .icon { color: #1e88e5; }
     </style>
 </head>
 <body>
     <!-- TOP NAVBAR -->
     <nav class="navbar">
         <div class="navbar-container">
-            <!-- Hamburger Toggle & Logo -->
             <div class="navbar-start">
                 <button class="hamburger-btn" id="hamburgerBtn" aria-label="Toggle sidebar">
-                    <span></span>
-                    <span></span>
-                    <span></span>
+                    <span></span><span></span><span></span>
                 </button>
                 <div class="logo">
                     <img src="assets/logo.png" alt="Andison" style="height:38px;width:auto;object-fit:contain;">
                 </div>
             </div>
-
-            <!-- Right Profile Section -->
             <div class="navbar-end">
                 <div class="notification" title="Notifications">
                     <i class="fas fa-bell"></i>
@@ -274,104 +278,45 @@ if ($result) {
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-content">
-            <!-- Sidebar Menu -->
             <ul class="sidebar-menu">
-                <!-- Dashboard -->
                 <li class="menu-item">
-                    <a href="index.php" class="menu-link">
-                        <i class="fas fa-chart-line"></i>
-                        <span class="menu-label">Dashboard</span>
-                    </a>
+                    <a href="index.php" class="menu-link"><i class="fas fa-chart-line"></i><span class="menu-label">Dashboard</span></a>
                 </li>
-
-                <!-- Sales Overview -->
                 <li class="menu-item active">
-                    <a href="sales-overview.php" class="menu-link">
-                        <i class="fas fa-chart-pie"></i>
-                        <span class="menu-label">Sales Overview</span>
-                    </a>
+                    <a href="sales-overview.php" class="menu-link"><i class="fas fa-chart-pie"></i><span class="menu-label">Sales Overview</span></a>
                 </li>
-
-                <!-- Sales Records -->
                 <li class="menu-item">
-                    <a href="sales-records.php" class="menu-link">
-                        <i class="fas fa-calendar-alt"></i>
-                        <span class="menu-label">Sales Records</span>
-                    </a>
+                    <a href="sales-records.php" class="menu-link"><i class="fas fa-calendar-alt"></i><span class="menu-label">Sales Records</span></a>
                 </li>
-
-                <!-- Delivery Records -->
                 <li class="menu-item">
-                    <a href="delivery-records.php" class="menu-link">
-                        <i class="fas fa-truck"></i>
-                        <span class="menu-label">Delivery Records</span>
-                    </a>
+                    <a href="delivery-records.php" class="menu-link"><i class="fas fa-truck"></i><span class="menu-label">Delivery Records</span></a>
                 </li>
-
-                <!-- Client Companies -->
                 <li class="menu-item">
-                    <a href="client-companies.php" class="menu-link">
-                        <i class="fas fa-building"></i>
-                        <span class="menu-label">Client Companies</span>
-                    </a>
+                    <a href="client-companies.php" class="menu-link"><i class="fas fa-building"></i><span class="menu-label">Client Companies</span></a>
                 </li>
-
-                <!-- Models (Dropdown) -->
                 <li class="menu-item has-submenu">
                     <a href="models.php" class="menu-link submenu-toggle" data-submenu="models-submenu">
-                        <i class="fas fa-cube"></i>
-                        <span class="menu-label">Models</span>
-                        <i class="fas fa-chevron-right submenu-icon"></i>
+                        <i class="fas fa-cube"></i><span class="menu-label">Models</span><i class="fas fa-chevron-right submenu-icon"></i>
                     </a>
                     <ul class="submenu" id="models-submenu">
-                        <li>
-                            <a href="models.php#group-a" class="submenu-link">
-                                <span>Group A</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="models.php#group-b" class="submenu-link">
-                                <span>Group B</span>
-                            </a>
-                        </li>
+                        <li><a href="models.php#group-a" class="submenu-link"><span>Group A</span></a></li>
+                        <li><a href="models.php#group-b" class="submenu-link"><span>Group B</span></a></li>
                     </ul>
                 </li>
-
-                <!-- Analytics -->
                 <li class="menu-item">
-                    <a href="analytics.php" class="menu-link">
-                        <i class="fas fa-chart-bar"></i>
-                        <span class="menu-label">Analytics</span>
-                    </a>
+                    <a href="analytics.php" class="menu-link"><i class="fas fa-chart-bar"></i><span class="menu-label">Analytics</span></a>
                 </li>
-
-                <!-- Reports -->
                 <li class="menu-item">
-                    <a href="reports.php" class="menu-link">
-                        <i class="fas fa-file-alt"></i>
-                        <span class="menu-label">Reports</span>
-                    </a>
+                    <a href="reports.php" class="menu-link"><i class="fas fa-file-alt"></i><span class="menu-label">Reports</span></a>
                 </li>
-
-                <!-- Upload Data -->
                 <li class="menu-item">
-                    <a href="upload-data.php" class="menu-link">
-                        <i class="fas fa-upload"></i>
-                        <span class="menu-label">Upload Data</span>
-                    </a>
+                    <a href="upload-data.php" class="menu-link"><i class="fas fa-upload"></i><span class="menu-label">Upload Data</span></a>
                 </li>
-
-                <!-- Settings -->
                 <li class="menu-item">
-                    <a href="settings.php" class="menu-link">
-                        <i class="fas fa-cog"></i>
-                        <span class="menu-label">Settings</span>
-                    </a>
+                    <a href="settings.php" class="menu-link"><i class="fas fa-cog"></i><span class="menu-label">Settings</span></a>
                 </li>
             </ul>
         </div>
-
-        <!-- Sidebar Footer -->
         <div class="sidebar-footer">
             <p class="company-info">Addison Industrial</p>
             <p class="company-year">© 2025</p>
@@ -380,70 +325,68 @@ if ($result) {
 
     <!-- MAIN CONTENT -->
     <main class="main-content" id="mainContent">
-        <div class="page-title">
-            <i class="fas fa-chart-bar"></i> Sales Overview
+
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-chart-pie"></i>
+                Sales Overview
+            </h1>
         </div>
 
-        <!-- Key Metrics -->
-        <div class="page-section">
-            <div class="stat-card">
-                <div class="stat-card-content">
-                    <h3>Total Units</h3>
-                    <div class="value"><?php echo number_format($stats['total_units']); ?></div>
-                </div>
-                <div class="stat-card-icon">
-                    <i class="fas fa-boxes"></i>
-                </div>
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card">
+                <div class="icon"><i class="fas fa-boxes"></i></div>
+                <div class="value"><?php echo number_format($unitsSold); ?></div>
+                <div class="label">Units Sold</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-card-content">
-                    <h3>Total Orders</h3>
-                    <div class="value"><?php echo number_format($stats['total_orders']); ?></div>
-                </div>
-                <div class="stat-card-icon">
-                    <i class="fas fa-shopping-cart"></i>
-                </div>
+            <div class="summary-card">
+                <div class="icon"><i class="fas fa-clipboard-list"></i></div>
+                <div class="value"><?php echo number_format($totalDeliveries); ?></div>
+                <div class="label">Total Deliveries</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-card-content">
-                    <h3>Unique Products</h3>
-                    <div class="value"><?php echo $stats['unique_products']; ?></div>
-                </div>
-                <div class="stat-card-icon">
-                    <i class="fas fa-cube"></i>
-                </div>
+            <div class="summary-card highlight">
+                <div class="icon"><i class="fas fa-cube"></i></div>
+                <div class="value"><?php echo number_format($uniqueProducts); ?></div>
+                <div class="label">Unique Products</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-card-content">
-                    <h3>Avg Order Size</h3>
-                    <div class="value"><?php echo $stats['avg_order_size']; ?></div>
-                </div>
-                <div class="stat-card-icon">
-                    <i class="fas fa-calculator"></i>
-                </div>
+            <div class="summary-card highlight">
+                <div class="icon"><i class="fas fa-percentage"></i></div>
+                <div class="value"><?php echo $totalDeliveries > 0 ? number_format(round($unitsSold / $totalDeliveries * 100, 1), 1) : 0; ?>%</div>
+                <div class="label">Sold Rate</div>
             </div>
         </div>
 
-        <!-- Charts -->
-        <div class="chart-row">
-            <div class="chart-container-full">
-                <div class="chart-title">Monthly Sales Trend</div>
-                <canvas id="salesTrendChart"></canvas>
+        <!-- Monthly Overview -->
+        <h2 class="section-title">
+            <i class="fas fa-calendar"></i>
+            Monthly Overview
+        </h2>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-bar"></i> Units Delivered per Month</h3>
+                <div class="chart-container">
+                    <canvas id="monthlyUnitsChart"></canvas>
+                </div>
             </div>
-            <div class="chart-container-full">
-                <div class="chart-title">Sales by Model Group</div>
-                <canvas id="modelGroupChart"></canvas>
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-pie"></i> Top Products</h3>
+                <div class="chart-container">
+                    <canvas id="topProductsChart"></canvas>
+                </div>
             </div>
         </div>
 
-        <!-- Sales Summary Table -->
+        <!-- Recent Deliveries -->
         <div class="table-container">
-            <div class="chart-title">Recent Deliveries</div>
-            <table>
+            <div class="table-header">
+                <h3><i class="fas fa-truck"></i> Recent Deliveries</h3>
+            </div>
+            <table class="sales-table">
                 <thead>
                     <tr>
                         <th>Invoice No.</th>
-                        <th>Item Code</th>
                         <th>Description</th>
                         <th>Qty</th>
                         <th>Company</th>
@@ -453,132 +396,107 @@ if ($result) {
                 <tbody>
                     <?php if (empty($recent_sales)): ?>
                     <tr>
-                        <td colspan="6" style="text-align: center; padding: 30px; color: #a0a0a0;">
-                            No sales data available. <a href="upload-data.php" style="color: #f4d03f;">Upload data</a> to get started.
+                        <td colspan="5" style="text-align:center;padding:30px;color:#a0a0a0;">
+                            No data yet. <a href="upload-data.php" style="color:#f4d03f;">Upload data</a> to get started.
                         </td>
                     </tr>
                     <?php else: ?>
-                    <?php foreach ($recent_sales as $sale): 
-                        $delivery_date = '';
+                    <?php foreach ($recent_sales as $sale):
+                        $ddate = '';
                         if (!empty($sale['delivery_date'])) {
-                            $delivery_date = date('M j, Y', strtotime($sale['delivery_date']));
+                            $ddate = date('M j, Y', strtotime($sale['delivery_date']));
                         } elseif (!empty($sale['delivery_month'])) {
-                            $delivery_date = $sale['delivery_month'] . ' ' . ($sale['delivery_day'] ?? '');
+                            $ddate = $sale['delivery_month'] . ' ' . ($sale['delivery_day'] ?? '');
                         }
                     ?>
                     <tr>
                         <td><?php echo htmlspecialchars($sale['invoice_no'] ?? '-'); ?></td>
-                        <td><?php echo htmlspecialchars($sale['item_code'] ?? '-'); ?></td>
-                        <td><?php echo htmlspecialchars(substr($sale['item_name'] ?? '-', 0, 30)); ?></td>
-                        <td><?php echo htmlspecialchars($sale['quantity'] ?? '0'); ?></td>
-                        <td><?php echo htmlspecialchars(substr($sale['company_name'] ?? '-', 0, 20)); ?></td>
-                        <td><?php echo htmlspecialchars($delivery_date); ?></td>
+                        <td><?php echo htmlspecialchars(substr($sale['item_name'] ?? '-', 0, 40)); ?></td>
+                        <td><?php echo intval($sale['quantity'] ?? 0); ?></td>
+                        <td><?php echo htmlspecialchars(substr($sale['company_name'] ?? '-', 0, 30)); ?></td>
+                        <td><?php echo htmlspecialchars($ddate); ?></td>
                     </tr>
                     <?php endforeach; ?>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
-    </div>
+
+    </main>
 
     <script src="js/app.js" defer></script>
     <script>
-        // Data from PHP
-        const salesData = {
-            monthly_sales: <?php echo json_encode($monthly_sales); ?>,
-            top_products: <?php echo json_encode($top_products); ?>
-        };
+        const monthLabels = <?php echo $monthLabels; ?>;
+        const monthUnits  = <?php echo $monthUnits; ?>;
+        const topLabels   = <?php echo $topLabels; ?>;
+        const topQtys     = <?php echo $topQtys; ?>;
 
-        // Initialize charts for Sales Overview
-        function initializeSalesTrendChart() {
-            const ctx = document.getElementById('salesTrendChart');
-            if (ctx) {
-                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                const fullMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-                const monthlyData = fullMonths.map(m => salesData.monthly_sales[m] || 0);
+        const tcol = '#c8d6e8';
+        const gcol = 'rgba(255,255,255,0.06)';
 
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: months,
-                        datasets: [
-                            {
-                                label: 'Units Delivered',
-                                data: monthlyData,
-                                borderColor: '#f4d03f',
-                                backgroundColor: 'rgba(244, 208, 63, 0.1)',
-                                borderWidth: 2,
-                                fill: true,
-                                tension: 0.4,
-                                pointRadius: 4,
-                                pointBackgroundColor: '#f4d03f'
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: {
-                            legend: {
-                                labels: {}
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {},
-                                grid: {}
-                            },
-                            x: {
-                                ticks: {},
-                                grid: {}
-                            }
-                        }
+        // Monthly bar chart
+        (function() {
+            const ctx = document.getElementById('monthlyUnitsChart');
+            if (!ctx) return;
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: monthLabels,
+                    datasets: [{
+                        label: 'Units',
+                        data: monthUnits,
+                        backgroundColor: '#f4d03f',
+                        borderRadius: 4,
+                        barPercentage: 0.7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { color: tcol }, grid: { color: gcol } },
+                        x: { ticks: { color: tcol }, grid: { color: gcol } }
                     }
-                });
-            }
-        }
-
-        function initializeModelGroupChart() {
-            const ctx = document.getElementById('modelGroupChart');
-            if (ctx) {
-                // Use top products data
-                let labels = ['Product 1', 'Product 2', 'Product 3', 'Product 4', 'Product 5'];
-                let data = [100, 80, 60, 40, 20];
-                
-                if (salesData.top_products && salesData.top_products.length > 0) {
-                    labels = salesData.top_products.slice(0, 5).map(p => p.item_code || 'Unknown');
-                    data = salesData.top_products.slice(0, 5).map(p => parseInt(p.total_qty) || 0);
                 }
+            });
+        })();
 
-                new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            data: data,
-                            backgroundColor: ['#2f5fa7', '#f4d03f', '#51cf66', '#ff006e', '#00d9ff'],
-                            borderColor: '#13172c',
-                            borderWidth: 2
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: {
-                            legend: {
-                                labels: {}
+        // Top products doughnut
+        (function() {
+            const ctx = document.getElementById('topProductsChart');
+            if (!ctx) return;
+            if (!topLabels || !topLabels.length) {
+                ctx.parentElement.insertAdjacentHTML('afterbegin', '<p style="color:#a0a0a0;text-align:center;padding:30px 0;font-size:13px;">No product data yet.</p>');
+                ctx.style.display = 'none';
+                return;
+            }
+            const shortLabels = topLabels.map(function(l){ return l.length > 22 ? l.slice(0,22)+'…' : l; });
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: shortLabels,
+                    datasets: [{
+                        data: topQtys,
+                        backgroundColor: ['#2f5fa7','#f4d03f','#51cf66','#ff6b6b','#00d9ff'],
+                        borderColor: '#1e2a38',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: tcol, font: { size: 11 } } },
+                        tooltip: {
+                            callbacks: {
+                                title: function(items) { return topLabels[items[0].dataIndex] || items[0].label; }
                             }
                         }
                     }
-                });
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeSalesTrendChart();
-            initializeModelGroupChart();
-        });
+                }
+            });
+        })();
     </script>
 </body>
 </html>
