@@ -373,81 +373,103 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
         }
 
         /* Light Mode Styles */
-        [data-theme="light"] .page-title,
-        [data-theme="light"] .section-title,
-        [data-theme="light"] .chart-card h3,
-        [data-theme="light"] .table-header h3 {
+        html.light-mode .page-title,
+        body.light-mode .page-title,
+        html.light-mode .section-title,
+        body.light-mode .section-title,
+        html.light-mode .chart-card h3,
+        body.light-mode .chart-card h3,
+        html.light-mode .table-header h3,
+        body.light-mode .table-header h3 {
             color: #1a3a5c;
         }
 
-        [data-theme="light"] .summary-card {
+        html.light-mode .summary-card,
+        body.light-mode .summary-card {
             background: linear-gradient(145deg, #ffffff, #f8f9fa);
             border: 1px solid #c5ddf0;
         }
 
-        [data-theme="light"] .summary-card .value {
+        html.light-mode .summary-card .value,
+        body.light-mode .summary-card .value {
             color: #1a3a5c;
         }
 
-        [data-theme="light"] .summary-card .label {
+        html.light-mode .summary-card .label,
+        body.light-mode .summary-card .label {
             color: #5a6a7a;
         }
 
-        [data-theme="light"] .chart-card,
-        [data-theme="light"] .table-container {
+        html.light-mode .chart-card,
+        body.light-mode .chart-card,
+        html.light-mode .table-container,
+        body.light-mode .table-container {
             background: linear-gradient(145deg, #ffffff, #f8f9fa);
             border: 1px solid #c5ddf0;
         }
 
-        [data-theme="light"] .sales-table thead th {
+        html.light-mode .sales-table thead th,
+        body.light-mode .sales-table thead th {
             background: rgba(30, 136, 229, 0.1);
             color: #1a3a5c;
             border-bottom: 2px solid #1e88e5;
         }
 
-        [data-theme="light"] .sales-table tbody td {
+        html.light-mode .sales-table tbody td,
+        body.light-mode .sales-table tbody td {
             color: #333;
             border-bottom: 1px solid #e0e0e0;
         }
 
-        [data-theme="light"] .sales-table tbody tr:hover {
+        html.light-mode .sales-table tbody tr:hover,
+        body.light-mode .sales-table tbody tr:hover {
             background: rgba(30, 136, 229, 0.05);
         }
 
-        [data-theme="light"] .sales-table tbody tr.total-row {
+        html.light-mode .sales-table tbody tr.total-row,
+        body.light-mode .sales-table tbody tr.total-row {
             background: rgba(30, 136, 229, 0.1);
         }
 
-        [data-theme="light"] .sales-table tbody tr.total-row td {
+        html.light-mode .sales-table tbody tr.total-row td,
+        body.light-mode .sales-table tbody tr.total-row td {
             color: #1e88e5;
             border-top: 2px solid #1e88e5;
         }
 
-        [data-theme="light"] .year-selector select {
+        html.light-mode .year-selector select,
+        body.light-mode .year-selector select {
             background: #fff;
             border: 1px solid #c5ddf0;
             color: #1a3a5c;
         }
 
-        [data-theme="light"] .year-selector label {
+        html.light-mode .year-selector label,
+        body.light-mode .year-selector label {
             color: #5a6a7a;
         }
 
-        [data-theme="light"] .section-title {
+        html.light-mode .section-title,
+        body.light-mode .section-title {
             border-bottom: 2px solid #1e88e5;
         }
 
-        [data-theme="light"] .section-title i,
-        [data-theme="light"] .chart-card h3 i,
-        [data-theme="light"] .table-header h3 i {
+        html.light-mode .section-title i,
+        body.light-mode .section-title i,
+        html.light-mode .chart-card h3 i,
+        body.light-mode .chart-card h3 i,
+        html.light-mode .table-header h3 i,
+        body.light-mode .table-header h3 i {
             color: #1e88e5;
         }
 
-        [data-theme="light"] .summary-card .icon {
+        html.light-mode .summary-card .icon,
+        body.light-mode .summary-card .icon {
             color: #1e88e5;
         }
 
-        [data-theme="light"] .badge-current {
+        html.light-mode .badge-current,
+        body.light-mode .badge-current {
             background: rgba(30, 136, 229, 0.15);
             color: #1e88e5;
         }
@@ -621,13 +643,13 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
             <div class="summary-cards">
                 <div class="summary-card">
                     <div class="icon"><i class="fas fa-calendar-check"></i></div>
-                    <div class="value"><?php echo number_format($yearlyTotal['units']); ?></div>
-                    <div class="label">Units in <?php echo $selectedYear; ?></div>
+                    <div class="value" id="statYearlyUnits"><?php echo number_format($yearlyTotal['units']); ?></div>
+                    <div class="label" id="labelUnitsYear">Units in <?php echo $selectedYear; ?></div>
                 </div>
                 <div class="summary-card">
                     <div class="icon"><i class="fas fa-clipboard-list"></i></div>
-                    <div class="value"><?php echo number_format($yearlyTotal['orders']); ?></div>
-                    <div class="label">Orders in <?php echo $selectedYear; ?></div>
+                    <div class="value" id="statYearlyOrders"><?php echo number_format($yearlyTotal['orders']); ?></div>
+                    <div class="label" id="labelOrdersYear">Orders in <?php echo $selectedYear; ?></div>
                 </div>
                 <div class="summary-card highlight">
                     <div class="icon"><i class="fas fa-boxes"></i></div>
@@ -642,7 +664,7 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
             </div>
 
             <!-- Monthly Sales Section -->
-            <h2 class="section-title">
+            <h2 class="section-title" id="sectionMonthlyTitle">
                 <i class="fas fa-calendar"></i>
                 Monthly Sales - <?php echo $selectedYear; ?>
             </h2>
@@ -668,7 +690,7 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
             <!-- Monthly Sales Table -->
             <div class="table-container">
                 <div class="table-header">
-                    <h3><i class="fas fa-table"></i> Monthly Sales Breakdown - <?php echo $selectedYear; ?></h3>
+                    <h3 id="tableMonthlyHeader"><i class="fas fa-table"></i> Monthly Sales Breakdown - <?php echo $selectedYear; ?></h3>
                 </div>
                 <table class="sales-table">
                     <thead>
@@ -680,7 +702,7 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
                             <th>Status</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="tableMonthlyBody">
                         <?php 
                         $currentMonth = date('F');
                         $maxUnits = max(array_column($monthlySales, 'units'));
@@ -772,6 +794,10 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
 
     <script src="js/app.js" defer></script>
     <script>
+        const PHP_CURRENT_MONTH = <?php echo json_encode(date('F')); ?>;
+        const PHP_CURRENT_YEAR  = <?php echo intval($currentYear); ?>;
+        const ALL_MONTHS = <?php echo $monthLabels; ?>;
+
         // Chart colors
         const isDarkMode = !document.body.classList.contains('light-mode');
         const chartColors = {
@@ -785,7 +811,7 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
 
         // Monthly Units Chart
         const monthlyUnitsCtx = document.getElementById('monthlyUnitsChart').getContext('2d');
-        new Chart(monthlyUnitsCtx, {
+        const monthlyUnitsChart = new Chart(monthlyUnitsCtx, {
             type: 'bar',
             data: {
                 labels: <?php echo $monthLabels; ?>,
@@ -820,7 +846,7 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
 
         // Monthly Orders Chart
         const monthlyOrdersCtx = document.getElementById('monthlyOrdersChart').getContext('2d');
-        new Chart(monthlyOrdersCtx, {
+        const monthlyOrdersChart = new Chart(monthlyOrdersCtx, {
             type: 'line',
             data: {
                 labels: <?php echo $monthLabels; ?>,
@@ -901,9 +927,70 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
             }
         });
 
-        // Year selector
+        // Year selector — live update via AJAX
         function changeYear(year) {
-            window.location.href = 'sales-records.php?year=' + year;
+            // Update URL without reload
+            history.replaceState(null, '', 'sales-records.php?year=' + year);
+
+            // Show loading shimmer on stat values
+            ['statYearlyUnits', 'statYearlyOrders'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) { el.style.opacity = '0.4'; }
+            });
+
+            fetch('api/sales-data.php?year=' + year)
+                .then(r => r.json())
+                .then(data => {
+                    // Update stat cards
+                    document.getElementById('statYearlyUnits').textContent  = data.yearlyUnits.toLocaleString();
+                    document.getElementById('statYearlyOrders').textContent = data.yearlyOrders.toLocaleString();
+                    document.getElementById('labelUnitsYear').textContent   = 'Units in ' + data.year;
+                    document.getElementById('labelOrdersYear').textContent  = 'Orders in ' + data.year;
+                    document.getElementById('sectionMonthlyTitle').innerHTML =
+                        '<i class="fas fa-calendar"></i> Monthly Sales - ' + data.year;
+                    document.getElementById('tableMonthlyHeader').innerHTML =
+                        '<i class="fas fa-table"></i> Monthly Sales Breakdown - ' + data.year;
+
+                    // Restore opacity
+                    ['statYearlyUnits', 'statYearlyOrders'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) { el.style.opacity = '1'; }
+                    });
+
+                    // Rebuild monthly table
+                    const tbody = document.getElementById('tableMonthlyBody');
+                    const yr = parseInt(year);
+                    let maxUnits = 0;
+                    data.monthData.forEach(r => { if (r.units > maxUnits) maxUnits = r.units; });
+
+                    let totalUnits = 0, totalOrders = 0;
+                    let rows = '';
+                    data.monthData.forEach(r => {
+                        totalUnits  += r.units;
+                        totalOrders += r.orders;
+                        const avg = r.orders > 0 ? (r.units / r.orders).toFixed(1) : 0;
+                        const isCurrent = (r.month === PHP_CURRENT_MONTH && yr === PHP_CURRENT_YEAR);
+                        const isHigh    = (r.units === maxUnits && maxUnits > 0);
+                        let badge = '-';
+                        if (isCurrent) badge = '<span class="badge-month badge-current"><i class="fas fa-clock"></i> Current</span>';
+                        else if (isHigh) badge = '<span class="badge-month badge-high"><i class="fas fa-star"></i> Highest</span>';
+                        rows += `<tr><td><strong>${r.month}</strong></td><td>${r.units.toLocaleString()}</td><td>${r.orders.toLocaleString()}</td><td>${avg}</td><td>${badge}</td></tr>`;
+                    });
+                    const totalAvg = totalOrders > 0 ? (totalUnits / totalOrders).toFixed(1) : 0;
+                    rows += `<tr class="total-row"><td><strong>TOTAL</strong></td><td>${totalUnits.toLocaleString()}</td><td>${totalOrders.toLocaleString()}</td><td>${totalAvg}</td><td>-</td></tr>`;
+                    tbody.innerHTML = rows;
+
+                    // Update charts
+                    monthlyUnitsChart.data.datasets[0].data  = data.monthUnits;
+                    monthlyUnitsChart.update();
+
+                    monthlyOrdersChart.data.datasets[0].data = data.monthOrders;
+                    monthlyOrdersChart.update();
+                })
+                .catch(() => {
+                    // Fallback to full reload on error
+                    window.location.href = 'sales-records.php?year=' + year;
+                });
         }
     </script>
 </body>

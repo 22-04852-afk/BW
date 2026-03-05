@@ -225,33 +225,50 @@ $topQtys     = json_encode(array_column($top_products, 'total_qty'));
         .sales-table tbody tr:hover { background: rgba(47,95,167,0.15); }
 
         /* Light mode */
-        [data-theme="light"] .page-title,
-        [data-theme="light"] .section-title,
-        [data-theme="light"] .chart-card h3,
-        [data-theme="light"] .table-header h3 { color: #1a3a5c; }
-        [data-theme="light"] .summary-card {
+        html.light-mode .page-title,
+        body.light-mode .page-title,
+        html.light-mode .section-title,
+        body.light-mode .section-title,
+        html.light-mode .chart-card h3,
+        body.light-mode .chart-card h3,
+        html.light-mode .table-header h3,
+        body.light-mode .table-header h3 { color: #1a3a5c; }
+        html.light-mode .summary-card,
+        body.light-mode .summary-card {
             background: linear-gradient(145deg, #ffffff, #f8f9fa);
             border: 1px solid #c5ddf0;
         }
-        [data-theme="light"] .summary-card .value { color: #1a3a5c; }
-        [data-theme="light"] .summary-card .label { color: #5a6a7a; }
-        [data-theme="light"] .chart-card,
-        [data-theme="light"] .table-container {
+        html.light-mode .summary-card .value,
+        body.light-mode .summary-card .value { color: #1a3a5c; }
+        html.light-mode .summary-card .label,
+        body.light-mode .summary-card .label { color: #5a6a7a; }
+        html.light-mode .chart-card,
+        body.light-mode .chart-card,
+        html.light-mode .table-container,
+        body.light-mode .table-container {
             background: linear-gradient(145deg, #ffffff, #f8f9fa);
             border: 1px solid #c5ddf0;
         }
-        [data-theme="light"] .sales-table thead th {
+        html.light-mode .sales-table thead th,
+        body.light-mode .sales-table thead th {
             background: rgba(30,136,229,0.1);
             color: #1a3a5c;
             border-bottom: 2px solid #1e88e5;
         }
-        [data-theme="light"] .sales-table tbody td { color: #333; border-bottom: 1px solid #e0e0e0; }
-        [data-theme="light"] .sales-table tbody tr:hover { background: rgba(30,136,229,0.05); }
-        [data-theme="light"] .section-title { border-bottom: 2px solid #1e88e5; }
-        [data-theme="light"] .section-title i,
-        [data-theme="light"] .chart-card h3 i,
-        [data-theme="light"] .table-header h3 i { color: #1e88e5; }
-        [data-theme="light"] .summary-card .icon { color: #1e88e5; }
+        html.light-mode .sales-table tbody td,
+        body.light-mode .sales-table tbody td { color: #333; border-bottom: 1px solid #e0e0e0; }
+        html.light-mode .sales-table tbody tr:hover,
+        body.light-mode .sales-table tbody tr:hover { background: rgba(30,136,229,0.05); }
+        html.light-mode .section-title,
+        body.light-mode .section-title { border-bottom: 2px solid #1e88e5; }
+        html.light-mode .section-title i,
+        body.light-mode .section-title i,
+        html.light-mode .chart-card h3 i,
+        body.light-mode .chart-card h3 i,
+        html.light-mode .table-header h3 i,
+        body.light-mode .table-header h3 i { color: #1e88e5; }
+        html.light-mode .summary-card .icon,
+        body.light-mode .summary-card .icon { color: #1e88e5; }
     </style>
 </head>
 <body>
@@ -444,8 +461,9 @@ $topQtys     = json_encode(array_column($top_products, 'total_qty'));
         const topLabels   = <?php echo $topLabels; ?>;
         const topQtys     = <?php echo $topQtys; ?>;
 
-        const tcol = '#c8d6e8';
-        const gcol = 'rgba(255,255,255,0.06)';
+        const isLight = document.body.classList.contains('light-mode') || document.documentElement.classList.contains('light-mode');
+        const tcol = isLight ? '#333' : '#c8d6e8';
+        const gcol = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)';
 
         // Monthly bar chart
         (function() {

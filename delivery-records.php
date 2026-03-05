@@ -750,60 +750,72 @@ if ($result) {
         }
 
         /* Light mode styles for action buttons */
-        [data-theme="light"] .action-buttons .view-btn {
+        html.light-mode .action-buttons .view-btn,
+        body.light-mode .action-buttons .view-btn {
             color: #1e88e5;
             background: rgba(30, 136, 229, 0.08);
         }
 
-        [data-theme="light"] .action-buttons .view-btn:hover {
+        html.light-mode .action-buttons .view-btn:hover,
+        body.light-mode .action-buttons .view-btn:hover {
             color: #fff;
             background: #1e88e5;
         }
 
-        [data-theme="light"] .action-buttons .delete-btn {
+        html.light-mode .action-buttons .delete-btn,
+        body.light-mode .action-buttons .delete-btn {
             color: #c0392b;
             background: rgba(231, 76, 60, 0.08);
         }
 
-        [data-theme="light"] .action-buttons .delete-btn:hover {
+        html.light-mode .action-buttons .delete-btn:hover,
+        body.light-mode .action-buttons .delete-btn:hover {
             background: rgba(231, 76, 60, 0.15);
             color: #e74c3c;
         }
 
-        [data-theme="light"] .action-buttons .edit-btn {
+        html.light-mode .action-buttons .edit-btn,
+        body.light-mode .action-buttons .edit-btn {
             color: #d68910;
             background: rgba(243, 156, 18, 0.08);
         }
 
-        [data-theme="light"] .action-buttons .edit-btn:hover {
+        html.light-mode .action-buttons .edit-btn:hover,
+        body.light-mode .action-buttons .edit-btn:hover {
             background: rgba(243, 156, 18, 0.15);
             color: #f39c12;
         }
 
-        [data-theme="light"] .delete-modal-content {
+        html.light-mode .delete-modal-content,
+        body.light-mode .delete-modal-content {
             background: linear-gradient(145deg, #ffffff, #f8f9fa);
             border: 1px solid rgba(0, 0, 0, 0.1);
         }
 
-        [data-theme="light"] .delete-modal-title {
+        html.light-mode .delete-modal-title,
+        body.light-mode .delete-modal-title {
             color: #1a3a5c;
         }
 
-        [data-theme="light"] .delete-modal-message {
+        html.light-mode .delete-modal-message,
+        body.light-mode .delete-modal-message {
             color: #5a6a7a;
         }
 
-        [data-theme="light"] .delete-modal-message strong {
+        html.light-mode .delete-modal-message strong,
+        body.light-mode .delete-modal-message strong {
             color: #1e88e5;
         }
 
-        [data-theme="light"] .btn-cancel-delete {
+        html.light-mode .btn-cancel-delete,
+        body.light-mode .btn-cancel-delete {
             background: #e8f4fc;
             color: #1a3a5c;
             border: 1px solid #c5ddf0;
         }
 
-        [data-theme="light"] .btn-cancel-delete:hover {
+        html.light-mode .btn-cancel-delete:hover,
+        body.light-mode .btn-cancel-delete:hover {
             background: #d0e7f7;
         }
     </style>
@@ -1435,7 +1447,7 @@ if ($result) {
             // Find record by ID
             const record = recordsData.find(r => parseInt(r.id) === parseInt(id));
             if (!record) {
-                alert('Record not found');
+                showToast('Record not found', 'error');
                 return;
             }
             
@@ -1518,6 +1530,7 @@ if ($result) {
                 confirmBtn.disabled = false;
                 
                 if (result.success) {
+                    showToast('Record deleted!', 'success');
                     // Remove the row from table with animation
                     if (deleteRecordRow) {
                         deleteRecordRow.style.transition = 'all 0.3s ease';
@@ -1530,14 +1543,14 @@ if ($result) {
                     }
                     closeDeleteModal();
                 } else {
-                    alert('Error: ' + (result.message || 'Failed to delete record'));
+                    showToast('Error: ' + (result.message || 'Failed to delete record'), 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 confirmBtn.innerHTML = originalText;
                 confirmBtn.disabled = false;
-                alert('Error deleting record. Please try again.');
+                showToast('Error deleting record. Please try again.', 'error');
             });
         }
 
@@ -1613,19 +1626,18 @@ if ($result) {
                 submitBtn.disabled = false;
                 
                 if (result.success) {
-                    alert('Record added successfully!');
+                    showToast('Record added successfully!', 'success');
                     closeAddModal();
-                    // Reload page to show new record
-                    window.location.reload();
+                    setTimeout(() => window.location.reload(), 1200);
                 } else {
-                    alert('Error: ' + (result.message || 'Failed to add record'));
+                    showToast('Error: ' + (result.message || 'Failed to add record'), 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
-                alert('Error adding record. Please try again.');
+                showToast('Error adding record. Please try again.', 'error');
             });
         }
 
@@ -1652,7 +1664,7 @@ if ($result) {
             // Find record by ID
             const record = recordsData.find(r => parseInt(r.id) === parseInt(id));
             if (!record) {
-                alert('Record not found');
+                showToast('Record not found', 'error');
                 return;
             }
             
@@ -1741,19 +1753,19 @@ if ($result) {
                 submitBtn.disabled = false;
                 
                 if (result.success) {
-                    alert('Record updated successfully!');
+                    showToast('Record updated successfully!', 'success');
                     closeEditModal();
                     // Reload page to show updated record
-                    window.location.reload();
+                    setTimeout(() => window.location.reload(), 1200);
                 } else {
-                    alert('Error: ' + (result.message || 'Failed to update record'));
+                    showToast('Error: ' + (result.message || 'Failed to update record'), 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
-                alert('Error updating record. Please try again.');
+                showToast('Error updating record. Please try again.', 'error');
             });
         }
         
@@ -1974,6 +1986,67 @@ if ($result) {
                 sidebar.classList.toggle('active');
                 mainContent.classList.toggle('sidebar-closed');
             });
+        }
+
+        // Toast notification
+        function showToast(message, type = 'success') {
+            const existing = document.getElementById('toastNotif');
+            if (existing) existing.remove();
+
+            const icons = {
+                success: '&#10003;',
+                error:   '&#10007;',
+                warning: '&#9888;'
+            };
+            const colors = {
+                success: 'linear-gradient(135deg,#1abc9c,#16a085)',
+                error:   'linear-gradient(135deg,#e74c3c,#c0392b)',
+                warning: 'linear-gradient(135deg,#f39c12,#d68910)'
+            };
+
+            const toast = document.createElement('div');
+            toast.id = 'toastNotif';
+            toast.innerHTML = `
+                <span class="toast-icon">${icons[type] || icons.success}</span>
+                <span class="toast-msg">${message}</span>
+                <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+            `;
+            Object.assign(toast.style, {
+                position:     'fixed',
+                top:          '24px',
+                right:        '24px',
+                zIndex:       '99999',
+                display:      'flex',
+                alignItems:   'center',
+                gap:          '12px',
+                minWidth:     '280px',
+                maxWidth:     '400px',
+                padding:      '16px 20px',
+                borderRadius: '12px',
+                background:   colors[type] || colors.success,
+                color:        '#fff',
+                fontFamily:   'inherit',
+                fontSize:     '14px',
+                fontWeight:   '500',
+                boxShadow:    '0 8px 32px rgba(0,0,0,0.35)',
+                animation:    'toastSlideIn .3s ease',
+                cursor:       'default'
+            });
+
+            // Style inner elements
+            toast.querySelector('.toast-icon').style.cssText = 'font-size:20px;flex-shrink:0;';
+            toast.querySelector('.toast-msg').style.cssText  = 'flex:1;line-height:1.4;';
+            toast.querySelector('.toast-close').style.cssText = 'background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0;line-height:1;opacity:.8;flex-shrink:0;';
+
+            if (!document.getElementById('toastStyle')) {
+                const s = document.createElement('style');
+                s.id = 'toastStyle';
+                s.textContent = '@keyframes toastSlideIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}';
+                document.head.appendChild(s);
+            }
+
+            document.body.appendChild(toast);
+            setTimeout(() => { if (toast.parentElement) toast.remove(); }, 4000);
         }
     </script>
 </body>

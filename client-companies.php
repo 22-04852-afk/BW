@@ -210,6 +210,106 @@ foreach ($companies as $c) {
                 flex-direction: column;
             }
         }
+
+        /* ── Light mode: company list cards ── */
+        html.light-mode .page-title,
+        body.light-mode .page-title { color: #1a3a5c; }
+
+        html.light-mode .search-input,
+        body.light-mode .search-input {
+            background: #fff;
+            border: 1px solid #c5ddf0;
+            color: #1a3a5c;
+        }
+        html.light-mode .search-input::placeholder,
+        body.light-mode .search-input::placeholder { color: #7a9ab5; }
+        html.light-mode .search-input:focus,
+        body.light-mode .search-input:focus { border-color: #1e88e5; background: #fff; }
+
+        html.light-mode .company-card,
+        body.light-mode .company-card {
+            background: linear-gradient(145deg, #ffffff, #e8f4fc);
+            border: 1px solid #c5ddf0;
+        }
+        html.light-mode .company-card:hover,
+        body.light-mode .company-card:hover {
+            border-color: #1e88e5;
+            box-shadow: 0 10px 30px rgba(30,136,229,0.15);
+        }
+        html.light-mode .company-name,
+        body.light-mode .company-name { color: #1a3a5c; }
+        html.light-mode .company-industry,
+        body.light-mode .company-industry { color: #5a7a9a; }
+        html.light-mode .company-info,
+        body.light-mode .company-info { border-bottom-color: rgba(0,0,0,0.08); }
+        html.light-mode .info-item,
+        body.light-mode .info-item { color: #2a4a6a; }
+        html.light-mode .info-item i,
+        body.light-mode .info-item i { color: #1e88e5; }
+        html.light-mode .stat-value,
+        body.light-mode .stat-value { color: #1565c0; }
+        html.light-mode .stat-label,
+        body.light-mode .stat-label { color: #5a7a9a; }
+
+        /* ── Light mode: profile modal ── */
+        html.light-mode .profile-modal,
+        body.light-mode .profile-modal {
+            background: #f0f6fc;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+        html.light-mode .profile-modal-body,
+        body.light-mode .profile-modal-body { background: #f0f6fc; }
+
+        html.light-mode .profile-stat,
+        body.light-mode .profile-stat {
+            background: #fff;
+            border: 1px solid #c5ddf0;
+        }
+        html.light-mode .profile-stat-value,
+        body.light-mode .profile-stat-value { color: #1565c0; }
+        html.light-mode .profile-stat-label,
+        body.light-mode .profile-stat-label { color: #5a7a9a; }
+
+        html.light-mode .profile-section-title,
+        body.light-mode .profile-section-title {
+            color: #1a3a5c;
+            border-bottom-color: #1e88e5;
+        }
+
+        /* Activity period text generated in JS */
+        html.light-mode .profile-section p,
+        body.light-mode .profile-section p { color: #3a5a7a !important; }
+        html.light-mode .profile-section p strong,
+        body.light-mode .profile-section p strong { color: #1a3a5c !important; }
+
+        html.light-mode .profile-table th,
+        body.light-mode .profile-table th {
+            background: #ddeef8;
+            color: #1565c0;
+            border-bottom: 2px solid #1e88e5;
+        }
+        html.light-mode .profile-table td,
+        body.light-mode .profile-table td {
+            border-bottom-color: #dde8f0;
+            color: #2a3a4a;
+        }
+        html.light-mode .profile-table tr:hover td,
+        body.light-mode .profile-table tr:hover td { background: #e8f4fc; }
+
+        html.light-mode .yearly-card,
+        body.light-mode .yearly-card {
+            background: #fff;
+            border: 1px solid #c5ddf0;
+        }
+        html.light-mode .yearly-card-year,
+        body.light-mode .yearly-card-year { color: #1565c0; }
+        html.light-mode .yearly-card-stats,
+        body.light-mode .yearly-card-stats { color: #4a6a8a; }
+        html.light-mode .yearly-card-stats span,
+        body.light-mode .yearly-card-stats span { color: #4a6a8a; }
+
+        html.light-mode .loading-spinner,
+        body.light-mode .loading-spinner { color: #5a7a9a; }
     </style>
 </head>
 <body>
