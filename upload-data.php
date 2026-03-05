@@ -13,8 +13,10 @@ if (empty($_SESSION['user_id'])) {
     <title>Upload Data - BW Gas Detector</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <link rel="stylesheet" href="css/style.css">
     <style>
         .upload-container {
@@ -470,8 +472,7 @@ if (empty($_SESSION['user_id'])) {
                     <span></span>
                 </button>
                 <div class="logo">
-                    <i class="fas fa-industry"></i>
-                    <span>Addison</span>
+                    <img src="assets/logo.png" alt="Andison" style="height:38px;width:auto;object-fit:contain;">
                 </div>
             </div>
 
@@ -597,7 +598,7 @@ if (empty($_SESSION['user_id'])) {
 
         <!-- Sidebar Footer -->
         <div class="sidebar-footer">
-            <p class="company-info">Addison Industrial</p>
+            <p class="company-info">Andison Industrial</p>
             <p class="company-year">© 2025</p>
         </div>
     </aside>
@@ -731,7 +732,7 @@ if (empty($_SESSION['user_id'])) {
         </div>
     </main>
 
-    <script src="js/app.js"></script>
+    <script src="js/app.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
     <script>
         const uploadZone = document.getElementById('uploadZone');
@@ -1015,7 +1016,7 @@ if (empty($_SESSION['user_id'])) {
                     'Delivery_Day': '1',
                     'Item_Code': 'MCX3-BC1',
                     'Item_Name': 'BW Gas Detector - Model 3 BC1',
-                    'Company_Name': 'Addison Industrial',
+                    'Company_Name': 'Andison Industrial',
                     'Quantity': '10',
                     'Status': 'Delivered',
                     'Notes': 'Sample data'

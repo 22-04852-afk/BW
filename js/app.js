@@ -3,11 +3,29 @@
 // JavaScript for Interactivity & Charts
 // ============================================
 
+// Apply saved theme immediately (before DOMContentLoaded to avoid flash)
+(function () {
+    if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.add('light-mode');
+    }
+})();
+
+// Set Chart.js global color defaults based on current theme
+// (runs when deferred app.js executes, before DOMContentLoaded fires,
+//  so all charts — including those in inline PHP scripts — inherit these defaults)
+(function () {
+    if (typeof Chart === 'undefined') return;
+    const isLight = document.documentElement.classList.contains('light-mode');
+    Chart.defaults.color       = isLight ? '#3a3a5c' : '#e0e0e0';
+    Chart.defaults.borderColor = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.05)';
+})();
+
 // Initialize when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Dashboard Initialized');
     
     // Initialize UI Elements
+    initializeDarkModeToggle();
     initializeSidebarToggle();
     initializeSubmenuToggle();
     initializeProfileDropdown();
@@ -21,6 +39,38 @@ document.addEventListener('DOMContentLoaded', function() {
 // ============================================
 // SIDEBAR TOGGLE FUNCTIONALITY
 // ============================================
+
+// ============================================
+// DARK MODE
+// ============================================
+
+function initializeDarkModeToggle() {
+    const toggle = document.getElementById('darkModeToggle');
+    if (!toggle) return;
+
+    // Sync toggle state with current theme
+    const isLight = localStorage.getItem('theme') === 'light';
+    if (isLight) {
+        toggle.classList.remove('active');
+    } else {
+        toggle.classList.add('active');
+    }
+
+    toggle.addEventListener('click', function () {
+        const currentlyDark = document.documentElement.classList.contains('light-mode') === false;
+        if (currentlyDark) {
+            // Switch to light
+            document.documentElement.classList.add('light-mode');
+            localStorage.setItem('theme', 'light');
+            toggle.classList.remove('active');
+        } else {
+            // Switch to dark
+            document.documentElement.classList.remove('light-mode');
+            localStorage.setItem('theme', 'dark');
+            toggle.classList.add('active');
+        }
+    });
+}
 
 function initializeSidebarToggle() {
     const hamburgerBtn = document.getElementById('hamburger') || document.getElementById('hamburgerBtn');
@@ -173,14 +223,45 @@ function updateProfileDisplay(firstName, lastName, email) {
 // ============================================
 
 function initializeCharts() {
+    // Sparklines are above the fold — render immediately
     initializeSparklineCharts();
+
+    // Charts that are immediately visible
     initializeDeliveredChart();
     initializeSoldChart();
     initializeMonthlyComparisonChart();
-    initializeClientsChart();
-    initializeTrendChart();
-    initializeGroupAChart();
-    initializeGroupBChart();
+
+    // Below-fold charts — use IntersectionObserver to defer until visible
+    const lazyCharts = [
+        { id: 'clientsChart',           init: initializeClientsChart },
+        { id: 'trendChart',             init: initializeTrendChart },
+        { id: 'groupAChart',            init: initializeGroupAChart },
+        { id: 'groupBChart',            init: initializeGroupBChart },
+    ];
+
+    if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    const match = lazyCharts.find(c => c.id === entry.target.id);
+                    if (match) {
+                        match.init();
+                        observer.unobserve(entry.target);
+                    }
+                }
+            });
+        }, { rootMargin: '100px' });
+
+        lazyCharts.forEach(function (c) {
+            const el = document.getElementById(c.id);
+            if (el) observer.observe(el);
+        });
+    } else {
+        // Fallback: init all after a short delay
+        setTimeout(function () {
+            lazyCharts.forEach(c => c.init());
+        }, 300);
+    }
 }
 
 // ============================================
@@ -255,7 +336,6 @@ function initializeDeliveredChart() {
                 legend: {
                     position: 'bottom',
                     labels: {
-                        color: '#e0e0e0',
                         padding: 15,
                         font: { size: 12 }
                     }
@@ -290,7 +370,6 @@ function initializeSoldChart() {
                 legend: {
                     position: 'bottom',
                     labels: {
-                        color: '#e0e0e0',
                         padding: 15,
                         font: { size: 12 }
                     }
@@ -333,17 +412,17 @@ function initializeMonthlyComparisonChart() {
             responsive: true,
             plugins: {
                 legend: {
-                    labels: { color: '#e0e0e0', font: { size: 12 } }
+                    labels: { font: { size: 12 } }
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: { color: '#a0a0a0' },
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                    ticks: {},
+                    grid: {}
                 },
                 x: {
-                    ticks: { color: '#a0a0a0' },
+                    ticks: {},
                     grid: { display: false }
                 }
             }
@@ -378,16 +457,16 @@ function initializeClientsChart() {
             responsive: true,
             plugins: {
                 legend: {
-                    labels: { color: '#e0e0e0' }
+                    labels: {}
                 }
             },
             scales: {
                 x: {
-                    ticks: { color: '#a0a0a0' },
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                    ticks: {},
+                    grid: {}
                 },
                 y: {
-                    ticks: { color: '#a0a0a0' },
+                    ticks: {},
                     grid: { display: false }
                 }
             }
@@ -430,16 +509,16 @@ function initializeTrendChart() {
             responsive: true,
             plugins: {
                 legend: {
-                    labels: { color: '#e0e0e0' }
+                    labels: {}
                 }
             },
             scales: {
                 y: {
-                    ticks: { color: '#a0a0a0' },
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                    ticks: {},
+                    grid: {}
                 },
                 x: {
-                    ticks: { color: '#a0a0a0' },
+                    ticks: {},
                     grid: { display: false }
                 }
             }
@@ -476,16 +555,16 @@ function initializeGroupAChart() {
             responsive: true,
             plugins: {
                 legend: {
-                    labels: { color: '#e0e0e0' }
+                    labels: {}
                 }
             },
             scales: {
                 y: {
-                    ticks: { color: '#a0a0a0' },
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                    ticks: {},
+                    grid: {}
                 },
                 x: {
-                    ticks: { color: '#a0a0a0' },
+                    ticks: {},
                     grid: { display: false }
                 }
             }
@@ -522,16 +601,16 @@ function initializeGroupBChart() {
             responsive: true,
             plugins: {
                 legend: {
-                    labels: { color: '#e0e0e0' }
+                    labels: {}
                 }
             },
             scales: {
                 y: {
-                    ticks: { color: '#a0a0a0' },
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                    ticks: {},
+                    grid: {}
                 },
                 x: {
-                    ticks: { color: '#a0a0a0' },
+                    ticks: {},
                     grid: { display: false }
                 }
             }

@@ -75,13 +75,19 @@ if ($result) {
     }
 }
 
-// Get monthly sales data
-$monthly_sales = [];
-$months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-foreach ($months as $month) {
-    $result = $conn->query("SELECT COALESCE(SUM(quantity), 0) as total FROM delivery_records WHERE delivery_month = '$month'");
-    if ($result && $row = $result->fetch_assoc()) {
-        $monthly_sales[$month] = intval($row['total']);
+// Get monthly sales data — single query instead of 12
+$months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+$monthly_sales = array_fill_keys($months, 0);
+$result = $conn->query("
+    SELECT delivery_month, COALESCE(SUM(quantity), 0) AS total
+    FROM delivery_records
+    GROUP BY delivery_month
+");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        if (array_key_exists($row['delivery_month'], $monthly_sales)) {
+            $monthly_sales[$row['delivery_month']] = intval($row['total']);
+        }
     }
 }
 
@@ -95,14 +101,24 @@ $group_b = $conn->query("SELECT item_code, item_name, SUM(quantity) as total FRO
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BW Gas Detector Sales Record 2025 - Andison Industrial</title>
+    <title>BW Gas Detector Sales  - Andison Industrial</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <!-- Page loader: dismissed once all resources are ready -->
+    <div id="pageLoader" aria-hidden="true">
+        <div class="loader-content">
+            <div class="loader-spinner"></div>
+            <p class="loader-text">Loading Dashboard…</p>
+        </div>
+    </div>
+
     <!-- TOP NAVBAR -->
     <nav class="navbar">
         <div class="navbar-container">
@@ -114,14 +130,13 @@ $group_b = $conn->query("SELECT item_code, item_name, SUM(quantity) as total FRO
                     <span></span>
                 </button>
                 <div class="logo">
-                    <i class="fas fa-industry"></i>
-                    <span>Andison</span>
+                    <img src="assets/logo.png" alt="Andison" style="height:38px;width:auto;object-fit:contain;">
                 </div>
             </div>
 
             <!-- Center Title -->
             <div class="navbar-center">
-                <h1 class="dashboard-title">BW Gas Detector Sales Record 2025</h1>
+                <h1 class="dashboard-title">BW Gas Detector Sales</h1>
             </div>
 
             <!-- Right Profile Section -->
@@ -500,7 +515,23 @@ $group_b = $conn->query("SELECT item_code, item_name, SUM(quantity) as total FRO
             monthly_sales: <?php echo json_encode($monthly_sales); ?>,
             top_clients: <?php echo json_encode($top_clients); ?>
         };
+
+        // Dismiss loader once everything (fonts, Chart.js, images) is painted
+        window.addEventListener('load', function () {
+            const loader = document.getElementById('pageLoader');
+            if (loader) {
+                loader.classList.add('loader-hidden');
+                // Remove from DOM after transition
+                loader.addEventListener('transitionend', () => loader.remove(), { once: true });
+            }
+        });
+
+        // Safety fallback — remove after 4 s max
+        setTimeout(function () {
+            const loader = document.getElementById('pageLoader');
+            if (loader) loader.remove();
+        }, 4000);
     </script>
-    <script src="js/app.js"></script>
+    <script src="js/app.js" defer></script>
 </body>
 </html>

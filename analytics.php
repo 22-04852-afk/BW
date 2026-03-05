@@ -13,8 +13,10 @@ if (empty($_SESSION['user_id'])) {
     <title>Analytics - BW Gas Detector</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <style>
@@ -493,8 +495,7 @@ if (empty($_SESSION['user_id'])) {
                     <span></span>
                 </button>
                 <div class="logo">
-                    <i class="fas fa-industry"></i>
-                    <span>Andison</span>
+                    <img src="assets/logo.png" alt="Andison" style="height:38px;width:auto;object-fit:contain;">
                 </div>
             </div>
 
@@ -944,7 +945,7 @@ if (empty($_SESSION['user_id'])) {
         </div>
     </main>
 
-    <script src="js/app.js"></script>
+    <script src="js/app.js" defer></script>
     <script>
         console.log('=== ANALYTICS PAGE SCRIPT LOADED ===');
         
@@ -1131,7 +1132,7 @@ if (empty($_SESSION['user_id'])) {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        labels: { color: '#e0e0e0', padding: 15 }
+                        labels: { padding: 15 }
                     }
                 }
             }
@@ -1163,18 +1164,18 @@ if (empty($_SESSION['user_id'])) {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        labels: { color: '#e0e0e0', padding: 15, font: { size: 13, weight: 500 } }
+                        labels: { padding: 15, font: { size: 13, weight: 500 } }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                        ticks: { color: '#a0a0a0' }
+                        grid: {},
+                        ticks: {}
                     },
                     x: {
                         grid: { display: false },
-                        ticks: { color: '#a0a0a0' }
+                        ticks: {}
                     }
                 }
             }
@@ -1198,7 +1199,7 @@ if (empty($_SESSION['user_id'])) {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        labels: { color: '#e0e0e0', padding: 15 }
+                        labels: { padding: 15 }
                     }
                 }
             }
@@ -1230,18 +1231,18 @@ if (empty($_SESSION['user_id'])) {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        labels: { color: '#e0e0e0', padding: 15, font: { size: 13, weight: 500 } }
+                        labels: { padding: 15, font: { size: 13, weight: 500 } }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                        ticks: { color: '#a0a0a0' }
+                        grid: {},
+                        ticks: {}
                     },
                     x: {
                         grid: { display: false },
-                        ticks: { color: '#a0a0a0' }
+                        ticks: {}
                     }
                 }
             }

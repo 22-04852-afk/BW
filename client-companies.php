@@ -13,8 +13,10 @@ if (empty($_SESSION['user_id'])) {
     <title>Client Companies - BW Gas Detector</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <link rel="stylesheet" href="css/style.css">
     <style>
         .companies-grid {
@@ -190,8 +192,7 @@ if (empty($_SESSION['user_id'])) {
                     <span></span>
                 </button>
                 <div class="logo">
-                    <i class="fas fa-industry"></i>
-                    <span>Addison</span>
+                    <img src="assets/logo.png" alt="Andison" style="height:38px;width:auto;object-fit:contain;">
                 </div>
             </div>
 
@@ -312,7 +313,7 @@ if (empty($_SESSION['user_id'])) {
 
         <!-- Sidebar Footer -->
         <div class="sidebar-footer">
-            <p class="company-info">Addison Industrial</p>
+            <p class="company-info">Andison Industrial</p>
             <p class="company-year">© 2025</p>
         </div>
     </aside>
@@ -332,12 +333,12 @@ if (empty($_SESSION['user_id'])) {
                 <div class="company-logo">
                     <i class="fas fa-building"></i>
                 </div>
-                <div class="company-name">Addison Zamora</div>
+                <div class="company-name">Andison Zamora</div>
                 <div class="company-industry">Manufacturing Sector</div>
                 <div class="company-info">
                     <div class="info-item">
                         <i class="fas fa-envelope"></i>
-                        <span>contact@addison.com</span>
+                        <span>contact@andison.com</span>
                     </div>
                     <div class="info-item">
                         <i class="fas fa-phone"></i>
@@ -528,6 +529,6 @@ if (empty($_SESSION['user_id'])) {
         </div>
     </div>
 
-    <script src="js/app.js"></script>
+    <script src="js/app.js" defer></script>
 </body>
 </html>

@@ -2,6 +2,54 @@
    BW GAS DETECTOR DASHBOARD STYLES
    ============================================ */
 
+/* ============================================
+   PAGE LOADER
+   ============================================ */
+
+#pageLoader {
+    position: fixed;
+    inset: 0;
+    background: #0a0e27;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+#pageLoader.loader-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.loader-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.loader-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(244, 208, 63, 0.15);
+    border-top-color: #f4d03f;
+    border-radius: 50%;
+    animation: loaderSpin 0.75s linear infinite;
+}
+
+@keyframes loaderSpin {
+    to { transform: rotate(360deg); }
+}
+
+.loader-text {
+    font-family: 'Poppins', sans-serif;
+    font-size: 13px;
+    color: #a0a0a0;
+    letter-spacing: 0.5px;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -783,4 +831,418 @@ html, body {
     .welcome-text h2 {
         font-size: 18px;
     }
+}
+
+/* ============================================
+   LIGHT MODE OVERRIDES
+   ============================================ */
+
+html.light-mode {
+    --color-dark-bg: #f0f2f7;
+    --color-dark-secondary: #ffffff;
+    --color-sidebar: #ffffff;
+    --color-text-light: #1a1a2e;
+    --color-text-lighter: #555568;
+    --color-border: #dde2ec;
+}
+
+html.light-mode body {
+    background-color: var(--color-dark-bg);
+    color: var(--color-text-light);
+}
+
+/* --- Navbar --- */
+html.light-mode .navbar {
+    background: #ffffff;
+    border-bottom-color: #dde2ec;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+html.light-mode .logo span,
+html.light-mode .profile-name,
+html.light-mode .dashboard-title {
+    color: #1a1a2e;
+}
+
+html.light-mode .hamburger-btn span {
+    background: #1a1a2e;
+}
+
+html.light-mode .profile-btn {
+    background: rgba(0,0,0,0.05);
+    border-color: #dde2ec;
+    color: #1a1a2e;
+}
+
+html.light-mode .profile-btn:hover {
+    background: rgba(0,0,0,0.09);
+}
+
+html.light-mode .notification {
+    color: #555568;
+}
+
+html.light-mode .notification:hover {
+    color: #1a1a2e;
+}
+
+/* --- Sidebar --- */
+html.light-mode .sidebar {
+    background: #ffffff;
+    border-right-color: #dde2ec;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.06);
+}
+
+html.light-mode .sidebar-footer {
+    border-top-color: #dde2ec;
+}
+
+html.light-mode .menu-link {
+    color: #3a3a5c;
+}
+
+html.light-mode .menu-link:hover {
+    background: rgba(47, 95, 167, 0.07);
+    color: var(--color-primary);
+}
+
+html.light-mode .submenu {
+    background: rgba(0,0,0,0.03);
+}
+
+html.light-mode .submenu-link {
+    color: #555568;
+}
+
+/* --- Dropdown --- */
+html.light-mode .dropdown-menu {
+    background: #ffffff;
+    border-color: #dde2ec;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+html.light-mode .dropdown-menu a {
+    color: #1a1a2e;
+    border-bottom-color: #dde2ec;
+}
+
+/* --- Dashboard cards (use CSS vars, just need bg fix) --- */
+html.light-mode .metric-card,
+html.light-mode .summary-card,
+html.light-mode .kpi-card,
+html.light-mode .dashboard-panel {
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+html.light-mode .stat-item {
+    background: rgba(0,0,0,0.04);
+}
+
+html.light-mode .summary-icon {
+    background: rgba(47, 95, 167, 0.1);
+}
+
+html.light-mode .card-header,
+html.light-mode .panel-header {
+    border-bottom-color: #dde2ec;
+}
+
+html.light-mode .dashboard-footer {
+    border-top-color: #dde2ec;
+}
+
+/* --- Page-specific cards with hardcoded dark backgrounds --- */
+
+/* settings.php */
+html.light-mode .settings-section {
+    background: #ffffff !important;
+    border-color: #dde2ec !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+html.light-mode .settings-title {
+    color: #1a1a2e !important;
+    border-bottom-color: #dde2ec !important;
+}
+
+html.light-mode .settings-label-text {
+    color: #1a1a2e !important;
+}
+
+html.light-mode .settings-label-desc {
+    color: #555568 !important;
+}
+
+html.light-mode .settings-item {
+    border-bottom-color: #dde2ec !important;
+}
+
+html.light-mode .select-input {
+    background: #f5f6fa !important;
+    border-color: #dde2ec !important;
+    color: #1a1a2e !important;
+}
+
+/* client-companies.php */
+html.light-mode .company-card {
+    background: #ffffff !important;
+    border-color: #dde2ec !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+html.light-mode .company-card .company-name {
+    color: #1a1a2e !important;
+}
+
+html.light-mode .company-card .company-industry,
+html.light-mode .company-card .info-item {
+    color: #555568 !important;
+}
+
+html.light-mode .company-card .company-info {
+    border-bottom-color: #dde2ec !important;
+}
+
+html.light-mode .search-input {
+    background: #ffffff !important;
+    border-color: #dde2ec !important;
+    color: #1a1a2e !important;
+}
+
+/* sales-overview.php — only target stat-cards inside .page-section, not the welcome banner */
+html.light-mode .page-section .stat-card {
+    background: #ffffff !important;
+    border-color: #dde2ec !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+html.light-mode .page-section .stat-card-content .value {
+    color: #1a1a2e !important;
+}
+
+html.light-mode .page-section .stat-card-content h3 {
+    color: #6b7280 !important;
+}
+
+/* Welcome banner stat-card must stay transparent in both modes */
+html.light-mode .welcome-banner .stat-card {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+html.light-mode .welcome-banner .stat-amount {
+    color: #f4d03f;
+}
+
+html.light-mode .welcome-banner .stat-desc {
+    color: rgba(255,255,255,0.8);
+}
+
+html.light-mode .welcome-banner .welcome-text h2 {
+    color: #ffffff;
+}
+
+html.light-mode .welcome-banner .welcome-text p {
+    color: rgba(255,255,255,0.75);
+}
+
+/* analytics.php, sales-overview.php */
+html.light-mode .chart-container-full {
+    background: #ffffff !important;
+    border-color: #dde2ec !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+html.light-mode .chart-title {
+    color: #1a1a2e !important;
+}
+
+html.light-mode .table-container {
+    background: #ffffff !important;
+    border-color: #dde2ec !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+html.light-mode .table-container table th {
+    color: #555568 !important;
+}
+
+html.light-mode .table-container table td {
+    color: #1a1a2e !important;
+    border-bottom-color: #eef0f5 !important;
+}
+
+html.light-mode .table-container thead {
+    background: rgba(0,0,0,0.03) !important;
+    border-bottom-color: #dde2ec !important;
+}
+
+/* analytics.php - filter, gauge, bar */
+html.light-mode .filter-section {
+    background: #ffffff !important;
+    border-color: #dde2ec !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+html.light-mode .accordion-header {
+    background: rgba(0,0,0,0.03) !important;
+    color: #1a1a2e !important;
+}
+
+html.light-mode .accordion-header:hover {
+    background: rgba(0,0,0,0.06) !important;
+}
+
+html.light-mode .accordion-content {
+    background: rgba(0,0,0,0.02) !important;
+}
+
+html.light-mode .checkbox-grid label {
+    color: #555568 !important;
+}
+
+html.light-mode .checkbox-grid label:hover {
+    background: rgba(47, 95, 167, 0.07) !important;
+    color: #1a1a2e !important;
+}
+
+html.light-mode .accordion-item {
+    border-color: #dde2ec !important;
+}
+
+html.light-mode .gauge-card {
+    background: linear-gradient(135deg, #2f5fa7 0%, #1d4085 100%) !important;
+}
+
+html.light-mode .horizontal-bar-container {
+    background: linear-gradient(135deg, #2f5fa7 0%, #1d4085 100%) !important;
+}
+
+/* upload-data.php */
+html.light-mode .upload-section {
+    background: #ffffff !important;
+    border-color: #dde2ec !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+html.light-mode .section-title {
+    color: #1a1a2e !important;
+}
+
+html.light-mode .upload-zone {
+    background: rgba(47, 95, 167, 0.04) !important;
+    border-color: #b0bdd6 !important;
+}
+
+html.light-mode .template-section {
+    background: rgba(47, 95, 167, 0.05) !important;
+    border-color: #b0bdd6 !important;
+}
+
+html.light-mode .preview-section {
+    background: #ffffff !important;
+    border-color: #dde2ec !important;
+}
+
+/* profile.php */
+html.light-mode .profile-card,
+html.light-mode .profile-wrapper .profile-card {
+    background: #ffffff !important;
+    border-color: #dde2ec !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
+}
+
+html.light-mode .profile-header h2 {
+    color: #1a1a2e !important;
+}
+
+html.light-mode .profile-header p {
+    color: #6b7280 !important;
+}
+
+html.light-mode .info-item {
+    background: rgba(0, 0, 0, 0.03) !important;
+    border-color: #dde2ec !important;
+}
+
+html.light-mode .info-value {
+    color: #1a1a2e !important;
+}
+
+html.light-mode .info-label {
+    color: #6b7280 !important;
+}
+
+html.light-mode .btn-back {
+    background: rgba(0,0,0,0.05) !important;
+    color: #3a3a5c !important;
+    border-color: #dde2ec !important;
+}
+
+html.light-mode .btn-back:hover {
+    background: rgba(0,0,0,0.08) !important;
+    color: #1a1a2e !important;
+}
+
+html.light-mode .profile-actions {
+    border-top-color: #dde2ec !important;
+}
+
+/* models.php */
+html.light-mode .model-card {
+    background: #ffffff !important;
+    border-color: #dde2ec !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* delivery-records.php */
+html.light-mode .summary-card {
+    background: #ffffff !important;
+    border-color: #dde2ec !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+html.light-mode .summary-value {
+    color: #1a1a2e !important;
+}
+
+html.light-mode .summary-label {
+    color: #6b7280 !important;
+}
+
+html.light-mode .record-row,
+html.light-mode .modal-content {
+    background: #ffffff !important;
+    border-color: #dde2ec !important;
+}
+
+html.light-mode .filter-btn {
+    background: #ffffff !important;
+    border-color: #dde2ec !important;
+    color: #3a3a5c !important;
+}
+
+html.light-mode .filter-btn:hover,
+html.light-mode .filter-btn.active {
+    background: #2f5fa7 !important;
+    border-color: #2f5fa7 !important;
+    color: #ffffff !important;
+}
+
+/* reports.php */
+html.light-mode .report-modal-content {
+    background: #ffffff !important;
+    border-color: #dde2ec !important;
+}
+
+/* General text fixes for pages using hardcoded whites */
+html.light-mode .page-title {
+    color: #1a1a2e !important;
+}
+
+html.light-mode .section-title {
+    color: #1a1a2e !important;
+    border-bottom-color: var(--color-accent) !important;
 }

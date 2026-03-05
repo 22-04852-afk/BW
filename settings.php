@@ -13,12 +13,15 @@ if (empty($_SESSION['user_id'])) {
     <title>Settings - BW Gas Detector</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <link rel="stylesheet" href="css/style.css">
     <style>
         .settings-container {
             max-width: 800px;
+            margin: 0 auto;
         }
         
         .settings-section {
@@ -78,12 +81,14 @@ if (empty($_SESSION['user_id'])) {
             position: relative;
             width: 50px;
             height: 28px;
-            background: rgba(255, 255, 255, 0.1);
+            background: #d8dadc;
             border-radius: 14px;
             cursor: pointer;
             transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
+
+
         
         .toggle-switch.active {
             background: linear-gradient(135deg, #51cf66, #2f5fa7);
@@ -187,8 +192,7 @@ if (empty($_SESSION['user_id'])) {
                     <span></span>
                 </button>
                 <div class="logo">
-                    <i class="fas fa-industry"></i>
-                    <span>Addison</span>
+                    <img src="assets/logo.png" alt="Andison" style="height:38px;width:auto;object-fit:contain;">
                 </div>
             </div>
 
@@ -309,7 +313,7 @@ if (empty($_SESSION['user_id'])) {
 
         <!-- Sidebar Footer -->
         <div class="sidebar-footer">
-            <p class="company-info">Addison Industrial</p>
+            <p class="company-info">Andison Industrial</p>
             <p class="company-year">© 2025</p>
         </div>
     </aside>
@@ -332,32 +336,9 @@ if (empty($_SESSION['user_id'])) {
                         <div class="settings-label-text">Dark Theme</div>
                         <div class="settings-label-desc">Use dark mode interface</div>
                     </div>
-                    <div class="toggle-switch active" onclick="toggleSetting(this)">
+                    <div class="toggle-switch active" id="darkModeToggle">
                         <div class="toggle-slider"></div>
                     </div>
-                </div>
-
-                <div class="settings-item">
-                    <div class="settings-label">
-                        <div class="settings-label-text">Sidebar Collapse</div>
-                        <div class="settings-label-desc">Auto-collapse sidebar on smaller screens</div>
-                    </div>
-                    <div class="toggle-switch" onclick="toggleSetting(this)">
-                        <div class="toggle-slider"></div>
-                    </div>
-                </div>
-
-                <div class="settings-item">
-                    <div class="settings-label">
-                        <div class="settings-label-text">Language</div>
-                        <div class="settings-label-desc">Select interface language</div>
-                    </div>
-                    <select class="select-input">
-                        <option>English (US)</option>
-                        <option>Spanish (ES)</option>
-                        <option>French (FR)</option>
-                        <option>German (DE)</option>
-                    </select>
                 </div>
             </div>
 
@@ -514,11 +495,23 @@ if (empty($_SESSION['user_id'])) {
         </div>
     </div>
 
-    <script src="js/app.js"></script>
+    <script src="js/app.js" defer></script>
     <script>
         function toggleSetting(element) {
             element.classList.toggle('active');
         }
+
+        // Sync dark mode toggle visual state on settings page load
+        (function () {
+            const toggle = document.getElementById('darkModeToggle');
+            if (!toggle) return;
+            const isLight = localStorage.getItem('theme') === 'light';
+            if (isLight) {
+                toggle.classList.remove('active');
+            } else {
+                toggle.classList.add('active');
+            }
+        })();
     </script>
 </body>
 </html>
