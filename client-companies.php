@@ -122,8 +122,8 @@ foreach ($companies as $c) {
         }
         
         .company-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+            display: flex;
+            justify-content: center;
             gap: 10px;
         }
         
@@ -393,25 +393,12 @@ foreach ($companies as $c) {
                     </a>
                 </li>
 
-                <!-- Models (Dropdown) -->
-                <li class="menu-item has-submenu">
-                    <a href="models.php" class="menu-link submenu-toggle" data-submenu="models-submenu">
+                <!-- Models -->
+                <li class="menu-item">
+                    <a href="models.php" class="menu-link">
                         <i class="fas fa-cube"></i>
                         <span class="menu-label">Models</span>
-                        <i class="fas fa-chevron-right submenu-icon"></i>
                     </a>
-                    <ul class="submenu" id="models-submenu">
-                        <li>
-                            <a href="models.php#group-a" class="submenu-link">
-                                <span>Group A</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="models.php#group-b" class="submenu-link">
-                                <span>Group B</span>
-                            </a>
-                        </li>
-                    </ul>
                 </li>
 
                 <!-- Analytics -->
@@ -462,7 +449,7 @@ foreach ($companies as $c) {
         </div>
 
         <div class="search-container">
-            <input type="text" class="search-input" placeholder="Search companies by name...">
+            <input type="text" class="search-input" id="companySearch" placeholder="Search companies by name..." oninput="filterCompanies(this.value)">
         </div>
 
         <div class="companies-grid">
@@ -471,7 +458,6 @@ foreach ($companies as $c) {
             $index = 0;
             foreach ($companies as $company): 
                 $icon = $icons[$index % count($icons)];
-                $revenue = number_format(($company['total_units'] * 540) / 1000, 1);
                 $index++;
             ?>
             <div class="company-card">
@@ -499,17 +485,13 @@ foreach ($companies as $c) {
                         <div class="stat-value"><?php echo number_format($company['total_units']); ?></div>
                         <div class="stat-label">Units Sold</div>
                     </div>
-                    <div class="stat">
-                        <div class="stat-value">₱<?php echo $revenue; ?>K</div>
-                        <div class="stat-label">Revenue</div>
-                    </div>
                 </div>
                 <button class="view-more-btn" onclick="viewCompanyProfile('<?php echo htmlspecialchars(addslashes($company['company_name'])); ?>')">View Profile</button>
             </div>
             <?php endforeach; ?>
             
             <?php if (empty($companies)): ?>
-            <div class="no-data" style="grid-column: 1/-1; text-align: center; padding: 40px; color: #888;">
+            <div id="noDataMsg" class="no-data" style="grid-column: 1/-1; text-align: center; padding: 40px; color: #888;">
                 <i class="fas fa-building" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
                 <p>No company data available. Import delivery records to see client companies.</p>
             </div>
@@ -723,7 +705,6 @@ foreach ($companies as $c) {
                     }
                     
                     const summary = data.summary;
-                    const revenue = ((summary.total_units * 540) / 1000).toFixed(1);
                     
                     let html = `
                         <div class="profile-summary">
@@ -738,10 +719,6 @@ foreach ($companies as $c) {
                             <div class="profile-stat">
                                 <div class="profile-stat-value">${summary.unique_products}</div>
                                 <div class="profile-stat-label">Products</div>
-                            </div>
-                            <div class="profile-stat">
-                                <div class="profile-stat-value">₱${revenue}K</div>
-                                <div class="profile-stat-label">Revenue</div>
                             </div>
                         </div>
                         
@@ -860,6 +837,20 @@ foreach ($companies as $c) {
         document.getElementById('profileModal').addEventListener('click', function(e) {
             if (e.target === this) closeProfileModal();
         });
+
+        function filterCompanies(query) {
+            const cards = document.querySelectorAll('.company-card');
+            const q = query.trim().toLowerCase();
+            let visible = 0;
+            cards.forEach(card => {
+                const name = card.querySelector('.company-name').textContent.toLowerCase();
+                const show = !q || name.includes(q);
+                card.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+            const noData = document.getElementById('noDataMsg');
+            if (noData) noData.style.display = visible === 0 ? '' : 'none';
+        }
     </script>
 
     <script src="js/app.js" defer></script>

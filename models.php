@@ -4,6 +4,44 @@ if (empty($_SESSION['user_id'])) {
     header('Location: login.php', true, 302);
     exit;
 }
+
+require_once 'db_config.php';
+
+// Fetch all unique item_codes with their stats from delivery_records
+$models = [];
+$result = $conn->query("
+    SELECT 
+        item_code,
+        MAX(item_name) as item_name,
+        SUM(quantity) as total_qty,
+        COUNT(*) as order_count,
+        MAX(delivery_year) as last_year,
+        MAX(delivery_month) as last_month
+    FROM delivery_records
+    WHERE item_code IS NOT NULL AND item_code != ''
+    GROUP BY item_code
+    ORDER BY total_qty DESC
+");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $models[] = $row;
+    }
+}
+
+$groupACodes = array_map('strtoupper', [
+    'MCXL-XWHM-Y-NA','XT-XWHM-Y-NA','MCX3-XWHM-Y-NA','BWC2-H','BWC2R-X',
+    'BWS-BC1','M020-12111-111','BWS1-Z-Y','BWC3-H','BWC2-M',
+    'BWS1-HL-Y','M020-12311-111','HRR-G103009ABK-000','BWS1-XL-Y'
+]);
+$groupBCodes = array_map('strtoupper', [
+    'SR-X2V','CRT0500003DA58','MCXL-FC1','MCXL-BC1','MC2-FPCB1',
+    'SR-W-MP75C','SR-Q1-4R','CRT0500003DA34','XT-MPCB2','MCX3-MPCB',
+    'REG 0.5','MCXL-MPCB1','XT-RPUMP-K1','MCX3-FC1','MCX3-BC1',
+    'XT-BC1','CRT0200161DA34','REG-0.5','CRT0500003DA116','REG-1.0',
+    'M0931K','HU-PCB','XT-SC1','SR-M-MC','BWS-FC1','XT-BAT-K1','SR-H-MC'
+]);
+$modelsA = array_values(array_filter($models, fn($m) => in_array(strtoupper($m['item_code']), $groupACodes)));
+$modelsB = array_values(array_filter($models, fn($m) => in_array(strtoupper($m['item_code']), $groupBCodes)));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -20,152 +58,353 @@ if (empty($_SESSION['user_id'])) {
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .models-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .model-card {
-            background: linear-gradient(135deg, #1e2a38 0%, #2a3f5f 100%);
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            overflow: hidden;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .model-card:hover {
-            transform: translateY(-5px);
-            border-color: #2f5fa7;
-            box-shadow: 0 10px 30px rgba(47, 95, 167, 0.2);
-        }
-        
-        .model-header {
-            background: linear-gradient(135deg, #2f5fa7, #00d9ff);
-            padding: 20px;
-            color: white;
+        /* ── Page title ── */
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-text-light);
+            margin-bottom: 28px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 10px;
         }
-        
-        .model-icon {
-            font-size: 32px;
+        .page-title i { color: var(--color-accent); }
+
+        /* ── Summary strip ── */
+        .models-summary {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 32px;
         }
-        
-        .model-badge {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 600;
+        .models-summary-item {
+            background: var(--color-dark-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: 10px;
+            padding: 16px 24px;
+            min-width: 140px;
         }
-        
-        .model-content {
+        .models-summary-item .ms-label {
+            font-size: 11px;
+            color: var(--color-text-lighter);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .models-summary-item .ms-value {
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .ms-value.accent  { color: var(--color-accent); }
+        .ms-value.cyan    { color: #00d9ff; }
+        .ms-value.primary { color: var(--color-text-light); }
+
+        /* ── Group cards grid ── */
+        .group-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 680px;
+        }
+
+        /* ── Individual group card ── */
+        .group-card {
+            background: var(--color-dark-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: 14px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+            font-family: 'Poppins', sans-serif;
+        }
+        .group-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+        }
+        .group-card.card-a:hover { border-color: #2f5fa7; }
+        .group-card.card-b:hover { border-color: #0891b2; }
+
+        .group-card-banner {
+            padding: 32px 20px 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+            overflow: hidden;
+        }
+        .card-a .group-card-banner {
+            background: linear-gradient(135deg, #1e4fa0 0%, #2f5fa7 50%, #0090c8 100%);
+        }
+        .card-b .group-card-banner {
+            background: linear-gradient(135deg, #0e7490 0%, #0891b2 50%, #00d9ff 100%);
+        }
+        .group-card-banner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 70% 30%, rgba(255,255,255,0.12) 0%, transparent 70%);
+        }
+        .group-letter {
+            font-size: 56px;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1;
+            letter-spacing: -2px;
+            position: relative;
+            text-shadow: 0 4px 16px rgba(0,0,0,0.25);
+        }
+        .group-name {
+            font-size: 12px;
+            color: rgba(255,255,255,0.8);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            position: relative;
+        }
+
+        .group-card-body {
             padding: 20px;
         }
-        
-        .model-name {
+        .group-kpi-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+        .group-kpi {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 10px 6px;
+            text-align: center;
+        }
+        .group-kpi-value {
             font-size: 18px;
             font-weight: 700;
-            color: #fff;
-            margin-bottom: 8px;
+            line-height: 1;
+            margin-bottom: 4px;
         }
-        
-        .model-description {
-            font-size: 13px;
-            color: #a0a0a0;
-            margin-bottom: 15px;
-            line-height: 1.5;
+        .card-a .group-kpi-value.v1 { color: var(--color-accent); }
+        .card-a .group-kpi-value.v2 { color: #00d9ff; }
+        .card-a .group-kpi-value.v3 { color: var(--color-text-light); }
+        .card-b .group-kpi-value.v1 { color: var(--color-accent); }
+        .card-b .group-kpi-value.v2 { color: #00d9ff; }
+        .card-b .group-kpi-value.v3 { color: var(--color-text-light); }
+        .group-kpi-label {
+            font-size: 9px;
+            color: var(--color-text-lighter);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
         }
-        
-        .model-specs {
-            display: grid;
+        .group-card-cta {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--color-text-lighter);
+            padding-top: 14px;
+            border-top: 1px solid var(--color-border);
+            transition: color 0.2s;
+        }
+        .group-card:hover .group-card-cta { color: var(--color-accent); }
+        .group-card-cta i { font-size: 11px; transition: transform 0.2s; }
+        .group-card:hover .group-card-cta i { transform: translateX(3px); }
+
+        /* ── Modal ── */
+        .gmodal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.72);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(2px);
+        }
+        .gmodal-box {
+            background: var(--color-dark-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: 14px;
+            width: 100%;
+            max-width: 820px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.55);
+            font-family: 'Poppins', sans-serif;
+        }
+        .gmodal-header {
+            padding: 22px 28px;
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .gmodal-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--color-text-light);
+            display: flex;
+            align-items: center;
             gap: 10px;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
-        .spec-item {
+        .gmodal-title .badge-a { background: rgba(47,95,167,0.25); color: #6ea8fe; }
+        .gmodal-title .badge-b { background: rgba(124,58,237,0.25); color: #c084fc; }
+        .gmodal-title .group-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 20px;
+        }
+        .gmodal-close {
+            background: none;
+            border: none;
+            color: var(--color-text-lighter);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            line-height: 1;
+            transition: background 0.15s, color 0.15s;
+        }
+        .gmodal-close:hover {
+            background: rgba(255,255,255,0.08);
+            color: var(--color-text-light);
+        }
+        .gmodal-search {
+            padding: 14px 28px;
+            border-bottom: 1px solid var(--color-border);
+            flex-shrink: 0;
+        }
+        .gmodal-search input {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--color-border);
+            border-radius: 7px;
+            padding: 10px 14px 10px 38px;
+            color: var(--color-text-light);
+            font-family: 'Poppins', sans-serif;
+            font-size: 13px;
+            outline: none;
+            box-sizing: border-box;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 14px center;
+            transition: border-color 0.2s;
+        }
+        .gmodal-search input:focus { border-color: var(--color-primary); }
+        .gmodal-table-wrap {
+            overflow-y: auto;
+            flex: 1;
+            padding: 0 28px 16px;
+        }
+        .gmodal-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .gmodal-table thead th {
+            font-size: 11px;
+            color: var(--color-text-lighter);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 14px 10px 10px 0;
+            border-bottom: 1px solid var(--color-border);
+            position: sticky;
+            top: 0;
+            background: var(--color-dark-secondary);
+            white-space: nowrap;
+        }
+        .gmodal-table thead th:last-child,
+        .gmodal-table thead th:nth-last-child(2) { text-align: right; padding-right: 0; }
+        .gmodal-table tbody tr {
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            transition: background 0.15s;
+        }
+        .gmodal-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+        .gmodal-table td {
+            padding: 13px 10px 13px 0;
+            vertical-align: middle;
+        }
+        .gmodal-table td:last-child,
+        .gmodal-table td:nth-last-child(1) { text-align: right; padding-right: 0; }
+        .td-num  { color: rgba(255,255,255,0.25); font-size: 12px; width: 32px; }
+        .td-code { color: var(--color-accent); font-weight: 600; font-size: 14px; }
+        .td-name { color: var(--color-text-lighter); font-size: 13px; }
+        .td-units { color: #00d9ff; font-weight: 700; text-align: right !important; font-size: 14px; }
+        .td-orders { color: var(--color-text-light); text-align: right !important; padding-right: 4px !important; font-size: 14px; }
+        .gmodal-footer {
+            padding: 13px 28px;
+            border-top: 1px solid var(--color-border);
+            font-size: 12px;
+            color: var(--color-text-lighter);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 12px;
+            flex-shrink: 0;
+            gap: 12px;
         }
-        
-        .spec-label {
-            color: #a0a0a0;
-        }
-        
-        .spec-value {
-            color: #f4d03f;
-            font-weight: 600;
-        }
-        
-        .model-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-        
-        .stat {
+        .gmodal-footer strong { color: var(--color-text-light); }
+        .gmodal-empty {
+            display: none;
             text-align: center;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
+            padding: 48px 20px;
+            color: var(--color-text-lighter);
         }
-        
-        .stat-value {
-            font-size: 16px;
-            font-weight: 700;
-            color: #00d9ff;
+        .gmodal-empty i { display: block; font-size: 28px; margin-bottom: 10px; opacity: 0.35; }
+
+        /* ── Light mode adjustments ── */
+        html.light-mode .group-card,
+        body.light-mode .group-card {
+            background: #ffffff;
+            border-color: #dde2ec;
         }
-        
-        .stat-label {
-            font-size: 10px;
-            color: #a0a0a0;
-            text-transform: uppercase;
-            margin-top: 5px;
+        html.light-mode .group-kpi,
+        body.light-mode .group-kpi {
+            background: rgba(0,0,0,0.03);
+            border-color: #dde2ec;
         }
-        
-        .group-section {
-            margin-bottom: 40px;
+        html.light-mode .group-kpi-label,
+        body.light-mode .group-kpi-label { color: #5a7a9a; }
+        html.light-mode .group-card-cta,
+        body.light-mode .group-card-cta { color: #5a7a9a; border-color: #dde2ec; }
+        html.light-mode .gmodal-box,
+        body.light-mode .gmodal-box { background: #ffffff; border-color: #dde2ec; }
+        html.light-mode .gmodal-header,
+        html.light-mode .gmodal-search,
+        html.light-mode .gmodal-footer,
+        body.light-mode .gmodal-header,
+        body.light-mode .gmodal-search,
+        body.light-mode .gmodal-footer { border-color: #dde2ec; }
+        html.light-mode .gmodal-title,
+        body.light-mode .gmodal-title { color: #1a3a5c; }
+        html.light-mode .gmodal-search input,
+        body.light-mode .gmodal-search input {
+            background: #f4f8fc;
+            border-color: #b8d4e8;
+            color: #1a3a5c;
         }
-        
-        .group-title {
-            font-size: 22px;
-            font-weight: 700;
-            color: #121212;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f4d03f;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .group-icon {
-            font-size: 24px;
-            color: #f4d03f;
-        }
-        
-        .page-title {
-            font-size: 28px;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 30px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        @media (max-width: 768px) {
-            .models-grid {
-                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            }
+        html.light-mode .gmodal-table thead,
+        body.light-mode .gmodal-table thead { background: #ffffff; }
+        html.light-mode .gmodal-table thead th,
+        body.light-mode .gmodal-table thead th { background: #ffffff; border-color: #dde2ec; }
+        html.light-mode .gmodal-table tbody tr:hover,
+        body.light-mode .gmodal-table tbody tr:hover { background: #f0f7ff; }
+        html.light-mode .td-name,
+        body.light-mode .td-name { color: #4a6a8a; }
+        html.light-mode .td-orders,
+        body.light-mode .td-orders { color: #1a3a5c; }
+        html.light-mode .models-summary-item,
+        body.light-mode .models-summary-item { background: #fff; border-color: #dde2ec; }
+        html.light-mode .models-summary-item .ms-label,
+        body.light-mode .models-summary-item .ms-label { color: #5a7a9a; }
+
+        @media (max-width: 600px) {
+            .group-cards-grid { max-width: 100%; grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -242,25 +481,12 @@ if (empty($_SESSION['user_id'])) {
                     </a>
                 </li>
 
-                <!-- Models (Dropdown) -->
-                <li class="menu-item has-submenu active">
-                    <a href="models.php" class="menu-link submenu-toggle" data-submenu="models-submenu">
+                <!-- Models -->
+                <li class="menu-item active">
+                    <a href="models.php" class="menu-link">
                         <i class="fas fa-cube"></i>
                         <span class="menu-label">Models</span>
-                        <i class="fas fa-chevron-right submenu-icon"></i>
                     </a>
-                    <ul class="submenu active" id="models-submenu">
-                        <li>
-                            <a href="models.php#group-a" class="submenu-link">
-                                <span>Group A</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="models.php#group-b" class="submenu-link">
-                                <span>Group B</span>
-                            </a>
-                        </li>
-                    </ul>
                 </li>
 
                 <!-- Analytics -->
@@ -310,247 +536,177 @@ if (empty($_SESSION['user_id'])) {
             <i class="fas fa-cube"></i> Product Models
         </div>
 
-        <!-- Group A Models -->
-        <div class="group-section">
-            <div class="group-title">
-                <span class="group-icon">A</span>
-                Group A - Standard Series
+        <?php
+        $totalUnits  = array_sum(array_column($models, 'total_qty'));
+        $totalOrders = array_sum(array_column($models, 'order_count'));
+        $totalQtyA   = array_sum(array_column($modelsA, 'total_qty'));
+        $ordersA     = array_sum(array_column($modelsA, 'order_count'));
+        $totalQtyB   = array_sum(array_column($modelsB, 'total_qty'));
+        $ordersB     = array_sum(array_column($modelsB, 'order_count'));
+        ?>
+
+        <!-- Summary Strip -->
+        <div class="models-summary">
+            <div class="models-summary-item">
+                <div class="ms-label">Total Models</div>
+                <div class="ms-value accent"><?php echo count($models); ?></div>
             </div>
-            <div class="models-grid">
-                <div class="model-card">
-                    <div class="model-header">
-                        <div class="model-icon">
-                            <i class="fas fa-microchip"></i>
-                        </div>
-                        <div class="model-badge">Standard</div>
-                    </div>
-                    <div class="model-content">
-                        <div class="model-name">A-100</div>
-                        <div class="model-description">Entry-level gas detector with basic monitoring capabilities</div>
-                        <div class="model-specs">
-                            <div class="spec-item">
-                                <span class="spec-label">Range</span>
-                                <span class="spec-value">0-50 ppm</span>
-                            </div>
-                            <div class="spec-item">
-                                <span class="spec-label">Response Time</span>
-                                <span class="spec-value">&lt;10 seconds</span>
-                            </div>
-                            <div class="spec-item">
-                                <span class="spec-label">Battery Life</span>
-                                <span class="spec-value">200 hours</span>
-                            </div>
-                        </div>
-                        <div class="model-stats">
-                            <div class="stat">
-                                <div class="stat-value">145</div>
-                                <div class="stat-label">Sold</div>
-                            </div>
-                            <div class="stat">
-                                <div class="stat-value">$320</div>
-                                <div class="stat-label">Price</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="model-card">
-                    <div class="model-header">
-                        <div class="model-icon">
-                            <i class="fas fa-microchip"></i>
-                        </div>
-                        <div class="model-badge">Standard</div>
-                    </div>
-                    <div class="model-content">
-                        <div class="model-name">A-200</div>
-                        <div class="model-description">Mid-range detector with enhanced sensitivity and memory</div>
-                        <div class="model-specs">
-                            <div class="spec-item">
-                                <span class="spec-label">Range</span>
-                                <span class="spec-value">0-100 ppm</span>
-                            </div>
-                            <div class="spec-item">
-                                <span class="spec-label">Response Time</span>
-                                <span class="spec-value">&lt;8 seconds</span>
-                            </div>
-                            <div class="spec-item">
-                                <span class="spec-label">Battery Life</span>
-                                <span class="spec-value">300 hours</span>
-                            </div>
-                        </div>
-                        <div class="model-stats">
-                            <div class="stat">
-                                <div class="stat-value">158</div>
-                                <div class="stat-label">Sold</div>
-                            </div>
-                            <div class="stat">
-                                <div class="stat-value">$450</div>
-                                <div class="stat-label">Price</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="model-card">
-                    <div class="model-header">
-                        <div class="model-icon">
-                            <i class="fas fa-microchip"></i>
-                        </div>
-                        <div class="model-badge">Premium</div>
-                    </div>
-                    <div class="model-content">
-                        <div class="model-name">A-500</div>
-                        <div class="model-description">Professional-grade detector with dual sensor technology</div>
-                        <div class="model-specs">
-                            <div class="spec-item">
-                                <span class="spec-label">Range</span>
-                                <span class="spec-value">0-200 ppm</span>
-                            </div>
-                            <div class="spec-item">
-                                <span class="spec-label">Response Time</span>
-                                <span class="spec-value">&lt;5 seconds</span>
-                            </div>
-                            <div class="spec-item">
-                                <span class="spec-label">Battery Life</span>
-                                <span class="spec-value">500 hours</span>
-                            </div>
-                        </div>
-                        <div class="model-stats">
-                            <div class="stat">
-                                <div class="stat-value">98</div>
-                                <div class="stat-label">Sold</div>
-                            </div>
-                            <div class="stat">
-                                <div class="stat-value">$780</div>
-                                <div class="stat-label">Price</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="models-summary-item">
+                <div class="ms-label">Units Delivered</div>
+                <div class="ms-value cyan"><?php echo number_format($totalUnits); ?></div>
+            </div>
+            <div class="models-summary-item">
+                <div class="ms-label">Total Orders</div>
+                <div class="ms-value primary"><?php echo number_format($totalOrders); ?></div>
             </div>
         </div>
 
-        <!-- Group B Models -->
-        <div class="group-section">
-            <div class="group-title">
-                <span class="group-icon">B</span>
-                Group B - Advanced Series
-            </div>
-            <div class="models-grid">
-                <div class="model-card">
-                    <div class="model-header">
-                        <div class="model-icon">
-                            <i class="fas fa-brain"></i>
-                        </div>
-                        <div class="model-badge">Advanced</div>
-                    </div>
-                    <div class="model-content">
-                        <div class="model-name">B-100</div>
-                        <div class="model-description">Smart detector with IoT connectivity and cloud sync</div>
-                        <div class="model-specs">
-                            <div class="spec-item">
-                                <span class="spec-label">Range</span>
-                                <span class="spec-value">0-100 ppm</span>
-                            </div>
-                            <div class="spec-item">
-                                <span class="spec-label">Connectivity</span>
-                                <span class="spec-value">WiFi/4G</span>
-                            </div>
-                            <div class="spec-item">
-                                <span class="spec-label">Battery Life</span>
-                                <span class="spec-value">400 hours</span>
-                            </div>
-                        </div>
-                        <div class="model-stats">
-                            <div class="stat">
-                                <div class="stat-value">132</div>
-                                <div class="stat-label">Sold</div>
-                            </div>
-                            <div class="stat">
-                                <div class="stat-value">$650</div>
-                                <div class="stat-label">Price</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <!-- Group Cards -->
+        <div class="group-cards-grid">
 
-                <div class="model-card">
-                    <div class="model-header">
-                        <div class="model-icon">
-                            <i class="fas fa-brain"></i>
-                        </div>
-                        <div class="model-badge">Advanced</div>
-                    </div>
-                    <div class="model-content">
-                        <div class="model-name">B-200</div>
-                        <div class="model-description">Multi-sensor system with real-time analytics dashboard</div>
-                        <div class="model-specs">
-                            <div class="spec-item">
-                                <span class="spec-label">Range</span>
-                                <span class="spec-value">0-200 ppm</span>
-                            </div>
-                            <div class="spec-item">
-                                <span class="spec-label">Connectivity</span>
-                                <span class="spec-value">5G Ready</span>
-                            </div>
-                            <div class="spec-item">
-                                <span class="spec-label">Battery Life</span>
-                                <span class="spec-value">600 hours</span>
-                            </div>
-                        </div>
-                        <div class="model-stats">
-                            <div class="stat">
-                                <div class="stat-value">156</div>
-                                <div class="stat-label">Sold</div>
-                            </div>
-                            <div class="stat">
-                                <div class="stat-value">$890</div>
-                                <div class="stat-label">Price</div>
-                            </div>
-                        </div>
-                    </div>
+            <!-- Group A -->
+            <div class="group-card card-a" onclick="openModal('A')">
+                <div class="group-card-banner">
+                    <div class="group-letter">A</div>
+                    <div class="group-name">Group A &mdash; Standard Series</div>
                 </div>
-
-                <div class="model-card">
-                    <div class="model-header">
-                        <div class="model-icon">
-                            <i class="fas fa-brain"></i>
+                <div class="group-card-body">
+                    <div class="group-kpi-row">
+                        <div class="group-kpi">
+                            <div class="group-kpi-value v1"><?php echo count($modelsA); ?></div>
+                            <div class="group-kpi-label">Models</div>
                         </div>
-                        <div class="model-badge">Premium</div>
+                        <div class="group-kpi">
+                            <div class="group-kpi-value v2"><?php echo number_format($totalQtyA); ?></div>
+                            <div class="group-kpi-label">Units</div>
+                        </div>
+                        <div class="group-kpi">
+                            <div class="group-kpi-value v3"><?php echo number_format($ordersA); ?></div>
+                            <div class="group-kpi-label">Orders</div>
+                        </div>
                     </div>
-                    <div class="model-content">
-                        <div class="model-name">B-500</div>
-                        <div class="model-description">Enterprise-level detector with predictive AI analytics</div>
-                        <div class="model-specs">
-                            <div class="spec-item">
-                                <span class="spec-label">Range</span>
-                                <span class="spec-value">0-500 ppm</span>
-                            </div>
-                            <div class="spec-item">
-                                <span class="spec-label">Connectivity</span>
-                                <span class="spec-value">5G + Satellite</span>
-                            </div>
-                            <div class="spec-item">
-                                <span class="spec-label">Battery Life</span>
-                                <span class="spec-value">800 hours</span>
-                            </div>
-                        </div>
-                        <div class="model-stats">
-                            <div class="stat">
-                                <div class="stat-value">121</div>
-                                <div class="stat-label">Sold</div>
-                            </div>
-                            <div class="stat">
-                                <div class="stat-value">$1,250</div>
-                                <div class="stat-label">Price</div>
-                            </div>
-                        </div>
+                    <div class="group-card-cta">
+                        <span>View products</span>
+                        <i class="fas fa-arrow-right"></i>
                     </div>
                 </div>
             </div>
+
+            <!-- Group B -->
+            <div class="group-card card-b" onclick="openModal('B')">
+                <div class="group-card-banner">
+                    <div class="group-letter">B</div>
+                    <div class="group-name">Group B &mdash; Advanced Series</div>
+                </div>
+                <div class="group-card-body">
+                    <div class="group-kpi-row">
+                        <div class="group-kpi">
+                            <div class="group-kpi-value v1"><?php echo count($modelsB); ?></div>
+                            <div class="group-kpi-label">Models</div>
+                        </div>
+                        <div class="group-kpi">
+                            <div class="group-kpi-value v2"><?php echo number_format($totalQtyB); ?></div>
+                            <div class="group-kpi-label">Units</div>
+                        </div>
+                        <div class="group-kpi">
+                            <div class="group-kpi-value v3"><?php echo number_format($ordersB); ?></div>
+                            <div class="group-kpi-label">Orders</div>
+                        </div>
+                    </div>
+                    <div class="group-card-cta">
+                        <span>View products</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Group Products Modal -->
+    <div class="gmodal-overlay" id="groupModal" onclick="if(event.target===this)closeModal()">
+        <div class="gmodal-box">
+            <div class="gmodal-header">
+                <div class="gmodal-title" id="modalTitle"></div>
+                <button class="gmodal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="gmodal-search">
+                <input type="text" id="modalSearch" placeholder="Search item code or name..." oninput="filterModal(this.value)">
+            </div>
+            <div class="gmodal-table-wrap">
+                <table class="gmodal-table">
+                    <thead>
+                        <tr>
+                            <th style="width:28px;">#</th>
+                            <th>Item Code</th>
+                            <th>Name</th>
+                            <th style="text-align:right;">Units</th>
+                            <th style="text-align:right;">Orders</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalBody"></tbody>
+                </table>
+                <div class="gmodal-empty" id="modalEmpty">
+                    <i class="fas fa-search"></i>No items found.
+                </div>
+            </div>
+            <div class="gmodal-footer" id="modalFooter"></div>
         </div>
     </div>
 
+    <script>
+        const groupData = {
+            A: <?php echo json_encode($modelsA); ?>,
+            B: <?php echo json_encode($modelsB); ?>
+        };
+        let currentGroup = null;
+
+        function openModal(group) {
+            currentGroup = group;
+            const data = groupData[group];
+            const badge = group === 'A'
+                ? `<span class="group-badge badge-a">Group A</span>`
+                : `<span class="group-badge badge-b">Group B</span>`;
+            document.getElementById('modalTitle').innerHTML = badge + ' &nbsp;' + data.length + ' model' + (data.length !== 1 ? 's' : '');
+            document.getElementById('modalSearch').value = '';
+            renderModalRows(data);
+            document.getElementById('groupModal').style.display = 'flex';
+        }
+
+        function renderModalRows(data) {
+            const tbody = document.getElementById('modalBody');
+            const empty = document.getElementById('modalEmpty');
+            const footer = document.getElementById('modalFooter');
+            empty.style.display = data.length === 0 ? 'block' : 'none';
+            if (data.length === 0) { tbody.innerHTML = ''; footer.innerHTML = ''; return; }
+            tbody.innerHTML = data.map((m, i) => `
+                <tr>
+                    <td class="td-num">${i + 1}</td>
+                    <td class="td-code">${m.item_code}</td>
+                    <td class="td-name">${m.item_name || '&mdash;'}</td>
+                    <td class="td-units">${parseInt(m.total_qty).toLocaleString()}</td>
+                    <td class="td-orders">${parseInt(m.order_count).toLocaleString()}</td>
+                </tr>
+            `).join('');
+            const total = data.reduce((s, m) => s + parseInt(m.total_qty), 0);
+            footer.innerHTML = `Showing <strong>${data.length}</strong> item${data.length !== 1 ? 's' : ''} &nbsp;&middot;&nbsp; Total units: <strong style="color:#00d9ff;">${total.toLocaleString()}</strong>`;
+        }
+
+        function filterModal(query) {
+            const q = query.toLowerCase();
+            const filtered = groupData[currentGroup].filter(m =>
+                m.item_code.toLowerCase().includes(q) || (m.item_name || '').toLowerCase().includes(q)
+            );
+            renderModalRows(filtered);
+        }
+
+        function closeModal() {
+            document.getElementById('groupModal').style.display = 'none';
+        }
+
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+    </script>
     <script src="js/app.js" defer></script>
 </body>
 </html>
+

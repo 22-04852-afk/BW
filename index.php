@@ -240,25 +240,12 @@ if ($result && $row = $result->fetch_assoc()) {
                     </a>
                 </li>
 
-                <!-- Models (Dropdown) -->
-                <li class="menu-item has-submenu">
-                    <a href="models.php" class="menu-link submenu-toggle" data-submenu="models-submenu">
+                <!-- Models -->
+                <li class="menu-item">
+                    <a href="models.php" class="menu-link">
                         <i class="fas fa-cube"></i>
                         <span class="menu-label">Models</span>
-                        <i class="fas fa-chevron-right submenu-icon"></i>
                     </a>
-                    <ul class="submenu" id="models-submenu">
-                        <li>
-                            <a href="models.php#group-a" class="submenu-link">
-                                <span>Group A</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="models.php#group-b" class="submenu-link">
-                                <span>Group B</span>
-                            </a>
-                        </li>
-                    </ul>
                 </li>
 
                 <!-- Analytics -->
@@ -317,19 +304,7 @@ if ($result && $row = $result->fetch_assoc()) {
                         <p><?php echo $stats['monthly_average'] > 0 ? 'Operations running smoothly. Keep up the great work!' : 'Ready to track your industrial operations!'; ?></p>
                     </div>
                 </div>
-                <div class="welcome-center">
-                    <div class="stat-cards-industrial">
-                        <div class="stat-card-ind highlight">
-                            <div class="stat-icon-ind green">
-                                <i class="fas fa-coins"></i>
-                            </div>
-                            <div class="stat-info-ind">
-                                <span class="stat-value-ind">₱<?php echo number_format((intval($stats['total_delivered']) * 500) / 1000, 1); ?>K</span>
-                                <span class="stat-label-ind">Revenue</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
                 <div class="welcome-right">
                     <div class="quick-actions">
                         <button class="btn-industrial" onclick="goToReports()">

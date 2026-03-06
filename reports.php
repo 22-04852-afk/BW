@@ -12,7 +12,6 @@ require_once 'db_config.php';
 $totalUnits = 0;
 $totalOrders = 0;
 $activeClients = 0;
-$totalRevenue = '0';
 $recentDeliveries = [];
 
 // Get total units delivered
@@ -27,9 +26,6 @@ $result = $conn->query("SELECT COUNT(DISTINCT company_name) as company_count FRO
 if ($result && $row = $result->fetch_assoc()) {
     $activeClients = intval($row['company_count']);
 }
-
-// Calculate estimated revenue
-$totalRevenue = number_format(($totalUnits * 540) / 1000, 1);
 
 // Get recent deliveries for export
 $result = $conn->query("SELECT * FROM delivery_records ORDER BY id DESC LIMIT 100");
@@ -672,25 +668,12 @@ if ($result) {
                     </a>
                 </li>
 
-                <!-- Models (Dropdown) -->
-                <li class="menu-item has-submenu">
-                    <a href="models.php" class="menu-link submenu-toggle" data-submenu="models-submenu">
+                <!-- Models -->
+                <li class="menu-item">
+                    <a href="models.php" class="menu-link">
                         <i class="fas fa-cube"></i>
                         <span class="menu-label">Models</span>
-                        <i class="fas fa-chevron-right submenu-icon"></i>
                     </a>
-                    <ul class="submenu" id="models-submenu">
-                        <li>
-                            <a href="models.php#group-a" class="submenu-link">
-                                <span>Group A</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="models.php#group-b" class="submenu-link">
-                                <span>Group B</span>
-                            </a>
-                        </li>
-                    </ul>
                 </li>
 
                 <!-- Analytics -->
@@ -762,8 +745,7 @@ if ($result) {
                 <div class="report-title">Sales Performance Report</div>
                 <div class="report-description">Monthly sales trends, revenue breakdown, and growth analysis</div>
                 <div class="report-actions">
-                    <button class="btn-report">View</button>
-                    <button class="btn-report">PDF</button>
+                    <button class="btn-report" style="grid-column: 1 / -1;">PDF</button>
                 </div>
             </div>
 
@@ -786,8 +768,7 @@ if ($result) {
                 <div class="report-title">Client Analytics Report</div>
                 <div class="report-description">Client acquisition, retention, and lifetime value analysis</div>
                 <div class="report-actions">
-                    <button class="btn-report">View</button>
-                    <button class="btn-report">PDF</button>
+                    <button class="btn-report" style="grid-column: 1 / -1;">PDF</button>
                 </div>
             </div>
 
@@ -810,8 +791,7 @@ if ($result) {
                 <div class="report-title">Financial Report</div>
                 <div class="report-description">Revenue, expenses, profit margins, and financial forecasts</div>
                 <div class="report-actions">
-                    <button class="btn-report">View</button>
-                    <button class="btn-report">PDF</button>
+                    <button class="btn-report" style="grid-column: 1 / -1;">PDF</button>
                 </div>
             </div>
 
@@ -846,10 +826,6 @@ if ($result) {
         <!-- Quick Stats -->
         <div class="section-title">Year-to-Date Summary</div>
         <div class="stats-row">
-            <div class="stat-box">
-                <div class="stat-label">Est. Revenue</div>
-                <div class="stat-value">₱<?php echo $totalRevenue; ?>K</div>
-            </div>
             <div class="stat-box">
                 <div class="stat-label">Units Delivered</div>
                 <div class="stat-value"><?php echo number_format($totalUnits); ?></div>
@@ -996,25 +972,38 @@ if ($result) {
                 title: 'Financial Report',
                 date: new Date().toLocaleDateString(),
                 content: `
-                    <h3>Delivery-Based Financial Summary</h3>
-                    <p><strong>Total Units Delivered:</strong> <?php echo number_format($totalUnits); ?></p>
+                    <h3>Delivery Status Summary</h3>
                     <p><strong>Total Orders:</strong> <?php echo number_format($totalOrders); ?></p>
-                    <p><strong>Estimated Revenue (@ ₱540/unit):</strong> ₱<?php echo number_format($totalUnits * 540); ?></p>
                     <?php if ($totalOrders > 0): ?>
                     <p><strong>Avg Units per Order:</strong> <?php echo round($totalUnits / $totalOrders, 1); ?></p>
                     <?php endif; ?>
 
-                    <h3>Revenue by Top Client</h3>
+                    <h3>Status Breakdown</h3>
+                    <?php if ($totalOrders === 0): ?>
+                    <p style="color:#a0a0a0;">No delivery records yet.</p>
+                    <?php else: ?>
+                    <table class="report-table">
+                        <thead><tr><th>Status</th><th>Count</th><th>Percentage</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($statusBreakdown as $status => $cnt):
+                            if ($cnt === 0) continue;
+                            $pct = $totalOrders > 0 ? round(($cnt / $totalOrders) * 100, 1) : 0;
+                        ?>
+                            <tr><td><?php echo htmlspecialchars($status); ?></td><td><?php echo number_format($cnt); ?></td><td><?php echo $pct; ?>%</td></tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <?php endif; ?>
+
+                    <h3>Top Clients by Units</h3>
                     <?php if (empty($topClients)): ?>
                     <p style="color:#a0a0a0;">No client data yet.</p>
                     <?php else: ?>
                     <table class="report-table">
-                        <thead><tr><th>Client</th><th>Units</th><th>Est. Revenue</th></tr></thead>
+                        <thead><tr><th>Client</th><th>Orders</th><th>Units</th></tr></thead>
                         <tbody>
-                        <?php foreach ($topClients as $c):
-                            $rev = number_format($c['total_qty'] * 540);
-                        ?>
-                            <tr><td><?php echo htmlspecialchars($c['company_name']); ?></td><td><?php echo number_format($c['total_qty']); ?></td><td>₱<?php echo $rev; ?></td></tr>
+                        <?php foreach ($topClients as $c): ?>
+                            <tr><td><?php echo htmlspecialchars($c['company_name']); ?></td><td><?php echo number_format($c['order_count']); ?></td><td><?php echo number_format($c['total_qty']); ?></td></tr>
                         <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -1159,62 +1148,64 @@ if ($result) {
             document.getElementById('reportModal').classList.remove('show');
         }
         
+        function openPrintWindow(title, contentHTML) {
+            const dateStr = new Date().toISOString().split('T')[0];
+            const w = window.open('', '_blank', 'width=960,height=750');
+            if (!w) { showNotification('Please allow popups for PDF export.', 'error'); return; }
+            w.document.write(`<!DOCTYPE html><html><head>
+                <title>${title} - ${dateStr}</title>
+                <style>
+                    * { box-sizing: border-box; margin: 0; padding: 0; }
+                    body { font-family: Arial, Helvetica, sans-serif; color: #333; background: #f0f4f8; }
+                    .toolbar { background: #1a3a5c; padding: 12px 30px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+                    .toolbar span { color: #a0c8e8; font-size: 13px; }
+                    .btn-save { background: #f4d03f; color: #1a3a5c; border: none; padding: 10px 24px; font-size: 14px; font-weight: 700; border-radius: 6px; cursor: pointer; font-family: Arial, sans-serif; }
+                    .btn-save:hover { background: #e6c230; }
+                    .page { background: #fff; max-width: 860px; margin: 24px auto; padding: 40px; box-shadow: 0 2px 12px rgba(0,0,0,0.12); border-radius: 4px; }
+                    .pdf-header { background: #1a3a5c; color: white; padding: 18px 22px; border-radius: 8px; margin-bottom: 22px; }
+                    .pdf-header h1 { color: #fff; font-size: 20px; margin-bottom: 4px; }
+                    .pdf-header p { color: #a0c8e8; font-size: 12px; }
+                    .pdf-meta { color: #888; font-size: 11px; margin-bottom: 18px; border-bottom: 1px solid #e0e0e0; padding-bottom: 12px; }
+                    h3 { color: #1a5490; margin: 22px 0 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f4d03f; padding-bottom: 5px; }
+                    p { margin: 7px 0; font-size: 13px; line-height: 1.6; }
+                    table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 12px; }
+                    th { background: #2f5fa7; color: #fff; padding: 9px 12px; text-align: left; font-weight: 600; }
+                    td { padding: 8px 12px; border-bottom: 1px solid #e8e8e8; }
+                    tr:nth-child(even) td { background: #f7f9fc; }
+                    strong { font-weight: 600; }
+                    @media print {
+                        .toolbar { display: none !important; }
+                        body { background: #fff; }
+                        .page { box-shadow: none; margin: 0; padding: 20px; }
+                        .pdf-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                        th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                        tr:nth-child(even) td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    }
+                </style>
+            </head><body>
+                <div class="toolbar">
+                    <span>${title}</span>
+                    <button class="btn-save" onclick="window.print()">&#x1F4E5; Save as PDF / Print</button>
+                </div>
+                <div class="page">
+                    <div class="pdf-header">
+                        <img src="${window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '')}/assets/logo.png" alt="Andison" style="height:50px;width:auto;margin-bottom:10px;display:block;">
+                        <h1>${title}</h1>
+                        <p>Andison Industrial Sales Inc.</p>
+                    </div>
+                    <p class="pdf-meta">Generated: ${new Date().toLocaleString()}</p>
+                    ${contentHTML}
+                </div>
+
+            </body></html>`);
+            w.document.close();
+        }
+
         function downloadCurrentReport() {
             if (currentReportData) {
                 const element = document.getElementById('reportModalBody');
-                
-                // Get content and apply inline styles to tables
-                let contentHTML = element.innerHTML;
-                
-                // Style tables for PDF
-                contentHTML = contentHTML.replace(/<table[^>]*class="report-table"[^>]*>/gi, 
-                    '<table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 12px;">');
-                contentHTML = contentHTML.replace(/<thead>/gi, '<thead style="background: #2f5fa7;">');
-                contentHTML = contentHTML.replace(/<th>/gi, '<th style="padding: 10px; border: 1px solid #ddd; color: white; font-weight: bold; text-align: left;">');
-                contentHTML = contentHTML.replace(/<td>/gi, '<td style="padding: 10px; border: 1px solid #ddd;">');
-                contentHTML = contentHTML.replace(/<h3>/gi, '<h3 style="color: #1a5490; margin-top: 20px; margin-bottom: 10px; font-size: 16px; border-bottom: 2px solid #f4d03f; padding-bottom: 5px;">');
-                contentHTML = contentHTML.replace(/<p>/gi, '<p style="margin: 8px 0; font-size: 14px;">');
-                
-                // Create PDF content element
-                const pdfContent = document.createElement('div');
-                pdfContent.id = 'pdf-export-content';
-                pdfContent.style.cssText = 'position: fixed; top: 0; left: 0; width: 800px; padding: 20px; background: white; font-family: Arial, sans-serif; color: #333; z-index: 99999;';
-                pdfContent.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 15px; margin: 0 0 20px 0; padding: 15px; background: linear-gradient(135deg, #1a2a3a 0%, #2a4a6a 100%); border-radius: 8px;">
-                        <img src="assets/logo.png" style="height: 45px; width: auto;" crossorigin="anonymous">
-                        <div>
-                            <h1 style="color: #ffffff; margin: 0; font-size: 20px;">${currentReportData.title}</h1>
-                            <p style="color: #a0c0e0; margin: 3px 0 0 0; font-size: 11px;">Andison Industrial Sales Inc.</p>
-                        </div>
-                    </div>
-                    <p style="color: #666; margin: 0 0 15px 0; font-size: 11px;">
-                        <strong>Generated:</strong> ${new Date().toLocaleString()}
-                    </p>
-                    <div style="font-size: 13px; line-height: 1.5;">
-                        ${contentHTML}
-                    </div>
-                `;
-                
-                document.body.appendChild(pdfContent);
-                
-                const opt = {
-                    margin: [5, 10, 10, 10],
-                    filename: `${currentReportData.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { 
-                        scale: 2, 
-                        useCORS: true,
-                        scrollY: 0,
-                        y: 0,
-                        windowWidth: 800
-                    },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                };
-                
-                html2pdf().set(opt).from(pdfContent).save().then(() => {
-                    document.body.removeChild(pdfContent);
-                });
-                showNotification(`Downloading ${currentReportData.title} as PDF...`, 'success');
+                openPrintWindow(currentReportData.title, element.innerHTML);
+                showNotification(`Opening ${currentReportData.title} for PDF export...`, 'success');
             }
         }
         
@@ -1223,56 +1214,8 @@ if ($result) {
             if (!report) return;
             
             if (format === 'PDF') {
-                // Style the content for PDF
-                let styledContent = report.content;
-                styledContent = styledContent.replace(/<table[^>]*class="report-table"[^>]*>/gi, 
-                    '<table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 12px;">');
-                styledContent = styledContent.replace(/<thead>/gi, '<thead style="background: #2f5fa7;">');
-                styledContent = styledContent.replace(/<th>/gi, '<th style="padding: 10px; border: 1px solid #ddd; color: white; font-weight: bold; text-align: left;">');
-                styledContent = styledContent.replace(/<td>/gi, '<td style="padding: 10px; border: 1px solid #ddd;">');
-                styledContent = styledContent.replace(/<h3>/gi, '<h3 style="color: #1a5490; margin-top: 20px; margin-bottom: 10px; font-size: 16px; border-bottom: 2px solid #f4d03f; padding-bottom: 5px;">');
-                styledContent = styledContent.replace(/<p>/gi, '<p style="margin: 8px 0; font-size: 14px;">');
-                
-                // Create PDF content element
-                const pdfContent = document.createElement('div');
-                pdfContent.id = 'pdf-export-content';
-                pdfContent.style.cssText = 'position: fixed; top: 0; left: 0; width: 800px; padding: 20px; background: white; font-family: Arial, sans-serif; color: #333; z-index: 99999;';
-                pdfContent.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 15px; margin: 0 0 20px 0; padding: 15px; background: linear-gradient(135deg, #1a2a3a 0%, #2a4a6a 100%); border-radius: 8px;">
-                        <img src="assets/logo.png" style="height: 45px; width: auto;" crossorigin="anonymous">
-                        <div>
-                            <h1 style="color: #ffffff; margin: 0; font-size: 20px;">${report.title}</h1>
-                            <p style="color: #a0c0e0; margin: 3px 0 0 0; font-size: 11px;">Andison Industrial Sales Inc.</p>
-                        </div>
-                    </div>
-                    <p style="color: #666; margin: 0 0 15px 0; font-size: 11px;">
-                        <strong>Generated:</strong> ${new Date().toLocaleString()}
-                    </p>
-                    <div style="font-size: 13px; line-height: 1.5;">
-                        ${styledContent}
-                    </div>
-                `;
-                
-                document.body.appendChild(pdfContent);
-                
-                const opt = {
-                    margin: [5, 10, 10, 10],
-                    filename: `${reportName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { 
-                        scale: 2, 
-                        useCORS: true,
-                        scrollY: 0,
-                        y: 0,
-                        windowWidth: 800
-                    },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                };
-                
-                html2pdf().set(opt).from(pdfContent).save().then(() => {
-                    document.body.removeChild(pdfContent);
-                });
-                showNotification(`Downloading ${reportName} as PDF...`, 'success');
+                openPrintWindow(reportName, report.content);
+                showNotification(`Opening ${reportName} for PDF export...`, 'success');
             } else if (format === 'CSV') {
                 // Generate Excel XML for CSV (with styled headers)
                 const tempDiv = document.createElement('div');
@@ -1388,7 +1331,6 @@ if ($result) {
             
             // Get export data from PHP
             const exportData = {
-                totalRevenue: '<?php echo $totalRevenue; ?>K',
                 totalUnits: <?php echo $totalUnits; ?>,
                 totalOrders: <?php echo $totalOrders; ?>,
                 activeClients: <?php echo $activeClients; ?>,
@@ -1399,81 +1341,32 @@ if ($result) {
             };
             
             if (format === 'PDF') {
-                // Create PDF content element
-                const pdfContent = document.createElement('div');
-                pdfContent.id = 'pdf-export-content';
-                pdfContent.style.cssText = 'position: fixed; top: 0; left: 0; width: 800px; padding: 20px; background: white; font-family: Arial, sans-serif; color: #333; z-index: 99999;';
-                pdfContent.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 15px; margin: 0 0 20px 0; padding: 15px; background: linear-gradient(135deg, #1a2a3a 0%, #2a4a6a 100%); border-radius: 8px;">
-                        <img src="assets/logo.png" style="height: 45px; width: auto;" crossorigin="anonymous">
-                        <div>
-                            <h1 style="color: #ffffff; margin: 0; font-size: 20px;">BW Gas Detector - Complete Data Export</h1>
-                                <p style="color: #a0c0e0; margin: 3px 0 0 0; font-size: 11px;">Andison Industrial Sales Inc.</p>
-                            </div>
-                        </div>
-                        <p style="color: #666; margin: 0 0 15px 0; font-size: 11px;">
-                            <strong>Generated:</strong> ${new Date().toLocaleString()}
-                        </p>
-                        <h2 style="color: #1a5490; margin: 15px 0 10px 0; font-size: 14px; border-bottom: 2px solid #f4d03f; padding-bottom: 5px;">Year-to-Date Summary</h2>
-                        <table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 12px;">
-                            <tr style="background: #e8eef5;">
-                                <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Est. Revenue</td>
-                                <td style="padding: 10px; border: 1px solid #ddd;">₱${exportData.totalRevenue}</td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Units Delivered</td>
-                                <td style="padding: 10px; border: 1px solid #ddd;">${exportData.totalUnits.toLocaleString()}</td>
-                            </tr>
-                            <tr style="background: #e8eef5;">
-                                <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Total Orders</td>
-                                <td style="padding: 10px; border: 1px solid #ddd;">${exportData.totalOrders.toLocaleString()}</td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Active Clients</td>
-                                <td style="padding: 10px; border: 1px solid #ddd;">${exportData.activeClients}</td>
-                            </tr>
-                        </table>
-                        <h2 style="color: #1a5490; margin: 15px 0 10px 0; font-size: 14px; border-bottom: 2px solid #f4d03f; padding-bottom: 5px;">Top Clients</h2>
-                        <table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 12px;">
-                            <tr style="background: #2f5fa7; color: white;">
-                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Client</th>
-                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Orders</th>
-                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Units</th>
-                            </tr>
-                            ${exportData.topClients.map(c => `<tr><td style="padding: 10px; border: 1px solid #ddd;">${c.company_name}</td><td style="padding: 10px; border: 1px solid #ddd;">${parseInt(c.order_count).toLocaleString()}</td><td style="padding: 10px; border: 1px solid #ddd;">${parseInt(c.total_qty).toLocaleString()}</td></tr>`).join('')}
-                        </table>
-                        <h2 style="color: #1a5490; margin: 15px 0 10px 0; font-size: 14px; border-bottom: 2px solid #f4d03f; padding-bottom: 5px;">Top Products</h2>
-                        <table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 12px;">
-                            <tr style="background: #2f5fa7; color: white;">
-                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Item Code</th>
-                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Description</th>
-                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Units</th>
-                            </tr>
-                            ${exportData.topProducts.map(p => `<tr><td style="padding: 10px; border: 1px solid #ddd;">${p.item_code}</td><td style="padding: 10px; border: 1px solid #ddd;">${p.item_name || '-'}</td><td style="padding: 10px; border: 1px solid #ddd;">${parseInt(p.total_qty).toLocaleString()}</td></tr>`).join('')}
-                        </table>
-                    </div>
+                const exportHTML = `
+                    <h3>Year-to-Date Summary</h3>
+                    <table>
+                        <tr><th>Metric</th><th>Value</th></tr>
+                        <tr><td>Units Delivered</td><td>${exportData.totalUnits.toLocaleString()}</td></tr>
+                        <tr><td>Total Orders</td><td>${exportData.totalOrders.toLocaleString()}</td></tr>
+                        <tr><td>Active Clients</td><td>${exportData.activeClients}</td></tr>
+                    </table>
+                    <h3>Top Clients</h3>
+                    <table>
+                        <tr><th>Client</th><th>Orders</th><th>Units</th></tr>
+                        ${exportData.topClients.length ? exportData.topClients.map(c => `<tr><td>${c.company_name}</td><td>${parseInt(c.order_count).toLocaleString()}</td><td>${parseInt(c.total_qty).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="3">No client data.</td></tr>'}
+                    </table>
+                    <h3>Top Products</h3>
+                    <table>
+                        <tr><th>Item Code</th><th>Description</th><th>Orders</th><th>Units</th></tr>
+                        ${exportData.topProducts.length ? exportData.topProducts.map(p => `<tr><td>${p.item_code}</td><td>${p.item_name || '-'}</td><td>${parseInt(p.order_count).toLocaleString()}</td><td>${parseInt(p.total_qty).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="4">No product data.</td></tr>'}
+                    </table>
+                    <h3>Monthly Breakdown</h3>
+                    <table>
+                        <tr><th>Month</th><th>Orders</th><th>Units</th></tr>
+                        ${exportData.monthlyBreakdown.length ? exportData.monthlyBreakdown.map(m => `<tr><td>${m.delivery_month}</td><td>${parseInt(m.order_count).toLocaleString()}</td><td>${parseInt(m.total_qty).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="3">No monthly data.</td></tr>'}
+                    </table>
                 `;
-                
-                document.body.appendChild(pdfContent);
-                
-                const opt = {
-                    margin: [5, 10, 10, 10],
-                    filename: filename + '.pdf',
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { 
-                        scale: 2, 
-                        useCORS: true,
-                        scrollY: 0,
-                        y: 0,
-                        windowWidth: 800
-                    },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                };
-                
-                html2pdf().set(opt).from(pdfContent).save().then(() => {
-                    document.body.removeChild(pdfContent);
-                });
-                showNotification(`Exporting all data as PDF...`, 'success');
+                openPrintWindow('BW Gas Detector - Complete Data Export', exportHTML);
+                showNotification(`Opening complete data export for PDF...`, 'success');
             } else if (format === 'CSV') {
                 // Generate Excel XML for CSV (with styled headers)
                 let xmlRows = '';
@@ -1484,7 +1377,6 @@ if ($result) {
                 // Summary section
                 xmlRows += '<Row><Cell ss:StyleID="section" ss:MergeAcross="1"><Data ss:Type="String">SUMMARY</Data></Cell></Row>';
                 xmlRows += '<Row><Cell ss:StyleID="header"><Data ss:Type="String">Metric</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Value</Data></Cell></Row>';
-                xmlRows += `<Row><Cell ss:StyleID="cell"><Data ss:Type="String">Est. Revenue</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="String">₱${exportData.totalRevenue}</Data></Cell></Row>`;
                 xmlRows += `<Row><Cell ss:StyleID="cell"><Data ss:Type="String">Units Delivered</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${exportData.totalUnits}</Data></Cell></Row>`;
                 xmlRows += `<Row><Cell ss:StyleID="cell"><Data ss:Type="String">Total Orders</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${exportData.totalOrders}</Data></Cell></Row>`;
                 xmlRows += `<Row><Cell ss:StyleID="cell"><Data ss:Type="String">Active Clients</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${exportData.activeClients}</Data></Cell></Row>`;
@@ -1542,7 +1434,6 @@ ${xmlRows}</Table>
                 
                 // Summary
                 xmlRows += '<Row><Cell ss:StyleID="header"><Data ss:Type="String">Summary</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Value</Data></Cell></Row>';
-                xmlRows += `<Row><Cell><Data ss:Type="String">Est. Revenue</Data></Cell><Cell><Data ss:Type="String">₱${exportData.totalRevenue}</Data></Cell></Row>`;
                 xmlRows += `<Row><Cell><Data ss:Type="String">Units Delivered</Data></Cell><Cell><Data ss:Type="Number">${exportData.totalUnits}</Data></Cell></Row>`;
                 xmlRows += `<Row><Cell><Data ss:Type="String">Total Orders</Data></Cell><Cell><Data ss:Type="Number">${exportData.totalOrders}</Data></Cell></Row>`;
                 xmlRows += `<Row><Cell><Data ss:Type="String">Active Clients</Data></Cell><Cell><Data ss:Type="Number">${exportData.activeClients}</Data></Cell></Row>`;

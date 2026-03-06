@@ -670,25 +670,12 @@ foreach ($topCompanies as $company) {
                     </a>
                 </li>
 
-                <!-- Models (Dropdown) -->
-                <li class="menu-item has-submenu">
-                    <a href="models.php" class="menu-link submenu-toggle" data-submenu="models-submenu">
+                <!-- Models -->
+                <li class="menu-item">
+                    <a href="models.php" class="menu-link">
                         <i class="fas fa-cube"></i>
                         <span class="menu-label">Models</span>
-                        <i class="fas fa-chevron-right submenu-icon"></i>
                     </a>
-                    <ul class="submenu" id="models-submenu">
-                        <li>
-                            <a href="models.php#group-a" class="submenu-link">
-                                <span>Group A</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="models.php#group-b" class="submenu-link">
-                                <span>Group B</span>
-                            </a>
-                        </li>
-                    </ul>
                 </li>
 
                 <!-- Analytics -->

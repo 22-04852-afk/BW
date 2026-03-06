@@ -321,14 +321,10 @@ $topQtys     = json_encode(array_column($top_products, 'total_qty'));
                 <li class="menu-item">
                     <a href="client-companies.php" class="menu-link"><i class="fas fa-building"></i><span class="menu-label">Client Companies</span></a>
                 </li>
-                <li class="menu-item has-submenu">
-                    <a href="models.php" class="menu-link submenu-toggle" data-submenu="models-submenu">
-                        <i class="fas fa-cube"></i><span class="menu-label">Models</span><i class="fas fa-chevron-right submenu-icon"></i>
+                <li class="menu-item">
+                    <a href="models.php" class="menu-link">
+                        <i class="fas fa-cube"></i><span class="menu-label">Models</span>
                     </a>
-                    <ul class="submenu" id="models-submenu">
-                        <li><a href="models.php#group-a" class="submenu-link"><span>Group A</span></a></li>
-                        <li><a href="models.php#group-b" class="submenu-link"><span>Group B</span></a></li>
-                    </ul>
                 </li>
                 <li class="menu-item">
                     <a href="analytics.php" class="menu-link"><i class="fas fa-chart-bar"></i><span class="menu-label">Analytics</span></a>
