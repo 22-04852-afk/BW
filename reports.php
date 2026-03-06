@@ -456,6 +456,110 @@ if ($result) {
             display: none;
         }
 
+        /* Light Mode - Modal Styles */
+        html.light-mode .report-modal,
+        body.light-mode .report-modal {
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        html.light-mode .report-modal-content,
+        body.light-mode .report-modal-content {
+            background: #ffffff;
+            border: 1px solid #c5ddf0;
+            box-shadow: 0 10px 40px rgba(30, 136, 229, 0.2);
+        }
+
+        html.light-mode .report-modal-header,
+        body.light-mode .report-modal-header {
+            border-bottom: 1px solid #e0e0e0;
+            background: linear-gradient(135deg, #f8fbff 0%, #e3f2fd 100%);
+        }
+
+        html.light-mode .report-modal-header h2,
+        body.light-mode .report-modal-header h2 {
+            color: #1a3a5c;
+        }
+
+        html.light-mode .report-modal-close,
+        body.light-mode .report-modal-close {
+            color: #5a7a9a;
+        }
+
+        html.light-mode .report-modal-close:hover,
+        body.light-mode .report-modal-close:hover {
+            color: #1a3a5c;
+        }
+
+        html.light-mode .report-modal-body,
+        body.light-mode .report-modal-body {
+            background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
+        }
+
+        html.light-mode .report-content,
+        body.light-mode .report-content {
+            color: #333;
+        }
+
+        html.light-mode .report-content h3,
+        body.light-mode .report-content h3 {
+            color: #1e88e5;
+        }
+
+        html.light-mode .report-content p,
+        body.light-mode .report-content p {
+            color: #444;
+        }
+
+        html.light-mode .report-table,
+        body.light-mode .report-table {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+        }
+
+        html.light-mode .report-table th,
+        body.light-mode .report-table th {
+            background: rgba(30, 136, 229, 0.1);
+            color: #1e88e5;
+            border-bottom: 2px solid #1e88e5;
+        }
+
+        html.light-mode .report-table td,
+        body.light-mode .report-table td {
+            color: #333;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        html.light-mode .report-table tr:hover,
+        body.light-mode .report-table tr:hover {
+            background: rgba(30, 136, 229, 0.05);
+        }
+
+        html.light-mode .report-modal-footer,
+        body.light-mode .report-modal-footer {
+            border-top: 1px solid #e0e0e0;
+            background: linear-gradient(135deg, #f8fbff 0%, #e3f2fd 100%);
+        }
+
+        html.light-mode .btn-modal,
+        body.light-mode .btn-modal {
+            background: #f0f7ff;
+            border: 1px solid #c5ddf0;
+            color: #1a3a5c;
+        }
+
+        html.light-mode .btn-modal:hover,
+        body.light-mode .btn-modal:hover {
+            background: #1e88e5;
+            border-color: #1e88e5;
+            color: #fff;
+        }
+
+        html.light-mode .btn-modal.primary,
+        body.light-mode .btn-modal.primary {
+            background: linear-gradient(135deg, #1e88e5, #42a5f5);
+            color: #fff;
+        }
+
         /* PDF-specific styles */
         @media print {
             body {
@@ -505,10 +609,7 @@ if ($result) {
 
             <!-- Right Profile Section -->
             <div class="navbar-end">
-                <div class="notification" title="Notifications">
-                    <i class="fas fa-bell"></i>
-                    <span class="notification-badge">3</span>
-                </div>
+
                 <div class="profile-dropdown">
                     <button type="button" class="profile-btn" id="profileBtn" aria-label="Profile menu">
                         <span class="profile-name"><?php echo htmlspecialchars(isset($_SESSION['user_name']) ? $_SESSION['user_name'] : 'User'); ?></span>
@@ -1061,35 +1162,58 @@ if ($result) {
         function downloadCurrentReport() {
             if (currentReportData) {
                 const element = document.getElementById('reportModalBody');
-                const opt = {
-                    margin: [15, 15, 15, 15],
-                    filename: `${currentReportData.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, backgroundColor: '#ffffff' },
-                    jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
-                };
                 
-                // Create a styled wrapper for better PDF formatting with logo
-                const styledElement = document.createElement('div');
-                styledElement.innerHTML = `
-                    <div style="font-family: Arial, sans-serif; color: #333;">
-                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 3px solid #f4d03f;">
-                            <img src="assets/logo.png" style="height: 50px; width: auto; filter: brightness(0) saturate(100%) invert(18%) sepia(89%) saturate(1356%) hue-rotate(196deg) brightness(97%) contrast(91%);" crossorigin="anonymous">
-                            <div>
-                                <h1 style="color: #1a5490; margin: 0; font-size: 22px;">${currentReportData.title}</h1>
-                                <p style="color: #666; margin: 5px 0 0 0; font-size: 11px;">Andison Industrial Sales Inc.</p>
-                            </div>
+                // Get content and apply inline styles to tables
+                let contentHTML = element.innerHTML;
+                
+                // Style tables for PDF
+                contentHTML = contentHTML.replace(/<table[^>]*class="report-table"[^>]*>/gi, 
+                    '<table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 12px;">');
+                contentHTML = contentHTML.replace(/<thead>/gi, '<thead style="background: #2f5fa7;">');
+                contentHTML = contentHTML.replace(/<th>/gi, '<th style="padding: 10px; border: 1px solid #ddd; color: white; font-weight: bold; text-align: left;">');
+                contentHTML = contentHTML.replace(/<td>/gi, '<td style="padding: 10px; border: 1px solid #ddd;">');
+                contentHTML = contentHTML.replace(/<h3>/gi, '<h3 style="color: #1a5490; margin-top: 20px; margin-bottom: 10px; font-size: 16px; border-bottom: 2px solid #f4d03f; padding-bottom: 5px;">');
+                contentHTML = contentHTML.replace(/<p>/gi, '<p style="margin: 8px 0; font-size: 14px;">');
+                
+                // Create PDF content element
+                const pdfContent = document.createElement('div');
+                pdfContent.id = 'pdf-export-content';
+                pdfContent.style.cssText = 'position: fixed; top: 0; left: 0; width: 800px; padding: 20px; background: white; font-family: Arial, sans-serif; color: #333; z-index: 99999;';
+                pdfContent.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 15px; margin: 0 0 20px 0; padding: 15px; background: linear-gradient(135deg, #1a2a3a 0%, #2a4a6a 100%); border-radius: 8px;">
+                        <img src="assets/logo.png" style="height: 45px; width: auto;" crossorigin="anonymous">
+                        <div>
+                            <h1 style="color: #ffffff; margin: 0; font-size: 20px;">${currentReportData.title}</h1>
+                            <p style="color: #a0c0e0; margin: 3px 0 0 0; font-size: 11px;">Andison Industrial Sales Inc.</p>
                         </div>
-                        <p style="color: #666; margin-bottom: 20px; font-size: 12px;">
-                            <strong>Generated:</strong> ${new Date().toLocaleString()}
-                        </p>
-                        <div style="font-size: 14px; line-height: 1.8;">
-                            ${element.innerHTML}
-                        </div>
+                    </div>
+                    <p style="color: #666; margin: 0 0 15px 0; font-size: 11px;">
+                        <strong>Generated:</strong> ${new Date().toLocaleString()}
+                    </p>
+                    <div style="font-size: 13px; line-height: 1.5;">
+                        ${contentHTML}
                     </div>
                 `;
                 
-                html2pdf().set(opt).from(styledElement).save();
+                document.body.appendChild(pdfContent);
+                
+                const opt = {
+                    margin: [5, 10, 10, 10],
+                    filename: `${currentReportData.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { 
+                        scale: 2, 
+                        useCORS: true,
+                        scrollY: 0,
+                        y: 0,
+                        windowWidth: 800
+                    },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+                
+                html2pdf().set(opt).from(pdfContent).save().then(() => {
+                    document.body.removeChild(pdfContent);
+                });
                 showNotification(`Downloading ${currentReportData.title} as PDF...`, 'success');
             }
         }
@@ -1099,33 +1223,55 @@ if ($result) {
             if (!report) return;
             
             if (format === 'PDF') {
-                const element = document.createElement('div');
-                element.innerHTML = `
-                    <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.8;">
-                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 3px solid #f4d03f;">
-                            <img src="assets/logo.png" style="height: 50px; width: auto; filter: brightness(0) saturate(100%) invert(18%) sepia(89%) saturate(1356%) hue-rotate(196deg) brightness(97%) contrast(91%);" crossorigin="anonymous">
-                            <div>
-                                <h1 style="color: #1a5490; margin: 0; font-size: 22px;">${report.title}</h1>
-                                <p style="color: #666; margin: 5px 0 0 0; font-size: 11px;">Andison Industrial Sales Inc.</p>
-                            </div>
+                // Style the content for PDF
+                let styledContent = report.content;
+                styledContent = styledContent.replace(/<table[^>]*class="report-table"[^>]*>/gi, 
+                    '<table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 12px;">');
+                styledContent = styledContent.replace(/<thead>/gi, '<thead style="background: #2f5fa7;">');
+                styledContent = styledContent.replace(/<th>/gi, '<th style="padding: 10px; border: 1px solid #ddd; color: white; font-weight: bold; text-align: left;">');
+                styledContent = styledContent.replace(/<td>/gi, '<td style="padding: 10px; border: 1px solid #ddd;">');
+                styledContent = styledContent.replace(/<h3>/gi, '<h3 style="color: #1a5490; margin-top: 20px; margin-bottom: 10px; font-size: 16px; border-bottom: 2px solid #f4d03f; padding-bottom: 5px;">');
+                styledContent = styledContent.replace(/<p>/gi, '<p style="margin: 8px 0; font-size: 14px;">');
+                
+                // Create PDF content element
+                const pdfContent = document.createElement('div');
+                pdfContent.id = 'pdf-export-content';
+                pdfContent.style.cssText = 'position: fixed; top: 0; left: 0; width: 800px; padding: 20px; background: white; font-family: Arial, sans-serif; color: #333; z-index: 99999;';
+                pdfContent.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 15px; margin: 0 0 20px 0; padding: 15px; background: linear-gradient(135deg, #1a2a3a 0%, #2a4a6a 100%); border-radius: 8px;">
+                        <img src="assets/logo.png" style="height: 45px; width: auto;" crossorigin="anonymous">
+                        <div>
+                            <h1 style="color: #ffffff; margin: 0; font-size: 20px;">${report.title}</h1>
+                            <p style="color: #a0c0e0; margin: 3px 0 0 0; font-size: 11px;">Andison Industrial Sales Inc.</p>
                         </div>
-                        <p style="color: #666; margin-bottom: 20px; font-size: 12px;">
-                            <strong>Generated:</strong> ${new Date().toLocaleString()}
-                        </p>
-                        <div style="font-size: 14px;">
-                            ${report.content}
-                        </div>
+                    </div>
+                    <p style="color: #666; margin: 0 0 15px 0; font-size: 11px;">
+                        <strong>Generated:</strong> ${new Date().toLocaleString()}
+                    </p>
+                    <div style="font-size: 13px; line-height: 1.5;">
+                        ${styledContent}
                     </div>
                 `;
                 
+                document.body.appendChild(pdfContent);
+                
                 const opt = {
-                    margin: [15, 15, 15, 15],
+                    margin: [5, 10, 10, 10],
                     filename: `${reportName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, backgroundColor: '#ffffff' },
-                    jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+                    html2canvas: { 
+                        scale: 2, 
+                        useCORS: true,
+                        scrollY: 0,
+                        y: 0,
+                        windowWidth: 800
+                    },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 };
-                html2pdf().set(opt).from(element).save();
+                
+                html2pdf().set(opt).from(pdfContent).save().then(() => {
+                    document.body.removeChild(pdfContent);
+                });
                 showNotification(`Downloading ${reportName} as PDF...`, 'success');
             } else if (format === 'CSV') {
                 // Generate Excel XML for CSV (with styled headers)
@@ -1253,58 +1399,80 @@ if ($result) {
             };
             
             if (format === 'PDF') {
-                const element = document.createElement('div');
-                element.innerHTML = `
-                    <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.8;">
-                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 3px solid #f4d03f;">
-                            <img src="assets/logo.png" style="height: 50px; width: auto; filter: brightness(0) saturate(100%) invert(18%) sepia(89%) saturate(1356%) hue-rotate(196deg) brightness(97%) contrast(91%);" crossorigin="anonymous">
-                            <div>
-                                <h1 style="color: #1a5490; margin: 0; font-size: 22px;">BW Gas Detector - Complete Data Export</h1>
-                                <p style="color: #666; margin: 5px 0 0 0; font-size: 11px;">Andison Industrial Sales Inc.</p>
+                // Create PDF content element
+                const pdfContent = document.createElement('div');
+                pdfContent.id = 'pdf-export-content';
+                pdfContent.style.cssText = 'position: fixed; top: 0; left: 0; width: 800px; padding: 20px; background: white; font-family: Arial, sans-serif; color: #333; z-index: 99999;';
+                pdfContent.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 15px; margin: 0 0 20px 0; padding: 15px; background: linear-gradient(135deg, #1a2a3a 0%, #2a4a6a 100%); border-radius: 8px;">
+                        <img src="assets/logo.png" style="height: 45px; width: auto;" crossorigin="anonymous">
+                        <div>
+                            <h1 style="color: #ffffff; margin: 0; font-size: 20px;">BW Gas Detector - Complete Data Export</h1>
+                                <p style="color: #a0c0e0; margin: 3px 0 0 0; font-size: 11px;">Andison Industrial Sales Inc.</p>
                             </div>
                         </div>
-                        <p style="color: #666; margin-bottom: 20px; font-size: 12px;">
+                        <p style="color: #666; margin: 0 0 15px 0; font-size: 11px;">
                             <strong>Generated:</strong> ${new Date().toLocaleString()}
                         </p>
-                        <h2 style="color: #1a5490; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">Year-to-Date Summary</h2>
-                        <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
-                            <tr style="background: #e8eef5; border: 1px solid #ddd;">
+                        <h2 style="color: #1a5490; margin: 15px 0 10px 0; font-size: 14px; border-bottom: 2px solid #f4d03f; padding-bottom: 5px;">Year-to-Date Summary</h2>
+                        <table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 12px;">
+                            <tr style="background: #e8eef5;">
                                 <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Est. Revenue</td>
                                 <td style="padding: 10px; border: 1px solid #ddd;">₱${exportData.totalRevenue}</td>
                             </tr>
-                            <tr style="border: 1px solid #ddd;">
+                            <tr>
                                 <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Units Delivered</td>
                                 <td style="padding: 10px; border: 1px solid #ddd;">${exportData.totalUnits.toLocaleString()}</td>
                             </tr>
-                            <tr style="background: #e8eef5; border: 1px solid #ddd;">
+                            <tr style="background: #e8eef5;">
                                 <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Total Orders</td>
                                 <td style="padding: 10px; border: 1px solid #ddd;">${exportData.totalOrders.toLocaleString()}</td>
                             </tr>
-                            <tr style="border: 1px solid #ddd;">
+                            <tr>
                                 <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Active Clients</td>
                                 <td style="padding: 10px; border: 1px solid #ddd;">${exportData.activeClients}</td>
                             </tr>
                         </table>
-                        <h2 style="color: #1a5490; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">Top Clients</h2>
-                        <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+                        <h2 style="color: #1a5490; margin: 15px 0 10px 0; font-size: 14px; border-bottom: 2px solid #f4d03f; padding-bottom: 5px;">Top Clients</h2>
+                        <table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 12px;">
                             <tr style="background: #2f5fa7; color: white;">
-                                <th style="padding: 10px; border: 1px solid #ddd;">Client</th>
-                                <th style="padding: 10px; border: 1px solid #ddd;">Orders</th>
-                                <th style="padding: 10px; border: 1px solid #ddd;">Units</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Client</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Orders</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Units</th>
                             </tr>
                             ${exportData.topClients.map(c => `<tr><td style="padding: 10px; border: 1px solid #ddd;">${c.company_name}</td><td style="padding: 10px; border: 1px solid #ddd;">${parseInt(c.order_count).toLocaleString()}</td><td style="padding: 10px; border: 1px solid #ddd;">${parseInt(c.total_qty).toLocaleString()}</td></tr>`).join('')}
+                        </table>
+                        <h2 style="color: #1a5490; margin: 15px 0 10px 0; font-size: 14px; border-bottom: 2px solid #f4d03f; padding-bottom: 5px;">Top Products</h2>
+                        <table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 12px;">
+                            <tr style="background: #2f5fa7; color: white;">
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Item Code</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Description</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Units</th>
+                            </tr>
+                            ${exportData.topProducts.map(p => `<tr><td style="padding: 10px; border: 1px solid #ddd;">${p.item_code}</td><td style="padding: 10px; border: 1px solid #ddd;">${p.item_name || '-'}</td><td style="padding: 10px; border: 1px solid #ddd;">${parseInt(p.total_qty).toLocaleString()}</td></tr>`).join('')}
                         </table>
                     </div>
                 `;
                 
+                document.body.appendChild(pdfContent);
+                
                 const opt = {
-                    margin: [15, 15, 15, 15],
+                    margin: [5, 10, 10, 10],
                     filename: filename + '.pdf',
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, backgroundColor: '#ffffff' },
-                    jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+                    html2canvas: { 
+                        scale: 2, 
+                        useCORS: true,
+                        scrollY: 0,
+                        y: 0,
+                        windowWidth: 800
+                    },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 };
-                html2pdf().set(opt).from(element).save();
+                
+                html2pdf().set(opt).from(pdfContent).save().then(() => {
+                    document.body.removeChild(pdfContent);
+                });
                 showNotification(`Exporting all data as PDF...`, 'success');
             } else if (format === 'CSV') {
                 // Generate Excel XML for CSV (with styled headers)

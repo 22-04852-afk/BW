@@ -177,10 +177,7 @@ if ($result && $row = $result->fetch_assoc()) {
 
             <!-- Right Profile Section -->
             <div class="navbar-end">
-                <div class="notification" title="Notifications">
-                    <i class="fas fa-bell"></i>
-                    <span class="notification-badge">3</span>
-                </div>
+
                 <div class="profile-dropdown">
                     <button type="button" class="profile-btn" id="profileBtn" aria-label="Profile menu">
                         <span class="profile-name"><?php echo htmlspecialchars(isset($_SESSION['user_name']) ? $_SESSION['user_name'] : 'User'); ?></span>

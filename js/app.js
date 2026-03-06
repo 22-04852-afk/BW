@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeSidebarToggle();
     initializeSubmenuToggle();
     initializeProfileDropdown();
+    initializeNotificationDropdown();
     initializeResponsive();
     loadUserProfile();
     
@@ -159,6 +160,13 @@ function initializeProfileDropdown() {
     profileBtn.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
+        
+        // Close notification dropdown if open
+        const notificationDropdown = document.getElementById('notificationDropdown');
+        if (notificationDropdown) {
+            notificationDropdown.classList.remove('show');
+        }
+        
         console.log('Profile button clicked, toggling dropdown');
         profileMenu.classList.toggle('active');
     });
@@ -184,6 +192,65 @@ function initializeProfileDropdown() {
             profileBtn.focus();
         }
     });
+}
+
+// ============================================
+// NOTIFICATION DROPDOWN FUNCTIONALITY
+// ============================================
+
+function initializeNotificationDropdown() {
+    const notificationBtn = document.getElementById('notificationBtn');
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    const profileMenu = document.getElementById('profileMenu');
+
+    if (!notificationBtn || !notificationDropdown) {
+        console.warn('Notification button or dropdown not found in DOM');
+        return;
+    }
+
+    // Click handler for notification bell
+    notificationBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Close profile dropdown if open
+        if (profileMenu) {
+            profileMenu.classList.remove('active');
+        }
+        
+        notificationDropdown.classList.toggle('show');
+    });
+
+    // Click anywhere else to close dropdown
+    document.addEventListener('click', function(e) {
+        if (!notificationBtn.contains(e.target)) {
+            notificationDropdown.classList.remove('show');
+        }
+    });
+
+    // Keyboard support (Escape key)
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && notificationDropdown.classList.contains('show')) {
+            notificationDropdown.classList.remove('show');
+        }
+    });
+}
+
+// Mark all notifications as read
+function markAllRead(e) {
+    e.stopPropagation();
+    
+    const unreadItems = document.querySelectorAll('.notification-item.unread');
+    unreadItems.forEach(item => {
+        item.classList.remove('unread');
+    });
+    
+    // Update badge count
+    const badge = document.getElementById('notificationCount');
+    if (badge) {
+        badge.textContent = '0';
+        badge.style.display = 'none';
+    }
 }
 
 // ============================================

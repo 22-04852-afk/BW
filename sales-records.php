@@ -154,30 +154,97 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
         .year-selector {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
         }
 
         .year-selector label {
             color: #a0a0a0;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        .year-selector .select-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .year-selector .select-wrapper::after {
+            content: '\f078';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: #f4d03f;
+            font-size: 11px;
+            transition: transform 0.3s ease, color 0.3s ease;
+        }
+
+        .year-selector .select-wrapper:hover::after {
+            transform: translateY(-50%) rotate(180deg);
         }
 
         .year-selector select {
-            padding: 10px 20px;
+            padding: 12px 45px 12px 18px;
             font-size: 15px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(255, 255, 255, 0.05);
+            font-weight: 600;
+            border-radius: 12px;
+            border: 2px solid rgba(244, 208, 63, 0.3);
+            background: linear-gradient(145deg, rgba(30, 42, 56, 0.95), rgba(20, 30, 45, 0.98));
             color: #fff;
             font-family: 'Poppins', sans-serif;
             cursor: pointer;
-            min-width: 120px;
+            min-width: 130px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            box-shadow: 
+                0 4px 15px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 0 0 rgba(244, 208, 63, 0);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+        }
+
+        .year-selector select:hover {
+            border-color: rgba(244, 208, 63, 0.6);
+            box-shadow: 
+                0 6px 20px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                0 0 20px rgba(244, 208, 63, 0.15);
+            transform: translateY(-2px);
         }
 
         .year-selector select:focus {
             outline: none;
             border-color: #f4d03f;
+            box-shadow: 
+                0 6px 25px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                0 0 30px rgba(244, 208, 63, 0.25),
+                0 0 0 3px rgba(244, 208, 63, 0.1);
+        }
+
+        .year-selector select option {
+            background: #1e2a38;
+            color: #fff;
+            padding: 12px;
+            font-weight: 500;
+        }
+
+        .year-selector select option:hover,
+        .year-selector select option:checked {
+            background: linear-gradient(135deg, #2a3f5f, #1e2a38);
+        }
+
+        .year-selector label i {
+            color: #f4d03f;
+            margin-right: 6px;
+            font-size: 13px;
         }
 
         .summary-cards {
@@ -443,14 +510,53 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
 
         html.light-mode .year-selector select,
         body.light-mode .year-selector select {
-            background: #fff;
-            border: 1px solid #c5ddf0;
+            background: linear-gradient(145deg, #ffffff, #f0f7ff);
+            border: 2px solid rgba(30, 136, 229, 0.3);
+            color: #1a3a5c;
+            box-shadow: 
+                0 4px 15px rgba(30, 136, 229, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9),
+                0 0 0 0 rgba(30, 136, 229, 0);
+        }
+
+        html.light-mode .year-selector select:hover,
+        body.light-mode .year-selector select:hover {
+            border-color: rgba(30, 136, 229, 0.5);
+            box-shadow: 
+                0 6px 20px rgba(30, 136, 229, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9),
+                0 0 20px rgba(30, 136, 229, 0.1);
+        }
+
+        html.light-mode .year-selector select:focus,
+        body.light-mode .year-selector select:focus {
+            border-color: #1e88e5;
+            box-shadow: 
+                0 6px 25px rgba(30, 136, 229, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9),
+                0 0 30px rgba(30, 136, 229, 0.15),
+                0 0 0 3px rgba(30, 136, 229, 0.1);
+        }
+
+        html.light-mode .year-selector .select-wrapper::after,
+        body.light-mode .year-selector .select-wrapper::after {
+            color: #1e88e5;
+        }
+
+        html.light-mode .year-selector select option,
+        body.light-mode .year-selector select option {
+            background: #ffffff;
             color: #1a3a5c;
         }
 
         html.light-mode .year-selector label,
         body.light-mode .year-selector label {
-            color: #5a6a7a;
+            color: #3a6a8a;
+        }
+
+        html.light-mode .year-selector label i,
+        body.light-mode .year-selector label i {
+            color: #1e88e5;
         }
 
         html.light-mode .section-title,
@@ -497,10 +603,7 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
 
             <!-- Right Profile Section -->
             <div class="navbar-end">
-                <div class="notification" title="Notifications">
-                    <i class="fas fa-bell"></i>
-                    <span class="notification-badge">3</span>
-                </div>
+
                 <div class="profile-dropdown">
                     <button type="button" class="profile-btn" id="profileBtn" aria-label="Profile menu">
                         <span class="profile-name"><?php echo htmlspecialchars(isset($_SESSION['user_name']) ? $_SESSION['user_name'] : 'User'); ?></span>
@@ -632,14 +735,16 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
                     Sales Records
                 </h1>
                 <div class="year-selector">
-                    <label for="yearSelect">Select Year:</label>
-                    <select id="yearSelect" onchange="changeYear(this.value)">
-                        <?php foreach ($availableYears as $year): ?>
-                        <option value="<?php echo $year; ?>" <?php echo $year == $selectedYear ? 'selected' : ''; ?>>
-                            <?php echo $year; ?>
-                        </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <label for="yearSelect"><i class="fas fa-calendar-alt"></i> Year:</label>
+                    <div class="select-wrapper">
+                        <select id="yearSelect" onchange="changeYear(this.value)">
+                            <?php foreach ($availableYears as $year): ?>
+                            <option value="<?php echo $year; ?>" <?php echo $year == $selectedYear ? 'selected' : ''; ?>>
+                                <?php echo $year; ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 </div>
             </div>
 
