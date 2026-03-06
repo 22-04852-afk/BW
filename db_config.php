@@ -63,5 +63,9 @@ try {
     @$conn->query("ALTER TABLE delivery_records ADD COLUMN serial_no VARCHAR(100)");
     @$conn->query("ALTER TABLE delivery_records ADD COLUMN delivery_year INTEGER NOT NULL DEFAULT 0");
     @$conn->query("ALTER TABLE delivery_records ADD COLUMN delivery_date DATE");
+    
+    // Add 2FA columns for users table
+    @$conn->query("ALTER TABLE users ADD COLUMN two_factor_secret VARCHAR(32) DEFAULT NULL");
+    @$conn->query("ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER DEFAULT 0");
 }
 ?>

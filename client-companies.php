@@ -324,7 +324,9 @@ foreach ($companies as $c) {
                     <span></span>
                 </button>
                 <div class="logo">
-                    <img src="assets/logo.png" alt="Andison" style="height:38px;width:auto;object-fit:contain;">
+                    <a href="index.php" style="display:flex;align-items:center;">
+                        <img src="assets/logo.png" alt="Andison" style="height:48px;width:auto;object-fit:contain;">
+                    </a>
                 </div>
             </div>
 
@@ -398,14 +400,6 @@ foreach ($companies as $c) {
                     <a href="models.php" class="menu-link">
                         <i class="fas fa-cube"></i>
                         <span class="menu-label">Models</span>
-                    </a>
-                </li>
-
-                <!-- Analytics -->
-                <li class="menu-item">
-                    <a href="analytics.php" class="menu-link">
-                        <i class="fas fa-chart-bar"></i>
-                        <span class="menu-label">Analytics</span>
                     </a>
                 </li>
 

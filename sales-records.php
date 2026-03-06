@@ -129,6 +129,22 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <style>
+        /* Prevent horizontal overflow */
+        html, body {
+            overflow-x: hidden;
+        }
+
+        /* Ensure content fills available space evenly */
+        .summary-cards,
+        .charts-grid,
+        .table-container,
+        .section-title,
+        .page-header {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
         .page-header {
             display: flex;
             justify-content: space-between;
@@ -249,9 +265,10 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
 
         .summary-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 20px;
             margin-bottom: 30px;
+            width: 100%;
         }
 
         .summary-card {
@@ -261,6 +278,7 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
             padding: 25px;
             text-align: center;
             transition: all 0.3s ease;
+            min-width: 0;
         }
 
         .summary-card:hover {
@@ -318,15 +336,10 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
 
         .charts-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 25px;
             margin-bottom: 30px;
-        }
-
-        @media (max-width: 992px) {
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
+            width: 100%;
         }
 
         .chart-card {
@@ -334,6 +347,9 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             padding: 25px;
+            min-width: 0; /* Prevent overflow */
+            overflow: hidden;
+            flex: 1;
         }
 
         .chart-card h3 {
@@ -353,6 +369,11 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
         .chart-container {
             position: relative;
             height: 300px;
+            width: 100%;
+        }
+
+        .chart-container canvas {
+            max-width: 100%;
         }
 
         .sales-table {
@@ -583,6 +604,196 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
             background: rgba(30, 136, 229, 0.15);
             color: #1e88e5;
         }
+
+        /* ============================================
+           RESPONSIVE STYLES
+           ============================================ */
+
+        /* Large desktops and smaller */
+        @media (max-width: 1200px) {
+            .summary-cards {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        /* Tablets and smaller */
+        @media (max-width: 992px) {
+            .charts-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .page-title {
+                font-size: 24px;
+            }
+            
+            .summary-cards {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 15px;
+            }
+            
+            .summary-card {
+                padding: 20px;
+            }
+            
+            .summary-card .value {
+                font-size: 26px;
+            }
+            
+            .chart-container {
+                height: 250px;
+            }
+            
+            .sales-table thead th,
+            .sales-table tbody td {
+                padding: 12px 14px;
+                font-size: 13px;
+            }
+        }
+
+        /* Small tablets and large phones */
+        @media (max-width: 768px) {
+            .page-title {
+                font-size: 20px;
+            }
+            
+            .summary-cards {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 12px;
+            }
+            
+            .summary-card {
+                padding: 15px;
+            }
+            
+            .summary-card .icon {
+                font-size: 28px;
+                margin-bottom: 8px;
+            }
+            
+            .summary-card .value {
+                font-size: 22px;
+            }
+            
+            .summary-card .label {
+                font-size: 11px;
+            }
+            
+            .chart-card {
+                padding: 15px;
+            }
+            
+            .chart-container {
+                height: 220px;
+            }
+            
+            .table-container {
+                padding: 15px;
+            }
+            
+            .section-title {
+                font-size: 18px;
+            }
+            
+            .year-selector select {
+                padding: 10px 35px 10px 14px;
+                font-size: 14px;
+                min-width: 110px;
+            }
+        }
+
+        /* Mobile phones */
+        @media (max-width: 576px) {
+            .page-header {
+                margin-bottom: 20px;
+            }
+            
+            .page-title {
+                font-size: 18px;
+                gap: 8px;
+            }
+            
+            .summary-cards {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 10px;
+            }
+            
+            .summary-card {
+                padding: 15px;
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                text-align: left;
+            }
+            
+            .summary-card .icon {
+                font-size: 24px;
+                margin-bottom: 0;
+            }
+            
+            .summary-card .value {
+                font-size: 20px;
+                margin-bottom: 2px;
+            }
+            
+            .summary-card .label {
+                font-size: 10px;
+            }
+            
+            .chart-card h3 {
+                font-size: 14px;
+            }
+            
+            .chart-container {
+                height: 200px;
+            }
+            
+            .section-title {
+                font-size: 16px;
+                margin: 20px 0 15px;
+            }
+            
+            .sales-table thead th,
+            .sales-table tbody td {
+                padding: 10px 8px;
+                font-size: 12px;
+            }
+            
+            .table-header h3 {
+                font-size: 14px;
+            }
+            
+            .badge-month {
+                padding: 4px 8px;
+                font-size: 10px;
+            }
+        }
+
+        /* Extra small phones */
+        @media (max-width: 400px) {
+            .summary-card {
+                padding: 12px;
+            }
+            
+            .summary-card .value {
+                font-size: 18px;
+            }
+            
+            .year-selector {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            
+            .year-selector select {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -597,7 +808,9 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
                     <span></span>
                 </button>
                 <div class="logo">
-                    <img src="assets/logo.png" alt="Andison" style="height:38px;width:auto;object-fit:contain;">
+                    <a href="index.php" style="display:flex;align-items:center;">
+                        <img src="assets/logo.png" alt="Andison" style="height:48px;width:auto;object-fit:contain;">
+                    </a>
                 </div>
             </div>
 
@@ -672,14 +885,6 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
                         </a>
                     </li>
 
-                    <!-- Analytics -->
-                    <li class="menu-item">
-                        <a href="analytics.php" class="menu-link">
-                            <i class="fas fa-chart-bar"></i>
-                            <span class="menu-label">Analytics</span>
-                        </a>
-                    </li>
-
                     <!-- Reports -->
                     <li class="menu-item">
                         <a href="reports.php" class="menu-link">
@@ -714,7 +919,7 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
         </aside>
 
         <!-- MAIN CONTENT -->
-        <main class="main-content">
+        <main class="main-content" id="mainContent">
             <!-- Page Header -->
             <div class="page-header">
                 <h1 class="page-title">
@@ -1088,6 +1293,26 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
                     window.location.href = 'sales-records.php?year=' + year;
                 });
         }
+
+        // Resize charts when sidebar toggles
+        function resizeCharts() {
+            setTimeout(() => {
+                monthlyUnitsChart.resize();
+                monthlyOrdersChart.resize();
+            }, 350); // Wait for CSS transition to complete
+        }
+
+        // Listen for sidebar toggle
+        const hamburgerBtn = document.getElementById('hamburgerBtn');
+        if (hamburgerBtn) {
+            hamburgerBtn.addEventListener('click', resizeCharts);
+        }
+
+        // Also resize on window resize
+        window.addEventListener('resize', function() {
+            monthlyUnitsChart.resize();
+            monthlyOrdersChart.resize();
+        });
     </script>
 </body>
 </html>

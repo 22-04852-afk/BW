@@ -17,6 +17,22 @@
             });
         }
     }
+    
+    // Apply saved accent color
+    var accentColor = localStorage.getItem('accentColor');
+    if (accentColor) {
+        var colors = {
+            gold: '#f4d03f',
+            blue: '#3498db',
+            green: '#27ae60',
+            purple: '#9b59b6',
+            red: '#e74c3c',
+            orange: '#e67e22'
+        };
+        if (colors[accentColor]) {
+            document.documentElement.style.setProperty('--color-accent', colors[accentColor]);
+        }
+    }
 })();
 
 // Set Chart.js global color defaults based on current theme
@@ -41,6 +57,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.classList.remove('light-mode');
     }
     
+    // Apply display settings
+    initializeDisplaySettings();
+    
     // Initialize UI Elements
     initializeDarkModeToggle();
     initializeSidebarToggle();
@@ -53,6 +72,46 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize All Charts
     initializeCharts();
 });
+
+// ============================================
+// DISPLAY SETTINGS
+// ============================================
+function initializeDisplaySettings() {
+    // Apply accent color
+    var accentColor = localStorage.getItem('accentColor');
+    if (accentColor) {
+        var colors = {
+            gold: '#f4d03f',
+            blue: '#3498db',
+            green: '#27ae60',
+            purple: '#9b59b6',
+            red: '#e74c3c',
+            orange: '#e67e22'
+        };
+        if (colors[accentColor]) {
+            document.documentElement.style.setProperty('--color-accent', colors[accentColor]);
+        }
+    }
+    
+    // Apply font size
+    var fontSize = localStorage.getItem('fontSize');
+    if (fontSize) {
+        document.body.classList.remove('font-small', 'font-medium', 'font-large');
+        document.body.classList.add('font-' + fontSize);
+    }
+    
+    // Apply compact mode - check localStorage first, then fall back to fetching settings
+    var compactMode = localStorage.getItem('compactMode');
+    if (compactMode === 'true') {
+        document.body.classList.add('compact-mode');
+    }
+    
+    // Apply animations setting
+    var animations = localStorage.getItem('animations');
+    if (animations === 'false') {
+        document.body.classList.add('no-animations');
+    }
+}
 
 // ============================================
 // SIDEBAR TOGGLE FUNCTIONALITY
@@ -110,11 +169,24 @@ function initializeSidebarToggle() {
         localStorage.setItem('sidebarCollapsed', isCollapsed);
     });
 
-    // Restore sidebar state from localStorage
-    const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-    if (sidebarCollapsed) {
+    // Check sidebar behavior setting
+    const sidebarBehavior = localStorage.getItem('sidebarBehavior') || 'remember';
+    
+    if (sidebarBehavior === 'expanded') {
+        // Always expanded
+        sidebar.classList.remove('collapsed');
+        if (mainContent) mainContent.classList.remove('sidebar-collapsed');
+    } else if (sidebarBehavior === 'collapsed') {
+        // Always collapsed
         sidebar.classList.add('collapsed');
-        mainContent.classList.add('sidebar-collapsed');
+        if (mainContent) mainContent.classList.add('sidebar-collapsed');
+    } else {
+        // Remember last state (default)
+        const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        if (sidebarCollapsed) {
+            sidebar.classList.add('collapsed');
+            if (mainContent) mainContent.classList.add('sidebar-collapsed');
+        }
     }
 }
 

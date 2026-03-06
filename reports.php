@@ -198,7 +198,7 @@ if ($result) {
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
             padding: 10px 14px;
-            color: #1a1919;
+            color: #ffffff;
             font-family: 'Poppins', sans-serif;
             font-size: 13px;
         }
@@ -207,6 +207,49 @@ if ($result) {
             outline: none;
             border-color: #2f5fa7;
             background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .date-label {
+            color: #a0a0a0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+        
+        .btn-generate {
+            background: linear-gradient(135deg, #2f5fa7, #1e3c72);
+            color: white;
+            border: none;
+        }
+        
+        /* Light mode styles for Custom Report Generator */
+        html.light-mode .section-title,
+        body.light-mode .section-title {
+            color: #1a3a5c;
+        }
+        
+        html.light-mode .date-label,
+        body.light-mode .date-label {
+            color: #3a6a8a;
+        }
+        
+        html.light-mode .date-input,
+        body.light-mode .date-input {
+            background: #ffffff;
+            border: 1px solid #b8d4e8;
+            color: #1a3a5c;
+        }
+        
+        html.light-mode .date-input:focus,
+        body.light-mode .date-input:focus {
+            border-color: #2f5fa7;
+            background: #f8fbfd;
+        }
+        
+        html.light-mode .btn-generate,
+        body.light-mode .btn-generate {
+            background: linear-gradient(135deg, #3a7bd5, #2f5fa7);
         }
         
         .stats-row {
@@ -599,7 +642,9 @@ if ($result) {
                     <span></span>
                 </button>
                 <div class="logo">
-                    <img src="assets/logo.png" alt="Andison" style="height:38px;width:auto;object-fit:contain;">
+                    <a href="index.php" style="display:flex;align-items:center;">
+                        <img src="assets/logo.png" alt="Andison" style="height:48px;width:auto;object-fit:contain;">
+                    </a>
                 </div>
             </div>
 
@@ -673,14 +718,6 @@ if ($result) {
                     <a href="models.php" class="menu-link">
                         <i class="fas fa-cube"></i>
                         <span class="menu-label">Models</span>
-                    </a>
-                </li>
-
-                <!-- Analytics -->
-                <li class="menu-item">
-                    <a href="analytics.php" class="menu-link">
-                        <i class="fas fa-chart-bar"></i>
-                        <span class="menu-label">Analytics</span>
                     </a>
                 </li>
 
@@ -812,15 +849,15 @@ if ($result) {
         <div class="section-title">Custom Report Generator</div>
         
         <div class="date-range-selector">
-            <label style="color: #a0a0a0; display: flex; align-items: center; gap: 8px; font-size: 12px;">
+            <label class="date-label">
                 <i class="fas fa-calendar"></i> From:
             </label>
             <input type="date" class="date-input" value="2025-01-01">
-            <label style="color: #a0a0a0; display: flex; align-items: center; gap: 8px; font-size: 12px;">
+            <label class="date-label">
                 <i class="fas fa-calendar"></i> To:
             </label>
             <input type="date" class="date-input" value="2025-02-12">
-            <button class="btn-report" style="background: linear-gradient(135deg, #2f5fa7, #1e3c72); color: white; border: none;">Generate</button>
+            <button class="btn-report btn-generate">Generate</button>
         </div>
 
         <!-- Quick Stats -->

@@ -669,7 +669,9 @@ if (empty($_SESSION['user_id'])) {
                     <span></span>
                 </button>
                 <div class="logo">
-                    <img src="assets/logo.png" alt="Andison" style="height:38px;width:auto;object-fit:contain;">
+                    <a href="index.php" style="display:flex;align-items:center;">
+                        <img src="assets/logo.png" alt="Andison" style="height:48px;width:auto;object-fit:contain;">
+                    </a>
                 </div>
             </div>
 
@@ -748,14 +750,6 @@ if (empty($_SESSION['user_id'])) {
                     <a href="models.php" class="menu-link">
                         <i class="fas fa-cube"></i>
                         <span class="menu-label">Models</span>
-                    </a>
-                </li>
-
-                <!-- Analytics -->
-                <li class="menu-item">
-                    <a href="analytics.php" class="menu-link">
-                        <i class="fas fa-chart-bar"></i>
-                        <span class="menu-label">Analytics</span>
                     </a>
                 </li>
 
@@ -1649,27 +1643,17 @@ if (empty($_SESSION['user_id'])) {
         }
 
         function downloadTemplate() {
-            // Create sample template matching actual Excel format
+            // Create empty template with headers only
             const templateData = [
                 {
-                    'Invoice No.': '5268850284',
-                    'Date': '45664',
-                    'Item': 'XT-XWHM-Y-NA',
-                    'Description': 'GasAlertMax XT O2/LEL/H2S/CO',
-                    'Qty.': '40',
-                    'Serial No.': 'MA225-000613',
-                    'Date Delivered': '45729',
-                    'Remarks': '-'
-                },
-                {
-                    'Invoice No.': '5268850284',
-                    'Date': '45664',
-                    'Item': 'XT-XWHM-Y-NA',
-                    'Description': 'GasAlertMax XT O2/LEL/H2S/CO',
-                    'Qty.': '40',
-                    'Serial No.': 'MA225-000614',
-                    'Date Delivered': '45730',
-                    'Remarks': '-'
+                    'Invoice No.': '',
+                    'Date': '',
+                    'Item': '',
+                    'Description': '',
+                    'Qty.': '',
+                    'Serial No.': '',
+                    'Date Delivered': '',
+                    'Remarks': ''
                 }
             ];
 
@@ -1683,16 +1667,27 @@ if (empty($_SESSION['user_id'])) {
 
         function createAndDownloadTemplate(data) {
             const workbook = XLSX.utils.book_new();
-            const worksheet = XLSX.utils.json_to_sheet(data);
+            const worksheet = XLSX.utils.json_to_sheet(data, { skipHeader: false });
+            
+            // Remove the empty row, keep only headers
+            const range = XLSX.utils.decode_range(worksheet['!ref']);
+            range.e.r = 0; // Set end row to 0 (headers only)
+            worksheet['!ref'] = XLSX.utils.encode_range(range);
+            
+            // Delete the empty data row cells
+            for (let col = range.s.c; col <= range.e.c; col++) {
+                const cellAddress = XLSX.utils.encode_cell({ r: 1, c: col });
+                delete worksheet[cellAddress];
+            }
             
             // Set column widths
             worksheet['!cols'] = [
                 { wch: 15 },
                 { wch: 12 },
-                { wch: 12 },
-                { wch: 30 },
-                { wch: 25 },
-                { wch: 10 },
+                { wch: 18 },
+                { wch: 35 },
+                { wch: 8 },
+                { wch: 18 },
                 { wch: 15 },
                 { wch: 20 }
             ];
@@ -1702,16 +1697,7 @@ if (empty($_SESSION['user_id'])) {
         }
 
         // Sidebar toggle (from main theme)
-        const hamburgerBtn = document.getElementById('hamburgerBtn');
-        const sidebar = document.getElementById('sidebar');
-        const mainContent = document.getElementById('mainContent');
-
-        if (hamburgerBtn) {
-            hamburgerBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('active');
-                mainContent.classList.toggle('sidebar-closed');
-            });
-        }
+        // Sidebar toggle is handled by app.js
 
         // Load current record count
         async function loadRecordCount() {

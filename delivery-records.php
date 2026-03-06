@@ -555,6 +555,19 @@ if ($result) {
             min-height: 60px;
         }
 
+        .input-hint {
+            display: block;
+            font-size: 11px;
+            color: #8899a8;
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        html.light-mode .input-hint,
+        body.light-mode .input-hint {
+            color: #6a7a8a;
+        }
+
         .form-actions {
             display: flex;
             gap: 15px;
@@ -832,7 +845,9 @@ if ($result) {
                     <span></span>
                 </button>
                 <div class="logo">
-                    <img src="assets/logo.png" alt="Andison" style="height:38px;width:auto;object-fit:contain;">
+                    <a href="index.php" style="display:flex;align-items:center;">
+                        <img src="assets/logo.png" alt="Andison" style="height:48px;width:auto;object-fit:contain;">
+                    </a>
                 </div>
             </div>
 
@@ -906,14 +921,6 @@ if ($result) {
                     <a href="models.php" class="menu-link">
                         <i class="fas fa-cube"></i>
                         <span class="menu-label">Models</span>
-                    </a>
-                </li>
-
-                <!-- Analytics -->
-                <li class="menu-item">
-                    <a href="analytics.php" class="menu-link">
-                        <i class="fas fa-chart-bar"></i>
-                        <span class="menu-label">Analytics</span>
                     </a>
                 </li>
 
@@ -1114,10 +1121,12 @@ if ($result) {
                     <div class="form-group">
                         <label for="add_invoice_no">Invoice No.</label>
                         <input type="text" id="add_invoice_no" name="invoice_no" placeholder="e.g., 5268850284">
+                        <small class="input-hint">Unique invoice number from supplier/vendor</small>
                     </div>
                     <div class="form-group">
                         <label for="add_date">Date</label>
                         <input type="date" id="add_date" name="date">
+                        <small class="input-hint">Date when record was created</small>
                     </div>
                     <div class="form-group">
                         <label for="add_delivery_month">Delivery Month to Andison</label>
@@ -1136,42 +1145,52 @@ if ($result) {
                             <option value="November">November</option>
                             <option value="December">December</option>
                         </select>
+                        <small class="input-hint">Month item was delivered to Andison Industrial</small>
                     </div>
                     <div class="form-group">
                         <label for="add_delivery_day">Delivery Day to Andison</label>
                         <input type="number" id="add_delivery_day" name="delivery_day" placeholder="e.g., 7" min="1" max="31">
+                        <small class="input-hint">Day of the month (1-31)</small>
                     </div>
                     <div class="form-group">
                         <label for="add_year">Year</label>
                         <input type="number" id="add_year" name="year" placeholder="e.g., 2025" min="2000" max="2100">
+                        <small class="input-hint">Year of delivery for sales tracking</small>
                     </div>
                     <div class="form-group">
                         <label for="add_item_code">Item</label>
                         <input type="text" id="add_item_code" name="item_code" placeholder="e.g., XT-XWHM-Y-NA">
+                        <small class="input-hint">Product code/SKU identifier</small>
                     </div>
                     <div class="form-group full-width">
                         <label for="add_item_name">Description</label>
                         <input type="text" id="add_item_name" name="item_name" placeholder="e.g., GasAlertMax XT O2/LEL/H2S/CO">
+                        <small class="input-hint">Full product name or description</small>
                     </div>
                     <div class="form-group">
                         <label for="add_quantity">Qty.</label>
                         <input type="number" id="add_quantity" name="quantity" placeholder="e.g., 40" min="0">
+                        <small class="input-hint">Number of units delivered</small>
                     </div>
                     <div class="form-group">
                         <label for="add_uom">UOM</label>
                         <input type="text" id="add_uom" name="uom" placeholder="e.g., units, pcs">
+                        <small class="input-hint">Unit of measurement (pcs, units, etc.)</small>
                     </div>
                     <div class="form-group">
                         <label for="add_serial_no">Serial No.</label>
                         <input type="text" id="add_serial_no" name="serial_no" placeholder="e.g., MA225-000613">
+                        <small class="input-hint">Product serial number for tracking</small>
                     </div>
                     <div class="form-group">
                         <label for="add_company_name">Sold To</label>
                         <input type="text" id="add_company_name" name="company_name" placeholder="e.g., Anden Construction">
+                        <small class="input-hint">Client/company who purchased the item</small>
                     </div>
                     <div class="form-group">
                         <label for="add_delivery_date">Date Delivered</label>
                         <input type="date" id="add_delivery_date" name="delivery_date">
+                        <small class="input-hint">Actual delivery date to client</small>
                     </div>
                     <div class="form-group">
                         <label for="add_sold_to_month">Sold To Month</label>
@@ -1190,14 +1209,17 @@ if ($result) {
                             <option value="November">November</option>
                             <option value="December">December</option>
                         </select>
+                        <small class="input-hint">Month when sold to the client</small>
                     </div>
                     <div class="form-group">
                         <label for="add_sold_to_day">Sold To Day</label>
                         <input type="number" id="add_sold_to_day" name="sold_to_day" placeholder="e.g., 15" min="1" max="31">
+                        <small class="input-hint">Day of the month (1-31)</small>
                     </div>
                     <div class="form-group">
                         <label for="add_groupings">Groupings</label>
                         <input type="text" id="add_groupings" name="groupings" placeholder="e.g., A, B, C">
+                        <small class="input-hint">Category or batch grouping</small>
                     </div>
                     <div class="form-group">
                         <label for="add_status">Status</label>
@@ -1207,10 +1229,12 @@ if ($result) {
                             <option value="In Transit">In Transit</option>
                             <option value="Cancelled">Cancelled</option>
                         </select>
+                        <small class="input-hint">Current delivery status</small>
                     </div>
                     <div class="form-group full-width">
                         <label for="add_notes">Remarks</label>
                         <textarea id="add_notes" name="notes" rows="3" placeholder="Additional remarks..."></textarea>
+                        <small class="input-hint">Any additional notes or comments about this delivery</small>
                     </div>
                 </div>
                 <div class="form-actions">
@@ -1330,10 +1354,12 @@ if ($result) {
                     <div class="form-group">
                         <label for="edit_invoice_no">Invoice No.</label>
                         <input type="text" id="edit_invoice_no" name="invoice_no" placeholder="e.g., 5268850284">
+                        <small class="input-hint">Unique invoice number from supplier/vendor</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_date">Date</label>
                         <input type="date" id="edit_date" name="date">
+                        <small class="input-hint">Date when record was created</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_delivery_month">Delivery Month to Andison</label>
@@ -1352,42 +1378,52 @@ if ($result) {
                             <option value="November">November</option>
                             <option value="December">December</option>
                         </select>
+                        <small class="input-hint">Month item was delivered to Andison Industrial</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_delivery_day">Delivery Day to Andison</label>
                         <input type="number" id="edit_delivery_day" name="delivery_day" placeholder="e.g., 7" min="1" max="31">
+                        <small class="input-hint">Day of the month (1-31)</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_year">Year</label>
                         <input type="number" id="edit_year" name="year" placeholder="e.g., 2025" min="2000" max="2100">
+                        <small class="input-hint">Year of delivery for sales tracking</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_item_code">Item</label>
                         <input type="text" id="edit_item_code" name="item_code" placeholder="e.g., XT-XWHM-Y-NA">
+                        <small class="input-hint">Product code/SKU identifier</small>
                     </div>
                     <div class="form-group full-width">
                         <label for="edit_item_name">Description</label>
                         <input type="text" id="edit_item_name" name="item_name" placeholder="e.g., GasAlertMax XT O2/LEL/H2S/CO">
+                        <small class="input-hint">Full product name or description</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_quantity">Qty.</label>
                         <input type="number" id="edit_quantity" name="quantity" placeholder="e.g., 40" min="0">
+                        <small class="input-hint">Number of units delivered</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_uom">UOM</label>
                         <input type="text" id="edit_uom" name="uom" placeholder="e.g., units, pcs">
+                        <small class="input-hint">Unit of measurement (pcs, units, etc.)</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_serial_no">Serial No.</label>
                         <input type="text" id="edit_serial_no" name="serial_no" placeholder="e.g., MA225-000613">
+                        <small class="input-hint">Product serial number for tracking</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_company_name">Sold To</label>
                         <input type="text" id="edit_company_name" name="company_name" placeholder="e.g., Anden Construction">
+                        <small class="input-hint">Client/company who purchased the item</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_delivery_date">Date Delivered</label>
                         <input type="date" id="edit_delivery_date" name="delivery_date">
+                        <small class="input-hint">Actual delivery date to client</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_sold_to_month">Sold To Month</label>
@@ -1406,14 +1442,17 @@ if ($result) {
                             <option value="November">November</option>
                             <option value="December">December</option>
                         </select>
+                        <small class="input-hint">Month when sold to the client</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_sold_to_day">Sold To Day</label>
                         <input type="number" id="edit_sold_to_day" name="sold_to_day" placeholder="e.g., 15" min="1" max="31">
+                        <small class="input-hint">Day of the month (1-31)</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_groupings">Groupings</label>
                         <input type="text" id="edit_groupings" name="groupings" placeholder="e.g., A, B, C">
+                        <small class="input-hint">Category or batch grouping</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_status">Status</label>
@@ -1423,10 +1462,12 @@ if ($result) {
                             <option value="In Transit">In Transit</option>
                             <option value="Cancelled">Cancelled</option>
                         </select>
+                        <small class="input-hint">Current delivery status</small>
                     </div>
                     <div class="form-group full-width">
                         <label for="edit_notes">Remarks</label>
                         <textarea id="edit_notes" name="notes" rows="3" placeholder="Additional remarks..."></textarea>
+                        <small class="input-hint">Any additional notes or comments about this delivery</small>
                     </div>
                 </div>
                 <div class="form-actions">
@@ -1980,17 +2021,7 @@ if ($result) {
             }, 2000);
         }
 
-        // Sidebar toggle
-        const hamburgerBtn = document.getElementById('hamburgerBtn');
-        const sidebar = document.getElementById('sidebar');
-        const mainContent = document.getElementById('mainContent');
-
-        if (hamburgerBtn) {
-            hamburgerBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('active');
-                mainContent.classList.toggle('sidebar-closed');
-            });
-        }
+        // Sidebar toggle is handled by app.js
 
         // Toast notification
         function showToast(message, type = 'success') {

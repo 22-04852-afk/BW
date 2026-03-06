@@ -81,7 +81,6 @@ body.light-mode {
     --color-dark-secondary: #ffffff;
     --color-sidebar: #f0f8ff;
     --color-primary: #1e88e5;
-    --color-accent: #1e88e5;
     --color-success: #51cf66;
     --color-danger: #ff6b6b;
     --color-text-light: #1a3a5c;
@@ -624,6 +623,18 @@ html, body {
     color: var(--color-accent);
 }
 
+.logo a {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.logo a:hover {
+    opacity: 0.8;
+    transform: scale(1.02);
+}
+
 /* Dark mode logo = white */
 .logo img {
     filter: brightness(0) invert(1);
@@ -1005,11 +1016,23 @@ body.light-mode .notification:hover {
     flex: 1;
     overflow-y: auto;
     padding: 20px 0;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+
+.sidebar-content::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Opera */
 }
 
 .sidebar-nav {
     flex: 1;
     overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+    display: none;
 }
 
 .sidebar-menu {
@@ -1037,7 +1060,35 @@ body.light-mode .notification:hover {
     font-size: 14px;
 }
 
+.menu-link i {
+    font-size: 18px;
+    width: 24px;
+    text-align: center;
+    transition: var(--transition);
+}
+
+.sidebar.collapsed .menu-link {
+    justify-content: center;
+    padding: 18px 15px;
+}
+
+.sidebar.collapsed .menu-link i {
+    font-size: 22px;
+    width: auto;
+}
+
 .sidebar.collapsed .menu-label {
+    display: none;
+}
+
+.sidebar.collapsed .sidebar-footer {
+    padding: 15px 5px;
+    overflow: hidden;
+}
+
+.sidebar.collapsed .sidebar-footer .company-info,
+.sidebar.collapsed .sidebar-footer .company-year,
+.sidebar.collapsed .sidebar-footer p {
     display: none;
 }
 
@@ -1690,9 +1741,9 @@ html.light-mode .btn-industrial.secondary {
 
 .kpi-section {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 20px;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
 }
 
 .kpi-card {
@@ -1700,6 +1751,16 @@ html.light-mode .btn-industrial.secondary {
     border: 1px solid var(--color-border);
     border-radius: 12px;
     overflow: hidden;
+}
+
+.kpi-card-large {
+    grid-column: span 2;
+}
+
+@media (max-width: 768px) {
+    .kpi-card-large {
+        grid-column: span 1;
+    }
 }
 
 .card-header {
@@ -1721,12 +1782,12 @@ html.light-mode .btn-industrial.secondary {
 }
 
 .card-content {
-    padding: 20px;
+    padding: 15px;
 }
 
 .chart-container {
-    min-height: 250px;
-    margin-bottom: 20px;
+    min-height: 220px;
+    margin-bottom: 15px;
 }
 
 .card-stats {
@@ -2060,9 +2121,19 @@ html.light-mode .settings-item {
 }
 
 html.light-mode .select-input {
-    background: #f5f6fa !important;
-    border-color: #dde2ec !important;
-    color: #1a1a2e !important;
+    background: #ffffff !important;
+    border-color: #b8d4e8 !important;
+    color: #1a3a5c !important;
+}
+
+html.light-mode .select-input option {
+    background: #ffffff !important;
+    color: #1a3a5c !important;
+}
+
+html.light-mode .select-input:focus {
+    border-color: #2f5fa7 !important;
+    background: #f8fbfd !important;
 }
 
 /* client-companies.php */
@@ -2437,4 +2508,75 @@ html.light-mode .btn-cancel-form {
 html.light-mode .btn-cancel-form:hover {
     background: #e2e8f0 !important;
     color: #1a1a2e !important;
+}
+
+/* ============================================
+   GLOBAL DISPLAY SETTINGS
+   ============================================ */
+
+/* Font Size Settings */
+body.font-small {
+    font-size: 13px;
+}
+
+body.font-small .page-title,
+body.font-small .section-title {
+    font-size: 16px;
+}
+
+body.font-small .menu-link {
+    font-size: 13px;
+}
+
+body.font-medium {
+    font-size: 14px;
+}
+
+body.font-large {
+    font-size: 16px;
+}
+
+body.font-large .page-title,
+body.font-large .section-title {
+    font-size: 22px;
+}
+
+body.font-large .menu-link {
+    font-size: 15px;
+}
+
+body.font-large .table td,
+body.font-large .table th {
+    font-size: 14px;
+}
+
+/* Compact Mode */
+body.compact-mode .main-content {
+    padding: 20px;
+}
+
+body.compact-mode .sidebar-footer {
+    padding: 12px;
+}
+
+body.compact-mode .menu-link {
+    padding: 10px 15px;
+}
+
+body.compact-mode .welcome-banner {
+    margin-bottom: 20px;
+}
+
+body.compact-mode .table td,
+body.compact-mode .table th {
+    padding: 8px 12px;
+}
+
+/* No Animations Mode */
+body.no-animations,
+body.no-animations *,
+body.no-animations *::before,
+body.no-animations *::after {
+    transition: none !important;
+    animation: none !important;
 }

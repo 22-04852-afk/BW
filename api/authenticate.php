@@ -7,6 +7,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 // Load DB config
 require_once __DIR__ . '/../db_config.php';
+require_once __DIR__ . '/security-alert.php';
 
 /** Send clean JSON and exit — discards any buffered PHP warnings first. */
 function respond(array $data, int $status = 200): never {
@@ -71,6 +72,16 @@ $verified = password_verify($password, $user['password'])
 
 if (!$verified) {
     $_SESSION['login_attempts']++;
+    
+    // Send security alert email on failed login attempt
+    if (isEmailAlertEnabled($conn, $user['id'])) {
+        $alertResult = sendSecurityAlert($conn, $user['id'], $user['email'], $user['name'] ?? $user['email']);
+        // Log if email was sent (for debugging)
+        if ($alertResult['sent']) {
+            error_log('Security alert sent to: ' . $user['email']);
+        }
+    }
+    
     respond(['success' => false, 'message' => 'Invalid email or password']);
 }
 
