@@ -5,7 +5,8 @@
 
 // Apply saved theme immediately (before DOMContentLoaded to avoid flash)
 (function () {
-    var isLight = localStorage.getItem('theme') === 'light';
+    var theme = localStorage.getItem('theme');
+    var isLight = theme !== 'dark'; // Default to light mode
     if (isLight) {
         document.documentElement.classList.add('light-mode');
         // Apply to body as soon as it exists
@@ -40,7 +41,8 @@
 //  so all charts — including those in inline PHP scripts — inherit these defaults)
 (function () {
     if (typeof Chart === 'undefined') return;
-    var isLight = localStorage.getItem('theme') === 'light';
+    var theme = localStorage.getItem('theme');
+    var isLight = theme !== 'dark'; // Default to light mode
     Chart.defaults.color       = isLight ? '#3a3a5c' : '#e0e0e0';
     Chart.defaults.borderColor = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.05)';
 })();
@@ -50,7 +52,8 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Dashboard Initialized');
     
     // Ensure theme is applied to body
-    var isLight = localStorage.getItem('theme') === 'light';
+    var theme = localStorage.getItem('theme');
+    var isLight = theme !== 'dark'; // Default to light mode
     if (isLight) {
         document.body.classList.add('light-mode');
     } else {
@@ -126,7 +129,8 @@ function initializeDarkModeToggle() {
     if (!toggle) return;
 
     // Sync toggle state with current theme
-    const isLight = localStorage.getItem('theme') === 'light';
+    const theme = localStorage.getItem('theme');
+    const isLight = theme !== 'dark'; // Default to light mode
     if (isLight) {
         toggle.classList.remove('active');
     } else {

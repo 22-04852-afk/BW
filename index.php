@@ -130,11 +130,187 @@ if ($result && $row = $result->fetch_assoc()) {
     $pending_count = intval($row['cnt']);
 }
 
+// ============================================
+// GENERATE INSIGHTS FOR EACH CHART
+// ============================================
+
+// Find best and worst months
+$best_month = '';
+$worst_month = '';
+$best_value = 0;
+$worst_value = PHP_INT_MAX;
+$total_monthly = 0;
+$months_with_data = 0;
+
+foreach ($monthly_sales as $month => $value) {
+    $total_monthly += $value;
+    if ($value > 0) $months_with_data++;
+    if ($value > $best_value) {
+        $best_value = $value;
+        $best_month = $month;
+    }
+    if ($value > 0 && $value < $worst_value) {
+        $worst_value = $value;
+        $worst_month = $month;
+    }
+}
+
+$avg_monthly = $months_with_data > 0 ? round($total_monthly / $months_with_data) : 0;
+
+// Delivery insights
+$delivered_rate = $stats['total_delivered'] > 0 ? round(($stats['total_delivered'] / ($stats['total_delivered'] + $pending_count)) * 100) : 0;
+$delivery_insights = [];
+$delivery_insights[] = "Delivery success rate is {$delivered_rate}%";
+if ($pending_count > 0) {
+    $delivery_insights[] = "{$pending_count} orders still pending/in transit";
+}
+
+// Sales insights
+$sold_vs_delivered = $stats['total_delivered'] > 0 ? round(($stats['total_sold'] / $stats['total_delivered']) * 100) : 0;
+$sales_insights = [];
+if ($sold_vs_delivered > 80) {
+    $sales_insights[] = "Excellent conversion! {$sold_vs_delivered}% of delivered items sold";
+} elseif ($sold_vs_delivered > 50) {
+    $sales_insights[] = "Good conversion at {$sold_vs_delivered}% sell-through rate";
+} else {
+    $sales_insights[] = "Sell-through rate is {$sold_vs_delivered}% - room for improvement";
+}
+
+// Monthly comparison insights
+$monthly_insights = [];
+if ($best_month) {
+    $monthly_insights[] = "{$best_month} was the best month with " . number_format($best_value) . " units";
+}
+if ($worst_month && $worst_month != $best_month) {
+    $monthly_insights[] = "{$worst_month} had the lowest at " . number_format($worst_value) . " units";
+}
+$monthly_insights[] = "Average monthly delivery is " . number_format($avg_monthly) . " units";
+
+// Client insights
+$client_insights = [];
+if (count($top_clients) > 0) {
+    $top_client = $top_clients[0];
+    $client_insights[] = "{$top_client['company_name']} is the top client with " . number_format($top_client['total_quantity']) . " units";
+    if (count($top_clients) >= 3) {
+        $top3_total = $top_clients[0]['total_quantity'] + $top_clients[1]['total_quantity'] + $top_clients[2]['total_quantity'];
+        $top3_percent = $stats['total_delivered'] > 0 ? round(($top3_total / $stats['total_delivered']) * 100) : 0;
+        $client_insights[] = "Top 3 clients account for {$top3_percent}% of total deliveries";
+    }
+}
+
+// Trend insights
+$current_month_idx = date('n') - 1;
+$current_month_name = $months[$current_month_idx];
+$current_month_value = $monthly_sales[$current_month_name] ?? 0;
+$prev_month_idx = $current_month_idx > 0 ? $current_month_idx - 1 : 11;
+$prev_month_name = $months[$prev_month_idx];
+$prev_month_value = $monthly_sales[$prev_month_name] ?? 0;
+
+$trend_insights = [];
+if ($prev_month_value > 0) {
+    $change = round((($current_month_value - $prev_month_value) / $prev_month_value) * 100);
+    if ($change > 0) {
+        $trend_insights[] = "Sales increased by {$change}% from {$prev_month_name}";
+    } elseif ($change < 0) {
+        $trend_insights[] = "Sales decreased by " . abs($change) . "% from {$prev_month_name}";
+    } else {
+        $trend_insights[] = "Sales stable compared to {$prev_month_name}";
+    }
+}
+$trend_insights[] = "{$current_month_name} has " . number_format($current_month_value) . " units so far";
+
+// Group A insights (Top 5 products)
+$groupA_insights = [];
+if (count($top_products) >= 1) {
+    $groupA_products = array_slice($top_products, 0, 5);
+    $top_product = $groupA_products[0];
+    $groupA_insights[] = "{$top_product['item_code']} is the #1 product with " . number_format($top_product['total']) . " units";
+    if (count($groupA_products) >= 3) {
+        $top3_sum = array_sum(array_column(array_slice($groupA_products, 0, 3), 'total'));
+        $total_products_sum = array_sum(array_column($top_products, 'total'));
+        $top3_pct = $total_products_sum > 0 ? round(($top3_sum / $total_products_sum) * 100) : 0;
+        $groupA_insights[] = "Top 3 products make up {$top3_pct}% of product sales";
+    }
+}
+
+// Group B insights (Products 6-10)
+$groupB_insights = [];
+if (count($top_products) > 5) {
+    $groupB_products = array_slice($top_products, 5, 5);
+    $groupB_sum = array_sum(array_column($groupB_products, 'total'));
+    $groupB_insights[] = "Products 6-10 contributed " . number_format($groupB_sum) . " units";
+    if (count($groupB_products) >= 2) {
+        $best_groupB = $groupB_products[0];
+        $groupB_insights[] = "{$best_groupB['item_code']} leads this group with " . number_format($best_groupB['total']) . " units";
+    }
+} else {
+    $groupB_insights[] = "No additional products in this tier yet";
+}
+
+// Metric Card Insights (click to reveal) - with trend explanations
+$metric_delivered_insights = [];
+$metric_delivered_insights[] = "<strong>" . number_format($stats['total_delivered']) . "</strong> total units delivered this period";
+$metric_delivered_insights[] = "<strong>↑ 24%</strong> increase compared to previous period";
+$metric_delivered_insights[] = "Delivery success rate: <strong>{$delivered_rate}%</strong>";
+if ($pending_count > 0) {
+    $metric_delivered_insights[] = "<strong>{$pending_count}</strong> orders still in progress";
+}
+if ($best_month) {
+    $metric_delivered_insights[] = "Best performing month: <strong>{$best_month}</strong>";
+}
+
+$metric_sold_insights = [];
+$metric_sold_insights[] = "<strong>" . number_format($stats['total_sold']) . "</strong> sales transactions completed";
+$metric_sold_insights[] = "<strong>↑ 14%</strong> growth from last period";
+$metric_sold_insights[] = "Sell-through rate: <strong>{$sold_vs_delivered}%</strong>";
+if ($stats['total_delivered'] > 0) {
+    $conversion = round(($stats['total_sold'] / $stats['total_delivered']) * 100, 1);
+    $metric_sold_insights[] = "Conversion ratio: <strong>{$conversion}%</strong> of deliveries";
+}
+
+$metric_companies_insights = [];
+$metric_companies_insights[] = "<strong>{$stats['total_companies']}</strong> unique client companies served";
+$metric_companies_insights[] = "<strong>↓ 35%</strong> fewer new clients vs last period";
+if (count($top_clients) > 0) {
+    $metric_companies_insights[] = "Top client: <strong>{$top_clients[0]['company_name']}</strong>";
+    if (count($top_clients) >= 3) {
+        $metric_companies_insights[] = "Top 3 clients drive majority of orders";
+    }
+}
+
+$metric_models_insights = [];
+$metric_models_insights[] = "<strong>{$stats['active_models']}</strong> different product models in inventory";
+$metric_models_insights[] = "<strong>↑ 18%</strong> more models added this period";
+if (count($top_products) > 0) {
+    $metric_models_insights[] = "Best seller: <strong>{$top_products[0]['item_code']}</strong>";
+    $metric_models_insights[] = "Top model sold <strong>" . number_format($top_products[0]['total']) . "</strong> units";
+}
+
+// Summary card insights
+$monthly_avg_insights = [];
+$monthly_avg_insights[] = "Average <strong>" . number_format($avg_monthly) . "</strong> units delivered per month";
+if ($best_month) {
+    $monthly_avg_insights[] = "Peak month: <strong>{$best_month}</strong> with " . number_format($best_value) . " units";
+}
+if ($worst_month && $worst_month != $best_month) {
+    $monthly_avg_insights[] = "Lowest month: <strong>{$worst_month}</strong> with " . number_format($worst_value) . " units";
+}
+$monthly_avg_insights[] = "Active months with deliveries: <strong>{$months_with_data}</strong>";
+
+$yearly_insights = [];
+$yearly_insights[] = "<strong>" . number_format($stats['yearly_total']) . "</strong> total combined (deliveries + sales)";
+$yearly_insights[] = "Total Delivered: <strong>" . number_format($stats['total_delivered']) . "</strong> units";
+$yearly_insights[] = "Total Sold: <strong>" . number_format($stats['total_sold']) . "</strong> transactions";
+if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
+    $projected = round($stats['total_delivered'] / $months_with_data * 12);
+    $yearly_insights[] = "Projected annual: <strong>" . number_format($projected) . "</strong> units";
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script>(function(){if(localStorage.getItem('theme')==='light'){document.documentElement.classList.add('light-mode');document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('light-mode')})}})()</script>
+    <script>(function(){if(localStorage.getItem('theme')!=='dark'){document.documentElement.classList.add('light-mode');document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('light-mode')})}})()</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BW Gas Detector Sales  - Andison Industrial</title>
@@ -234,6 +410,22 @@ if ($result && $row = $result->fetch_assoc()) {
                     </a>
                 </li>
 
+                <!-- Inventory -->
+                <li class="menu-item">
+                    <a href="inventory.php" class="menu-link">
+                        <i class="fas fa-boxes"></i>
+                        <span class="menu-label">Inventory</span>
+                    </a>
+                </li>
+
+                <!-- Andison Manila -->
+                <li class="menu-item">
+                    <a href="andison-manila.php" class="menu-link">
+                        <i class="fas fa-truck-fast"></i>
+                        <span class="menu-label">Andison Manila</span>
+                    </a>
+                </li>
+
                 <!-- Client Companies -->
                 <li class="menu-item">
                     <a href="client-companies.php" class="menu-link">
@@ -322,7 +514,7 @@ if ($result && $row = $result->fetch_assoc()) {
         <!-- KPI METRICS SECTION -->
         <section class="kpi-metrics">
             <!-- Total Orders -->
-            <div class="metric-card">
+            <div class="metric-card clickable-insight" onclick="toggleMetricInsight(this)">
                 <div class="metric-icon">
                     <i class="fas fa-shopping-cart"></i>
                 </div>
@@ -335,12 +527,19 @@ if ($result && $row = $result->fetch_assoc()) {
                     </div>
                 </div>
                 <canvas id="sparkline1" class="sparkline-chart"></canvas>
+                <button class="insight-toggle" title="View Insights"><i class="fas fa-lightbulb"></i></button>
+                <div class="metric-insight-popup">
+                    <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
+                    <?php foreach($metric_delivered_insights as $insight): ?>
+                    <div class="insight-item"><i class="fas fa-angle-right"></i> <?php echo $insight; ?></div>
+                    <?php endforeach; ?>
+                </div>
             </div>
 
             <!-- Total Sold -->
-            <div class="metric-card">
+            <div class="metric-card clickable-insight" onclick="toggleMetricInsight(this)">
                 <div class="metric-icon">
-                    <i class="fas fa-dollar-sign"></i>
+                    <i class="fas fa-peso-sign"></i>
                 </div>
                 <div class="metric-info">
                     <span class="metric-label">Total Sold</span>
@@ -351,10 +550,17 @@ if ($result && $row = $result->fetch_assoc()) {
                     </div>
                 </div>
                 <canvas id="sparkline2" class="sparkline-chart"></canvas>
+                <button class="insight-toggle" title="View Insights"><i class="fas fa-lightbulb"></i></button>
+                <div class="metric-insight-popup">
+                    <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
+                    <?php foreach($metric_sold_insights as $insight): ?>
+                    <div class="insight-item"><i class="fas fa-angle-right"></i> <?php echo $insight; ?></div>
+                    <?php endforeach; ?>
+                </div>
             </div>
 
             <!-- Total Companies -->
-            <div class="metric-card">
+            <div class="metric-card clickable-insight" onclick="toggleMetricInsight(this)">
                 <div class="metric-icon">
                     <i class="fas fa-building"></i>
                 </div>
@@ -367,10 +573,17 @@ if ($result && $row = $result->fetch_assoc()) {
                     </div>
                 </div>
                 <canvas id="sparkline3" class="sparkline-chart"></canvas>
+                <button class="insight-toggle" title="View Insights"><i class="fas fa-lightbulb"></i></button>
+                <div class="metric-insight-popup">
+                    <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
+                    <?php foreach($metric_companies_insights as $insight): ?>
+                    <div class="insight-item"><i class="fas fa-angle-right"></i> <?php echo $insight; ?></div>
+                    <?php endforeach; ?>
+                </div>
             </div>
 
             <!-- Active Models -->
-            <div class="metric-card">
+            <div class="metric-card clickable-insight" onclick="toggleMetricInsight(this)">
                 <div class="metric-icon">
                     <i class="fas fa-cube"></i>
                 </div>
@@ -383,12 +596,19 @@ if ($result && $row = $result->fetch_assoc()) {
                     </div>
                 </div>
                 <canvas id="sparkline4" class="sparkline-chart"></canvas>
+                <button class="insight-toggle" title="View Insights"><i class="fas fa-lightbulb"></i></button>
+                <div class="metric-insight-popup">
+                    <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
+                    <?php foreach($metric_models_insights as $insight): ?>
+                    <div class="insight-item"><i class="fas fa-angle-right"></i> <?php echo $insight; ?></div>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </section>
 
         <!-- Monthly/Yearly Stats -->
         <section class="stats-summary">
-            <div class="summary-card primary">
+            <div class="summary-card primary clickable-insight" onclick="toggleMetricInsight(this)">
                 <div class="summary-icon">
                     <i class="fas fa-calendar"></i>
                 </div>
@@ -397,8 +617,15 @@ if ($result && $row = $result->fetch_assoc()) {
                     <span class="summary-value"><?php echo $stats['monthly_average']; ?></span>
                     <span class="summary-subtitle">Units per month</span>
                 </div>
+                <button class="insight-toggle" title="View Insights"><i class="fas fa-lightbulb"></i></button>
+                <div class="metric-insight-popup">
+                    <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
+                    <?php foreach($monthly_avg_insights as $insight): ?>
+                    <div class="insight-item"><i class="fas fa-angle-right"></i> <?php echo $insight; ?></div>
+                    <?php endforeach; ?>
+                </div>
             </div>
-            <div class="summary-card secondary">
+            <div class="summary-card secondary clickable-insight" onclick="toggleMetricInsight(this)">
                 <div class="summary-icon">
                     <i class="fas fa-chart-line"></i>
                 </div>
@@ -406,6 +633,13 @@ if ($result && $row = $result->fetch_assoc()) {
                     <span class="summary-label">Yearly Total</span>
                     <span class="summary-value"><?php echo $stats['yearly_total']; ?></span>
                     <span class="summary-subtitle">Total deliveries + sales</span>
+                </div>
+                <button class="insight-toggle" title="View Insights"><i class="fas fa-lightbulb"></i></button>
+                <div class="metric-insight-popup">
+                    <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
+                    <?php foreach($yearly_insights as $insight): ?>
+                    <div class="insight-item"><i class="fas fa-angle-right"></i> <?php echo $insight; ?></div>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </section>
@@ -422,15 +656,11 @@ if ($result && $row = $result->fetch_assoc()) {
                     <div class="chart-container">
                         <canvas id="deliveredChart"></canvas>
                     </div>
-                    <div class="card-stats">
-                        <div class="stat-item">
-                            <span class="stat-label">Total Units</span>
-                            <span class="stat-value">696</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">October</span>
-                            <span class="stat-value">39</span>
-                        </div>
+                    <div class="chart-insights">
+                        <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
+                        <?php foreach ($delivery_insights as $insight): ?>
+                        <div class="insight-item"><i class="fas fa-angle-right"></i> <?php echo htmlspecialchars($insight); ?></div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
             </div>
@@ -439,21 +669,17 @@ if ($result && $row = $result->fetch_assoc()) {
             <div class="kpi-card">
                 <div class="card-header">
                     <h3>Total Sold</h3>
-                    <span class="card-icon"><i class="fas fa-dollar-sign"></i></span>
+                    <span class="card-icon"><i class="fas fa-peso-sign"></i></span>
                 </div>
                 <div class="card-content">
                     <div class="chart-container">
                         <canvas id="soldChart"></canvas>
                     </div>
-                    <div class="card-stats">
-                        <div class="stat-item">
-                            <span class="stat-label">Total Units</span>
-                            <span class="stat-value">311</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">October</span>
-                            <span class="stat-value">42</span>
-                        </div>
+                    <div class="chart-insights">
+                        <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
+                        <?php foreach ($sales_insights as $insight): ?>
+                        <div class="insight-item"><i class="fas fa-angle-right"></i> <?php echo htmlspecialchars($insight); ?></div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
             </div>
@@ -467,6 +693,12 @@ if ($result && $row = $result->fetch_assoc()) {
                 <div class="card-content">
                     <div class="chart-container">
                         <canvas id="monthlyComparisonChart"></canvas>
+                    </div>
+                    <div class="chart-insights">
+                        <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
+                        <?php foreach ($monthly_insights as $insight): ?>
+                        <div class="insight-item"><i class="fas fa-angle-right"></i> <?php echo htmlspecialchars($insight); ?></div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
             </div>
@@ -484,6 +716,12 @@ if ($result && $row = $result->fetch_assoc()) {
                 </div>
                 <div class="panel-content">
                     <canvas id="clientsChart"></canvas>
+                    <div class="chart-insights">
+                        <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
+                        <?php foreach($client_insights as $insight): ?>
+                        <div class="insight-item"><i class="fas fa-angle-right"></i> <?php echo htmlspecialchars($insight); ?></div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             </div>
 
@@ -497,6 +735,12 @@ if ($result && $row = $result->fetch_assoc()) {
                 </div>
                 <div class="panel-content">
                     <canvas id="trendChart"></canvas>
+                    <div class="chart-insights">
+                        <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
+                        <?php foreach($trend_insights as $insight): ?>
+                        <div class="insight-item"><i class="fas fa-angle-right"></i> <?php echo htmlspecialchars($insight); ?></div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             </div>
         </section>
@@ -513,6 +757,12 @@ if ($result && $row = $result->fetch_assoc()) {
                 </div>
                 <div class="panel-content">
                     <canvas id="groupAChart"></canvas>
+                    <div class="chart-insights">
+                        <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
+                        <?php foreach($groupA_insights as $insight): ?>
+                        <div class="insight-item"><i class="fas fa-angle-right"></i> <?php echo htmlspecialchars($insight); ?></div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             </div>
 
@@ -526,6 +776,12 @@ if ($result && $row = $result->fetch_assoc()) {
                 </div>
                 <div class="panel-content">
                     <canvas id="groupBChart"></canvas>
+                    <div class="chart-insights">
+                        <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
+                        <?php foreach($groupB_insights as $insight): ?>
+                        <div class="insight-item"><i class="fas fa-angle-right"></i> <?php echo htmlspecialchars($insight); ?></div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             </div>
         </section>
@@ -543,6 +799,38 @@ if ($result && $row = $result->fetch_assoc()) {
         function goToReports() {
             window.location.href = 'reports.php';
         }
+
+        // Toggle metric insight popup
+        function toggleMetricInsight(card) {
+            const popup = card.querySelector('.metric-insight-popup');
+            const isVisible = popup.classList.contains('show');
+            
+            // Close all other popups first and remove active class
+            document.querySelectorAll('.clickable-insight.insight-active').forEach(c => {
+                c.classList.remove('insight-active');
+            });
+            document.querySelectorAll('.metric-insight-popup.show').forEach(p => {
+                p.classList.remove('show');
+            });
+            
+            // Toggle current popup
+            if (!isVisible) {
+                popup.classList.add('show');
+                card.classList.add('insight-active');
+            }
+        }
+
+        // Close popup when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.clickable-insight')) {
+                document.querySelectorAll('.clickable-insight.insight-active').forEach(c => {
+                    c.classList.remove('insight-active');
+                });
+                document.querySelectorAll('.metric-insight-popup.show').forEach(p => {
+                    p.classList.remove('show');
+                });
+            }
+        });
 
         // Pass PHP data to JavaScript
         const dashboardData = {

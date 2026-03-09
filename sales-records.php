@@ -40,12 +40,69 @@ if ($yearCountResult) {
 // Default to the year with most data; fall back to current year if no data
 $defaultYear = isset($firstYear) ? $firstYear : $currentYear;
 $selectedYear = isset($_GET['year']) ? intval($_GET['year']) : $defaultYear;
+$selectedMonth = isset($_GET['month']) ? sanitize_input($_GET['month']) : '';
+$selectedDay = isset($_GET['day']) ? intval($_GET['day']) : 0;
 
 // Always include current year in the dropdown (even if no data yet)
 if (!in_array($currentYear, $availableYears)) {
     $availableYears[] = $currentYear;
     sort($availableYears);
     $availableYears = array_reverse($availableYears);
+}
+
+// Function to sanitize input
+function sanitize_input($input) {
+    return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+}
+
+// Get available months for selected year
+$availableMonths = [];
+$monthResult = $conn->query("
+    SELECT DISTINCT delivery_month 
+    FROM delivery_records 
+    WHERE ({$yearExpr}) = {$selectedYear} 
+    AND delivery_month IS NOT NULL 
+    AND delivery_month != ''
+    ORDER BY CASE delivery_month
+        WHEN 'January' THEN 1 WHEN 'February' THEN 2 WHEN 'March' THEN 3
+        WHEN 'April' THEN 4 WHEN 'May' THEN 5 WHEN 'June' THEN 6
+        WHEN 'July' THEN 7 WHEN 'August' THEN 8 WHEN 'September' THEN 9
+        WHEN 'October' THEN 10 WHEN 'November' THEN 11 WHEN 'December' THEN 12
+    END
+");
+if ($monthResult) {
+    while ($row = $monthResult->fetch_assoc()) {
+        $availableMonths[] = $row['delivery_month'];
+    }
+}
+
+// Get available days for selected year and month
+$availableDays = [];
+if ($selectedMonth) {
+    $monthFilter = "AND delivery_month = '" . $conn->real_escape_string($selectedMonth) . "'";
+} else {
+    $monthFilter = '';
+}
+
+$dayExpr = $isMysql
+    ? "CAST(DAY(delivery_date) AS UNSIGNED)"
+    : "CAST(strftime('%d', delivery_date) AS INTEGER)";
+
+$dayResult = $conn->query("
+    SELECT DISTINCT {$dayExpr} as day 
+    FROM delivery_records 
+    WHERE ({$yearExpr}) = {$selectedYear} 
+    {$monthFilter}
+    AND delivery_date IS NOT NULL
+    ORDER BY {$dayExpr}
+");
+if ($dayResult) {
+    while ($row = $dayResult->fetch_assoc()) {
+        $day = intval($row['day']);
+        if ($day > 0) {
+            $availableDays[] = $day;
+        }
+    }
 }
 
 // Monthly Sales Data for Selected Year
@@ -116,7 +173,7 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script>(function(){if(localStorage.getItem('theme')==='light'){document.documentElement.classList.add('light-mode');document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('light-mode')})}})()</script>
+    <script>(function(){if(localStorage.getItem('theme')!=='dark'){document.documentElement.classList.add('light-mode');document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('light-mode')})}})()</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sales Records - BW Gas Detector</title>
@@ -167,7 +224,27 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
             color: #f4d03f;
         }
 
+        /* Filters Container */
+        .filters-container {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
         .year-selector {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .month-selector {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .day-selector {
             display: flex;
             align-items: center;
             gap: 14px;
@@ -258,6 +335,188 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
         }
 
         .year-selector label i {
+            color: #f4d03f;
+            margin-right: 6px;
+            font-size: 13px;
+        }
+
+        /* Month Selector Styles */
+        .month-selector label {
+            color: #a0a0a0;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        .month-selector .select-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .month-selector .select-wrapper::after {
+            content: '\f078';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: #f4d03f;
+            font-size: 11px;
+            transition: transform 0.3s ease, color 0.3s ease;
+        }
+
+        .month-selector .select-wrapper:hover::after {
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        .month-selector select {
+            padding: 12px 45px 12px 18px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 12px;
+            border: 2px solid rgba(244, 208, 63, 0.3);
+            background: linear-gradient(145deg, rgba(30, 42, 56, 0.95), rgba(20, 30, 45, 0.98));
+            color: #fff;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            min-width: 130px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            box-shadow: 
+                0 4px 15px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 0 0 rgba(244, 208, 63, 0);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+        }
+
+        .month-selector select:hover {
+            border-color: rgba(244, 208, 63, 0.6);
+            box-shadow: 
+                0 6px 20px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                0 0 20px rgba(244, 208, 63, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .month-selector select:focus {
+            outline: none;
+            border-color: #f4d03f;
+            box-shadow: 
+                0 6px 25px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                0 0 30px rgba(244, 208, 63, 0.25),
+                0 0 0 3px rgba(244, 208, 63, 0.1);
+        }
+
+        .month-selector select option {
+            background: #1e2a38;
+            color: #fff;
+            padding: 12px;
+            font-weight: 500;
+        }
+
+        .month-selector select option:hover,
+        .month-selector select option:checked {
+            background: linear-gradient(135deg, #2a3f5f, #1e2a38);
+        }
+
+        .month-selector label i {
+            color: #f4d03f;
+            margin-right: 6px;
+            font-size: 13px;
+        }
+
+        /* Day Selector Styles */
+        .day-selector label {
+            color: #a0a0a0;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        .day-selector .select-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .day-selector .select-wrapper::after {
+            content: '\f078';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: #f4d03f;
+            font-size: 11px;
+            transition: transform 0.3s ease, color 0.3s ease;
+        }
+
+        .day-selector .select-wrapper:hover::after {
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        .day-selector select {
+            padding: 12px 45px 12px 18px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 12px;
+            border: 2px solid rgba(244, 208, 63, 0.3);
+            background: linear-gradient(145deg, rgba(30, 42, 56, 0.95), rgba(20, 30, 45, 0.98));
+            color: #fff;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            min-width: 100px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            box-shadow: 
+                0 4px 15px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 0 0 rgba(244, 208, 63, 0);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+        }
+
+        .day-selector select:hover {
+            border-color: rgba(244, 208, 63, 0.6);
+            box-shadow: 
+                0 6px 20px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                0 0 20px rgba(244, 208, 63, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .day-selector select:focus {
+            outline: none;
+            border-color: #f4d03f;
+            box-shadow: 
+                0 6px 25px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                0 0 30px rgba(244, 208, 63, 0.25),
+                0 0 0 3px rgba(244, 208, 63, 0.1);
+        }
+
+        .day-selector select option {
+            background: #1e2a38;
+            color: #fff;
+            padding: 12px;
+            font-weight: 500;
+        }
+
+        .day-selector select option:hover,
+        .day-selector select option:checked {
+            background: linear-gradient(135deg, #2a3f5f, #1e2a38);
+        }
+
+        .day-selector label i {
             color: #f4d03f;
             margin-right: 6px;
             font-size: 13px;
@@ -627,6 +886,26 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
                 align-items: flex-start;
                 gap: 15px;
             }
+
+            .filters-container {
+                width: 100%;
+                flex-direction: column;
+                gap: 12px;
+                align-items: stretch;
+            }
+
+            .filters-container > div {
+                width: 100%;
+            }
+
+            .filters-container > div .select-wrapper {
+                display: block;
+            }
+
+            .filters-container > div select {
+                width: 100%;
+                box-sizing: border-box;
+            }
             
             .page-title {
                 font-size: 24px;
@@ -869,6 +1148,22 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
                         </a>
                     </li>
 
+                    <!-- Inventory -->
+                    <li class="menu-item">
+                        <a href="inventory.php" class="menu-link">
+                            <i class="fas fa-boxes"></i>
+                            <span class="menu-label">Inventory</span>
+                        </a>
+                    </li>
+
+                    <!-- Andison Manila -->
+                    <li class="menu-item">
+                        <a href="andison-manila.php" class="menu-link">
+                            <i class="fas fa-truck-fast"></i>
+                            <span class="menu-label">Andison Manila</span>
+                        </a>
+                    </li>
+
                     <!-- Client Companies -->
                     <li class="menu-item">
                         <a href="client-companies.php" class="menu-link">
@@ -926,16 +1221,44 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
                     <i class="fas fa-calendar-alt"></i>
                     Sales Records
                 </h1>
-                <div class="year-selector">
-                    <label for="yearSelect"><i class="fas fa-calendar-alt"></i> Year:</label>
-                    <div class="select-wrapper">
-                        <select id="yearSelect" onchange="changeYear(this.value)">
-                            <?php foreach ($availableYears as $year): ?>
-                            <option value="<?php echo $year; ?>" <?php echo $year == $selectedYear ? 'selected' : ''; ?>>
-                                <?php echo $year; ?>
-                            </option>
-                            <?php endforeach; ?>
-                        </select>
+                <div class="filters-container">
+                    <div class="year-selector">
+                        <label for="yearSelect"><i class="fas fa-calendar-alt"></i> Year:</label>
+                        <div class="select-wrapper">
+                            <select id="yearSelect" onchange="updateFilters()">
+                                <?php foreach ($availableYears as $year): ?>
+                                <option value="<?php echo $year; ?>" <?php echo $year == $selectedYear ? 'selected' : ''; ?>>
+                                    <?php echo $year; ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="month-selector">
+                        <label for="monthSelect"><i class="fas fa-calendar"></i> Month:</label>
+                        <div class="select-wrapper">
+                            <select id="monthSelect" onchange="updateFilters()">
+                                <option value="">All Months</option>
+                                <?php foreach ($availableMonths as $month): ?>
+                                <option value="<?php echo $month; ?>" <?php echo $month == $selectedMonth ? 'selected' : ''; ?>>
+                                    <?php echo $month; ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="day-selector">
+                        <label for="daySelect"><i class="fas fa-calendar"></i> Day:</label>
+                        <div class="select-wrapper">
+                            <select id="daySelect" onchange="updateFilters()">
+                                <option value="">All Days</option>
+                                <?php foreach ($availableDays as $day): ?>
+                                <option value="<?php echo $day; ?>" <?php echo $day == $selectedDay ? 'selected' : ''; ?>>
+                                    Day <?php echo $day; ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1228,10 +1551,19 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
             }
         });
 
-        // Year selector — live update via AJAX
-        function changeYear(year) {
+        // Filter update function for year, month, and day
+        function updateFilters() {
+            const year = document.getElementById('yearSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            const day = document.getElementById('daySelect').value;
+
+            // Build URL with parameters
+            let url = 'sales-records.php?year=' + year;
+            if (month) url += '&month=' + encodeURIComponent(month);
+            if (day) url += '&day=' + day;
+
             // Update URL without reload
-            history.replaceState(null, '', 'sales-records.php?year=' + year);
+            history.replaceState(null, '', url);
 
             // Show loading shimmer on stat values
             ['statYearlyUnits', 'statYearlyOrders'].forEach(id => {
@@ -1239,14 +1571,52 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
                 if (el) { el.style.opacity = '0.4'; }
             });
 
-            fetch('api/sales-data.php?year=' + year)
+            // Build API URL
+            let apiUrl = 'api/sales-data.php?year=' + year;
+            if (month) apiUrl += '&month=' + encodeURIComponent(month);
+            if (day) apiUrl += '&day=' + day;
+
+            fetch(apiUrl)
                 .then(r => r.json())
                 .then(data => {
+                    // Update available months when year changes
+                    if (!month || month === '') {
+                        const monthSelect = document.getElementById('monthSelect');
+                        const currentMonth = monthSelect.value;
+                        const oldHTML = monthSelect.innerHTML;
+                        
+                        // Only update if fetch returned months
+                        if (data.availableMonths && data.availableMonths.length > 0) {
+                            let monthHTML = '<option value="">All Months</option>';
+                            data.availableMonths.forEach(m => {
+                                monthHTML += `<option value="${m}">${m}</option>`;
+                            });
+                            monthSelect.innerHTML = monthHTML;
+                        }
+                    }
+
+                    // Update available days when month changes (year always updates)
+                    const daySelect = document.getElementById('daySelect');
+                    if (data.availableDays) {
+                        let dayHTML = '<option value="">All Days</option>';
+                        data.availableDays.forEach(d => {
+                            dayHTML += `<option value="${d}">Day ${d}</option>`;
+                        });
+                        daySelect.innerHTML = dayHTML;
+                        daySelect.value = day || '';
+                    }
+
                     // Update stat cards
                     document.getElementById('statYearlyUnits').textContent  = data.yearlyUnits.toLocaleString();
                     document.getElementById('statYearlyOrders').textContent = data.yearlyOrders.toLocaleString();
-                    document.getElementById('labelUnitsYear').textContent   = 'Units in ' + data.year;
-                    document.getElementById('labelOrdersYear').textContent  = 'Orders in ' + data.year;
+                    
+                    // Update labels with filter info
+                    let labelSuffix = ' in ' + data.year;
+                    if (month) labelSuffix += ' - ' + month;
+                    if (day) labelSuffix += ', Day ' + day;
+                    
+                    document.getElementById('labelUnitsYear').textContent   = 'Units' + labelSuffix;
+                    document.getElementById('labelOrdersYear').textContent  = 'Orders' + labelSuffix;
                     document.getElementById('sectionMonthlyTitle').innerHTML =
                         '<i class="fas fa-calendar"></i> Monthly Sales - ' + data.year;
                     document.getElementById('tableMonthlyHeader').innerHTML =
@@ -1288,10 +1658,19 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
                     monthlyOrdersChart.data.datasets[0].data = data.monthOrders;
                     monthlyOrdersChart.update();
                 })
-                .catch(() => {
+                .catch((error) => {
+                    console.error('Error:', error);
                     // Fallback to full reload on error
-                    window.location.href = 'sales-records.php?year=' + year;
+                    window.location.href = url;
                 });
+        }
+
+        // Year selector — live update via AJAX (legacy function for backward compatibility)
+        function changeYear(year) {
+            document.getElementById('yearSelect').value = year;
+            document.getElementById('monthSelect').value = '';
+            document.getElementById('daySelect').value = '';
+            updateFilters();
         }
 
         // Resize charts when sidebar toggles

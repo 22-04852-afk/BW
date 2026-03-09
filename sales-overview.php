@@ -56,7 +56,7 @@ $topQtys     = json_encode(array_column($top_products, 'total_qty'));
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script>(function(){if(localStorage.getItem('theme')==='light'){document.documentElement.classList.add('light-mode');document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('light-mode')})}})()</script>
+    <script>(function(){if(localStorage.getItem('theme')!=='dark'){document.documentElement.classList.add('light-mode');document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('light-mode')})}})()</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sales Overview - BW Gas Detector</title>
@@ -319,6 +319,12 @@ $topQtys     = json_encode(array_column($top_products, 'total_qty'));
                 </li>
                 <li class="menu-item">
                     <a href="delivery-records.php" class="menu-link"><i class="fas fa-truck"></i><span class="menu-label">Delivery Records</span></a>
+                </li>
+                <li class="menu-item">
+                    <a href="inventory.php" class="menu-link"><i class="fas fa-boxes"></i><span class="menu-label">Inventory</span></a>
+                </li>
+                <li class="menu-item">
+                    <a href="andison-manila.php" class="menu-link"><i class="fas fa-truck-fast"></i><span class="menu-label">Andison Manila</span></a>
                 </li>
                 <li class="menu-item">
                     <a href="client-companies.php" class="menu-link"><i class="fas fa-building"></i><span class="menu-label">Client Companies</span></a>

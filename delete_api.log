@@ -1,0 +1,30 @@
+[2026-03-09 02:58:02] === DELETE API CALLED ===
+[2026-03-09 02:58:02] Request Method: POST
+[2026-03-09 02:58:02] User Agent: N/A
+[2026-03-09 02:58:02] Database connection OK
+[2026-03-09 02:58:02] Getting count before deletion...
+[2026-03-09 02:58:02] Records found: 5
+[2026-03-09 02:58:02] Executing DELETE FROM delivery_records...
+[2026-03-09 02:58:02] Delete executed successfully
+[2026-03-09 02:58:02] Verification: 0 records remaining
+[2026-03-09 02:58:02] SUCCESS: Deleted 5 records
+[2026-03-09 02:58:02] === DELETE API END ===\n
+[2026-03-09 03:01:12] === DELETE API CALLED ===
+[2026-03-09 03:01:12] Request Method: POST
+[2026-03-09 03:01:12] User Agent: N/A
+[2026-03-09 03:01:12] Database connection OK
+[2026-03-09 03:01:12] STEP 1: Getting count of delivery_records...
+[2026-03-09 03:01:12] Found 5 delivery records
+[2026-03-09 03:01:12] STEP 2: Executing DELETE FROM delivery_records...
+[2026-03-09 03:01:12] Successfully deleted 5 records from delivery_records
+[2026-03-09 03:01:12] STEP 3: Executing DELETE FROM inventory...
+[2026-03-09 03:01:12] Inventory cleared
+[2026-03-09 03:01:12] STEP 4: Executing DELETE FROM security_alerts...
+[2026-03-09 03:01:12] Security alerts cleared
+[2026-03-09 03:01:12] STEP 5: Executing DELETE FROM login_attempts...
+[2026-03-09 03:01:12] Login attempts cleared
+[2026-03-09 03:01:12] STEP 6: Verifying all data deleted...
+[2026-03-09 03:01:12] Verification - delivery_records: 0 records remaining
+[2026-03-09 03:01:12] Verification - security_alerts: 0 records remaining
+[2026-03-09 03:01:12] SUCCESS: Deleted 5 delivery records and cleared all related data
+[2026-03-09 03:01:12] === DELETE API END ===\n

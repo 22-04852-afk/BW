@@ -128,6 +128,9 @@ function initializeLoginForm() {
 // LOGIN HANDLER
 // ============================================
 
+let isAccountLocked = false;
+let lockedEmail = '';
+
 function handleLogin(email, password) {
     const loginBtn = document.getElementById('loginBtn');
     const btnText = loginBtn?.querySelector('.btn-text');
@@ -166,14 +169,178 @@ function handleLogin(email, password) {
 
                 setTimeout(() => { window.location.href = data.redirect || 'index.php'; }, 1200);
             } else {
-                showNotification(data.message || 'Invalid credentials. Please try again.', 'error');
-                setFieldState('password', 'password-error', 'Check your email and password and try again.');
+                // Check if account is locked
+                if (data.locked) {
+                    isAccountLocked = true;
+                    lockedEmail = email;
+                    showUnlockCodeInput(email, data.attempts, data.emailSent, data.unlockCode);
+                } else if (data.remaining !== undefined && data.remaining <= 2) {
+                    // Show warning for remaining attempts
+                    showNotification(`⚠️ ${data.message}`, 'warning');
+                    setFieldState('password', 'password-error', `${data.remaining} attempt(s) remaining before account lock.`);
+                } else {
+                    showNotification(data.message || 'Invalid credentials. Please try again.', 'error');
+                    setFieldState('password', 'password-error', 'Check your email and password and try again.');
+                }
                 resetLoginButton(loginBtn, btnText);
             }
         })
         .catch(error => {
             showNotification(error.message, 'error');
             resetLoginButton(loginBtn, btnText);
+        });
+}
+
+function showUnlockCodeInput(email, attempts, emailSent, unlockCode = null) {
+    // Hide password field and show unlock code input
+    const passwordGroup = document.querySelector('.form-group:has(#password)') || document.getElementById('password')?.closest('.form-group');
+    const loginBtn = document.getElementById('loginBtn');
+    const form = document.getElementById('loginForm');
+    
+    // Determine message based on email status and unlock code
+    let statusMessage = '';
+    if (emailSent) {
+        statusMessage = '<p class="email-sent"><i class="fas fa-envelope"></i> A 6-digit unlock code has been sent to your email.</p>';
+    } else if (unlockCode) {
+        statusMessage = `<p class="email-not-sent"><i class="fas fa-exclamation-triangle"></i> SMTP not configured. Use this code: <strong style="font-size: 24px; letter-spacing: 3px; color: #f4d03f;">${unlockCode}</strong></p>`;
+    } else {
+        statusMessage = '<p class="email-not-sent"><i class="fas fa-exclamation-triangle"></i> Email notification could not be sent. Wait 15 minutes or contact admin.</p>';
+    }
+    
+    // Create unlock code section if it doesn't exist
+    let unlockSection = document.getElementById('unlockCodeSection');
+    if (!unlockSection) {
+        unlockSection = document.createElement('div');
+        unlockSection.id = 'unlockCodeSection';
+        unlockSection.className = 'unlock-code-section';
+        unlockSection.innerHTML = `
+            <div class="lock-alert">
+                <div class="lock-icon">🔐</div>
+                <h3>Account Locked</h3>
+                <p>Your account has been temporarily locked after ${attempts} failed login attempts.</p>
+                ${statusMessage}
+            </div>
+            <div class="form-group">
+                <label for="unlockCode">UNLOCK CODE</label>
+                <div class="input-wrapper unlock-input">
+                    <i class="fas fa-key"></i>
+                    <input type="text" id="unlockCode" name="unlockCode" placeholder="Enter 6-digit code" maxlength="6" pattern="[0-9]*" inputmode="numeric" autocomplete="one-time-code">
+                </div>
+                <span class="field-error" id="unlock-error"></span>
+            </div>
+            <button type="button" id="verifyUnlockBtn" class="btn-login">
+                <span class="btn-text">Verify Code</span>
+            </button>
+            <button type="button" id="backToLoginBtn" class="btn-back">
+                <i class="fas fa-arrow-left"></i> Back to Login
+            </button>
+        `;
+        
+        if (passwordGroup) {
+            passwordGroup.style.display = 'none';
+        }
+        if (loginBtn) {
+            loginBtn.style.display = 'none';
+        }
+        
+        // Insert after email field
+        const emailGroup = document.querySelector('.form-group:has(#email)') || document.getElementById('email')?.closest('.form-group');
+        if (emailGroup) {
+            emailGroup.after(unlockSection);
+        } else if (form) {
+            form.appendChild(unlockSection);
+        }
+        
+        // Add event listeners
+        document.getElementById('verifyUnlockBtn').addEventListener('click', verifyUnlockCode);
+        document.getElementById('backToLoginBtn').addEventListener('click', hideUnlockCodeInput);
+        document.getElementById('unlockCode').addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+        document.getElementById('unlockCode').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                verifyUnlockCode();
+            }
+        });
+        
+        // Focus on unlock code input
+        setTimeout(() => document.getElementById('unlockCode')?.focus(), 100);
+    } else {
+        unlockSection.style.display = 'block';
+        if (passwordGroup) passwordGroup.style.display = 'none';
+        if (loginBtn) loginBtn.style.display = 'none';
+    }
+    
+    // Disable email field
+    const emailInput = document.getElementById('email');
+    if (emailInput) emailInput.readOnly = true;
+}
+
+function hideUnlockCodeInput() {
+    const unlockSection = document.getElementById('unlockCodeSection');
+    const passwordGroup = document.querySelector('.form-group:has(#password)') || document.getElementById('password')?.closest('.form-group');
+    const loginBtn = document.getElementById('loginBtn');
+    const emailInput = document.getElementById('email');
+    
+    if (unlockSection) unlockSection.style.display = 'none';
+    if (passwordGroup) passwordGroup.style.display = '';
+    if (loginBtn) loginBtn.style.display = '';
+    if (emailInput) emailInput.readOnly = false;
+    
+    isAccountLocked = false;
+    lockedEmail = '';
+    
+    // Clear any errors
+    setFieldState('password', 'password-error', '');
+}
+
+function verifyUnlockCode() {
+    const code = document.getElementById('unlockCode')?.value.trim();
+    const email = lockedEmail || document.getElementById('email')?.value.trim();
+    const verifyBtn = document.getElementById('verifyUnlockBtn');
+    const btnText = verifyBtn?.querySelector('.btn-text');
+    
+    if (!code || code.length !== 6) {
+        setFieldState('unlockCode', 'unlock-error', 'Please enter the 6-digit code from your email.');
+        return;
+    }
+    
+    if (verifyBtn) verifyBtn.disabled = true;
+    if (btnText) btnText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+    
+    const formData = new FormData();
+    formData.append('action', 'verify-unlock-code');
+    formData.append('email', email);
+    formData.append('code', code);
+    
+    fetch('api/security-alert.php', {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('✅ ' + data.message + ' You can now login.', 'success');
+                hideUnlockCodeInput();
+                // Clear the password field so user can re-enter
+                const passwordInput = document.getElementById('password');
+                if (passwordInput) {
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            } else {
+                setFieldState('unlockCode', 'unlock-error', data.message || 'Invalid code. Please try again.');
+                showNotification('❌ ' + (data.message || 'Invalid code'), 'error');
+            }
+            
+            if (verifyBtn) verifyBtn.disabled = false;
+            if (btnText) btnText.innerHTML = 'Verify Code';
+        })
+        .catch(error => {
+            showNotification('Error verifying code: ' + error.message, 'error');
+            if (verifyBtn) verifyBtn.disabled = false;
+            if (btnText) btnText.innerHTML = 'Verify Code';
         });
 }
 

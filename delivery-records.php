@@ -49,7 +49,7 @@ if ($result) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script>(function(){if(localStorage.getItem('theme')==='light'){document.documentElement.classList.add('light-mode');document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('light-mode')})}})()</script>
+    <script>(function(){if(localStorage.getItem('theme')!=='dark'){document.documentElement.classList.add('light-mode');document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('light-mode')})}})()</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Delivery Records - BW Gas Detector</title>
@@ -831,6 +831,37 @@ if ($result) {
         body.light-mode .btn-cancel-delete:hover {
             background: #d0e7f7;
         }
+
+        /* Andison Manila Highlight */
+        tr.andison-manila-row {
+            background: linear-gradient(90deg, rgba(255, 214, 10, 0.15) 0%, rgba(255, 214, 10, 0.08) 100%) !important;
+            border-left: 4px solid #ffd60a;
+        }
+
+        tr.andison-manila-row:hover {
+            background: linear-gradient(90deg, rgba(255, 214, 10, 0.25) 0%, rgba(255, 214, 10, 0.15) 100%) !important;
+        }
+
+        tr.andison-manila-row td {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        html.light-mode tr.andison-manila-row,
+        body.light-mode tr.andison-manila-row {
+            background: linear-gradient(90deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 193, 7, 0.08) 100%) !important;
+            border-left: 4px solid #ffc107;
+        }
+
+        html.light-mode tr.andison-manila-row:hover,
+        body.light-mode tr.andison-manila-row:hover {
+            background: linear-gradient(90deg, rgba(255, 193, 7, 0.25) 0%, rgba(255, 193, 7, 0.15) 100%) !important;
+        }
+
+        html.light-mode tr.andison-manila-row td,
+        body.light-mode tr.andison-manila-row td {
+            color: #1a3a5c;
+        }
     </style>
 </head>
 <body>
@@ -905,6 +936,22 @@ if ($result) {
                     <a href="delivery-records.php" class="menu-link">
                         <i class="fas fa-truck"></i>
                         <span class="menu-label">Delivery Records</span>
+                    </a>
+                </li>
+
+                <!-- Inventory -->
+                <li class="menu-item">
+                    <a href="inventory.php" class="menu-link">
+                        <i class="fas fa-boxes"></i>
+                        <span class="menu-label">Inventory</span>
+                    </a>
+                </li>
+
+                <!-- Andison Manila -->
+                <li class="menu-item">
+                    <a href="andison-manila.php" class="menu-link">
+                        <i class="fas fa-truck-fast"></i>
+                        <span class="menu-label">Andison Manila</span>
                     </a>
                 </li>
 
@@ -1066,8 +1113,11 @@ if ($result) {
                         
                         // Hide rows beyond initial limit (30)
                         $hidden_class = ($row_index >= 30) ? 'hidden-row' : '';
+                        
+                        // Check if this is Andison Manila
+                        $andison_class = (isset($record['company_name']) && $record['company_name'] === 'to Andison Manila') ? 'andison-manila-row' : '';
                     ?>
-                    <tr data-record-id="<?php echo htmlspecialchars($record['id'] ?? ''); ?>" data-row-index="<?php echo $row_index; ?>" class="<?php echo $hidden_class; ?>">
+                    <tr data-record-id="<?php echo htmlspecialchars($record['id'] ?? ''); ?>" data-row-index="<?php echo $row_index; ?>" class="<?php echo $hidden_class . ' ' . $andison_class; ?>">
                         <td><?php echo htmlspecialchars($record['invoice_no'] ?? ''); ?></td>
                         <td><?php echo htmlspecialchars($date_col); ?></td>
                         <td><?php echo htmlspecialchars($record['delivery_month'] ?? ''); ?></td>

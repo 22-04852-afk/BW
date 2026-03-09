@@ -8,7 +8,7 @@ if (empty($_SESSION['user_id'])) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script>(function(){if(localStorage.getItem('theme')==='light'){document.documentElement.classList.add('light-mode');document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('light-mode')})}})()</script>
+    <script>(function(){if(localStorage.getItem('theme')!=='dark'){document.documentElement.classList.add('light-mode');document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('light-mode')})}})()</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - BW Gas Detector</title>
@@ -551,6 +551,22 @@ if (empty($_SESSION['user_id'])) {
                     <a href="delivery-records.php" class="menu-link">
                         <i class="fas fa-truck"></i>
                         <span class="menu-label">Delivery Records</span>
+                    </a>
+                </li>
+
+                <!-- Inventory -->
+                <li class="menu-item">
+                    <a href="inventory.php" class="menu-link">
+                        <i class="fas fa-boxes"></i>
+                        <span class="menu-label">Inventory</span>
+                    </a>
+                </li>
+
+                <!-- Andison Manila -->
+                <li class="menu-item">
+                    <a href="andison-manila.php" class="menu-link">
+                        <i class="fas fa-truck-fast"></i>
+                        <span class="menu-label">Andison Manila</span>
                     </a>
                 </li>
 

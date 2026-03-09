@@ -4,11 +4,25 @@ if (empty($_SESSION['user_id'])) {
     header('Location: login.php', true, 302);
     exit;
 }
+
+// Get total record count from database
+require_once 'db_config.php';
+$totalRecords = 0;
+
+if ($conn) {
+    $result = @$conn->query("SELECT COUNT(*) as total FROM delivery_records");
+    if ($result) {
+        $row = $result->fetch_assoc();
+        if ($row && isset($row['total'])) {
+            $totalRecords = intval($row['total']);
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script>(function(){if(localStorage.getItem('theme')==='light'){document.documentElement.classList.add('light-mode');document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('light-mode')})}})()</script>
+    <script>(function(){if(localStorage.getItem('theme')!=='dark'){document.documentElement.classList.add('light-mode');document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('light-mode')})}})()</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload Data - BW Gas Detector</title>
@@ -601,31 +615,83 @@ if (empty($_SESSION['user_id'])) {
             background: rgba(255, 255, 255, 0.15);
             color: #fff;
         }
+
+        /* Light Mode Overrides */
+        .light-mode .template-section {
+            background: rgba(0, 0, 0, 0.03);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .light-mode .template-icon {
+            color: #0077b6;
+        }
+
+        .light-mode .template-content h4 {
+            color: #1a1a2e;
+        }
+
+        .light-mode .template-content p {
+            color: #555;
+        }
+
+        .light-mode .template-columns {
+            color: #444;
+        }
+
+        .light-mode .template-columns span {
+            background: rgba(0, 0, 0, 0.04);
+            border-left-color: #e6a700;
+        }
+
+        .light-mode .btn-download-template {
+            background: linear-gradient(135deg, #0077b6 0%, #005f8a 100%);
+        }
+
+        /* Delete Section Light Mode */
+        .delete-section {
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            background: linear-gradient(135deg, #2a1a1a 0%, #3a1f1f 100%);
+        }
+
+        .light-mode .delete-section {
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+            border: 1px solid rgba(255, 107, 107, 0.4);
+        }
+
+        .delete-section-inner {
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .light-mode .delete-section-inner {
+            background: rgba(255, 107, 107, 0.08);
+        }
+
+        .delete-section-title {
+            color: #fff;
+        }
+
+        .light-mode .delete-section-title {
+            color: #1a1a2e;
+        }
+
+        .delete-section-subtitle {
+            color: #a0a0a0;
+        }
+
+        .light-mode .delete-section-subtitle {
+            color: #666;
+        }
     </style>
 </head>
 <body>
-    <!-- Delete Confirmation Modal -->
-    <div class="modal-overlay" id="deleteModal">
+    <!-- Delete Confirmation Modal (No longer used - deletion happens immediately after browser confirm) -->
+    <div class="modal-overlay" id="deleteModal" style="display: none;">
         <div class="modal-content">
             <div class="modal-icon" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);">
                 <i class="fas fa-trash-alt"></i>
             </div>
-            <h2 class="modal-title" style="color: #ff6b6b;">Delete All Data?</h2>
-            <p class="modal-message">This will permanently delete ALL uploaded records from the database. This action cannot be undone.</p>
-            <div class="modal-stats" id="deleteStats">
-                <div class="modal-stat">
-                    <div class="modal-stat-value" style="color: #ff6b6b;" id="deleteCount">0</div>
-                    <div class="modal-stat-label">Records to Delete</div>
-                </div>
-            </div>
-            <div class="modal-buttons">
-                <button class="btn-modal" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: #fff;" onclick="confirmDeleteAll()">
-                    <i class="fas fa-trash-alt"></i> Yes, Delete All
-                </button>
-                <button class="btn-modal btn-modal-secondary" onclick="closeDeleteModal()">
-                    <i class="fas fa-times"></i> Cancel
-                </button>
-            </div>
+            <h2 class="modal-title" style="color: #ff6b6b;">Deleting...</h2>
+            <p class="modal-message">Please wait while we delete your data...</p>
         </div>
     </div>
 
@@ -737,6 +803,22 @@ if (empty($_SESSION['user_id'])) {
                     </a>
                 </li>
 
+                <!-- Inventory -->
+                <li class="menu-item">
+                    <a href="inventory.php" class="menu-link">
+                        <i class="fas fa-boxes"></i>
+                        <span class="menu-label">Inventory</span>
+                    </a>
+                </li>
+
+                <!-- Andison Manila -->
+                <li class="menu-item">
+                    <a href="andison-manila.php" class="menu-link">
+                        <i class="fas fa-truck-fast"></i>
+                        <span class="menu-label">Andison Manila</span>
+                    </a>
+                </li>
+
                 <!-- Client Companies -->
                 <li class="menu-item">
                     <a href="client-companies.php" class="menu-link">
@@ -836,7 +918,10 @@ if (empty($_SESSION['user_id'])) {
                     <i class="fas fa-cloud-upload-alt"></i>
                     Upload Excel Files
                 </h2>
-                <p class="section-subtitle">Drag and drop your files or click to browse (multiple files supported)</p>
+                <p class="section-subtitle">
+                    <i class="fas fa-info-circle" style="color: #f4d03f;"></i>
+                    To keep data separate, import files and sheets ONE AT A TIME
+                </p>
 
                 <div class="upload-zone" id="uploadZone">
                     <div class="upload-icon">
@@ -845,7 +930,7 @@ if (empty($_SESSION['user_id'])) {
                     <h3>Drag Excel files here</h3>
                     <p>or click to select from your computer</p>
                     <div class="upload-formats">
-                        Supported formats: <strong>.xlsx, .xls, .csv</strong> (Max 10MB per file) | <strong>Multiple files allowed</strong>
+                        Supported formats: <strong>.xlsx, .xls, .csv</strong> (Max 10MB per file) | <strong>Import one file at a time</strong>
                     </div>
                     <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple />
                 </div>
@@ -854,8 +939,7 @@ if (empty($_SESSION['user_id'])) {
 
                 <!-- Sheet Selector (for multi-sheet Excel files) -->
                 <div class="sheet-selector" id="sheetSelector" style="display: none; margin-top: 20px;">
-                    <h4 style="color: #f4d03f; margin-bottom: 10px;"><i class="fas fa-layer-group"></i> Select Sheets to Import</h4>
-                    <div id="sheetList" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+                    <div id="sheetList" style="display: flex; flex-direction: column; gap: 10px;"></div>
                 </div>
 
                 <div class="upload-actions">
@@ -937,24 +1021,33 @@ if (empty($_SESSION['user_id'])) {
             </div>
 
             <!-- Delete All Data Section -->
-            <div class="upload-section" style="border: 1px solid rgba(255, 107, 107, 0.3); background: linear-gradient(135deg, #2a1a1a 0%, #3a1f1f 100%);">
+            <div class="upload-section delete-section">
                 <h2 class="section-title" style="color: #ff6b6b;">
                     <i class="fas fa-trash-alt"></i>
                     Manage Uploaded Data
                 </h2>
                 <p class="section-subtitle">Clear all uploaded records to start fresh</p>
 
-                <div style="display: flex; align-items: center; gap: 20px; background: rgba(255, 107, 107, 0.1); padding: 20px; border-radius: 12px;">
+                <div class="delete-section-inner" style="display: flex; align-items: center; gap: 20px; padding: 20px; border-radius: 12px;">
                     <div style="flex: 1;">
-                        <p style="color: #fff; margin-bottom: 5px; font-weight: 600;">
+                        <p class="delete-section-title" style="margin-bottom: 5px; font-weight: 600;">
                             <i class="fas fa-database" style="color: #ff6b6b; margin-right: 8px;"></i>
-                            Total Records: <span id="currentRecordCount" style="color: #ff6b6b; font-size: 20px;">Loading...</span>
+                            Total Records: <span id="currentRecordCount" style="color: #ff6b6b; font-size: 20px;"><?php echo number_format($totalRecords); ?></span>
                         </p>
-                        <p style="color: #a0a0a0; font-size: 12px;">Delete all data to upload a new Excel file from scratch</p>
+                        <p class="delete-section-subtitle" style="font-size: 12px;">Delete all data to upload a new Excel file from scratch</p>
                     </div>
-                    <button onclick="showDeleteModal()" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: #fff; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; font-family: 'Poppins', sans-serif; transition: all 0.3s ease;">
+                    <button id="deleteAllBtn" type="button" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: #fff; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; font-family: 'Poppins', sans-serif; transition: all 0.3s ease; display: flex; align-items: center; gap: 10px; white-space: nowrap; position: relative; z-index: 10;">
                         <i class="fas fa-trash-alt"></i> Delete All Data
                     </button>
+                    <style>
+                        button[onclick="showDeleteModal()"]:hover {
+                            transform: translateY(-2px);
+                            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+                        }
+                        button[onclick="showDeleteModal()"]:active {
+                            transform: translateY(0);
+                        }
+                    </style>
                 </div>
             </div>
         </div>
@@ -1090,32 +1183,41 @@ if (empty($_SESSION['user_id'])) {
         }
 
         async function parseAllFiles() {
-            showAlert('info', `Parsing ${selectedFiles.length} file(s)... Please wait.`);
+            if (selectedFiles.length > 1) {
+                showAlert('warning', 'Please upload and import files ONE AT A TIME to keep data separate. Processing first file only.');
+            } else {
+                showAlert('info', `Parsing file "${selectedFiles[0].name}"... Please wait.`);
+            }
+            
             allParsedData = [];
             workbookSheets = {};
             
-            for (let i = 0; i < selectedFiles.length; i++) {
-                const file = selectedFiles[i];
-                try {
-                    const result = await parseFileWithSheets(file);
-                    if (result.hasMultipleSheets) {
-                        // Show sheet selector
-                        workbookSheets[file.name] = result.sheets;
-                        showSheetSelector(file.name, result.sheets);
+            // Only process the first file
+            const file = selectedFiles[0];
+            try {
+                const result = await parseFileWithSheets(file);
+                if (result.hasMultipleSheets) {
+                    // Show sheet selector - user must pick one sheet
+                    workbookSheets[file.name] = result.sheets;
+                    showSheetSelector(file.name, result.sheets);
+                    return; // Wait for user to select a sheet
+                } else {
+                    // Single sheet file - load directly
+                    allParsedData = result.data;
+                    
+                    if (allParsedData.length > 0) {
+                        parsedData = allParsedData;
+                        displayPreview(allParsedData);
+                        generatePreviewCharts(allParsedData);
+                        showAlert('success', `✓ Loaded "${file.name}": ${allParsedData.length} records. Review below and click Import.`);
                     } else {
-                        allParsedData = [...allParsedData, ...result.data];
+                        showAlert('warning', `No data found in "${file.name}"`);
                     }
-                } catch (error) {
-                    showAlert('error', `Error parsing ${file.name}: ${error.message}`);
                 }
+            } catch (error) {
+                showAlert('error', `Error parsing ${file.name}: ${error.message}`);
             }
-            
-            if (allParsedData.length > 0) {
-                parsedData = allParsedData;
-                displayPreview(allParsedData);
-                generatePreviewCharts(allParsedData);
-                showAlert('success', `${selectedFiles.length} file(s) parsed successfully! Total ${allParsedData.length} records. Review charts and click Import.`);
-            }
+        }
         }
 
         function parseFileWithSheets(file) {
@@ -1200,55 +1302,79 @@ if (empty($_SESSION['user_id'])) {
 
         function showSheetSelector(fileName, sheets) {
             sheetSelector.style.display = 'block';
-            let html = `<p style="color: #a0a0a0; margin-bottom: 15px; font-size: 13px;">File "${fileName}" has ${Object.keys(sheets).length} sheets. Select which to import:</p>`;
+            let html = `
+                <div style="background: linear-gradient(135deg, rgba(255, 214, 10, 0.1) 0%, rgba(255, 214, 10, 0.05) 100%); border: 1px solid rgba(255, 214, 10, 0.3); border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                    <p style="color: #f4d03f; margin: 0; font-weight: 600; margin-bottom: 8px;"><i class="fas fa-exclamation-circle"></i> Import One Sheet at a Time</p>
+                    <p style="color: #a0a0a0; margin: 0; font-size: 12px;">File "${fileName}" has ${Object.keys(sheets).length} sheets. To keep data separate, select <strong>ONE sheet</strong> to import now. You can upload the file again to import other sheets.</p>
+                </div>
+                <p style="color: #a0a0a0; margin-bottom: 15px; font-size: 13px;"><i class="fas fa-layer-group"></i> Available Sheets:</p>
+            `;
             
             Object.keys(sheets).forEach((sheetName, index) => {
                 const info = sheets[sheetName];
                 html += `
-                    <label class="sheet-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 15px; background: rgba(255,255,255,0.05); border-radius: 8px; cursor: pointer; margin-bottom: 8px;">
-                        <input type="checkbox" class="sheet-check" data-file="${fileName}" data-sheet="${sheetName}" ${index === 0 ? 'checked' : ''} onchange="updateSelectedSheets()">
-                        <span style="color: #fff; font-weight: 500;">${sheetName}</span>
-                        <span style="color: #a0a0a0; font-size: 12px;">(${info.rowCount} rows)</span>
+                    <label class="sheet-radio" style="display: flex; align-items: center; gap: 8px; padding: 12px 15px; background: rgba(255,255,255,0.05); border: 2px solid transparent; border-radius: 8px; cursor: pointer; margin-bottom: 8px; transition: all 0.3s ease;">
+                        <input type="radio" name="sheet-selection" class="sheet-check" data-file="${fileName}" data-sheet="${sheetName}" ${index === 0 ? 'checked' : ''} onchange="updateSelectedSheets(this)">
+                        <span style="color: #fff; font-weight: 500; flex: 1;">${sheetName}</span>
+                        <span style="color: #a0a0a0; font-size: 12px; white-space: nowrap;">(${info.rowCount} rows)</span>
                     </label>
                 `;
             });
             
-            html += `<button onclick="parseSelectedSheets()" style="margin-top: 15px; background: #2f5fa7; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;"><i class="fas fa-check"></i> Load Selected Sheets</button>`;
+            html += `
+                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <button onclick="parseSelectedSheets()" style="flex: 1; background: linear-gradient(135deg, #f4d03f 0%, #f9d76a 100%); color: #1a3a5c; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fas fa-download"></i> Load This Sheet
+                    </button>
+                    <button onclick="resetUpload()" style="flex: 1; background: rgba(100, 100, 100, 0.5); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            `;
             sheetList.innerHTML = html;
         }
 
-        function updateSelectedSheets() {
-            // Just for UI feedback
+        function updateSelectedSheets(radio) {
+            // Update radio button styles when selected
+            document.querySelectorAll('.sheet-radio').forEach(label => {
+                const input = label.querySelector('input');
+                if (input.checked) {
+                    label.style.background = 'rgba(244, 208, 63, 0.15)';
+                    label.style.borderColor = '#f4d03f';
+                } else {
+                    label.style.background = 'rgba(255,255,255,0.05)';
+                    label.style.borderColor = 'transparent';
+                }
+            });
         }
 
         async function parseSelectedSheets() {
-            const checkboxes = document.querySelectorAll('.sheet-check:checked');
-            if (checkboxes.length === 0) {
-                showAlert('error', 'Please select at least one sheet');
+            const selectedRadio = document.querySelector('.sheet-check:checked');
+            if (!selectedRadio) {
+                showAlert('error', 'Please select a sheet to import');
                 return;
             }
             
-            showAlert('info', 'Loading selected sheets...');
+            const fileName = selectedRadio.dataset.file;
+            const sheetName = selectedRadio.dataset.sheet;
+            
+            showAlert('info', `Loading sheet "${sheetName}" from "${fileName}"...`);
             allParsedData = [];
             
-            checkboxes.forEach(cb => {
-                const fileName = cb.dataset.file;
-                const sheetName = cb.dataset.sheet;
-                if (workbookSheets[fileName] && workbookSheets[fileName][sheetName]) {
-                    const worksheet = workbookSheets[fileName][sheetName].worksheet;
-                    const rows = parseWorksheet(worksheet);
-                    allParsedData = [...allParsedData, ...rows];
-                }
-            });
+            if (workbookSheets[fileName] && workbookSheets[fileName][sheetName]) {
+                const worksheet = workbookSheets[fileName][sheetName].worksheet;
+                const rows = parseWorksheet(worksheet);
+                allParsedData = rows;
+            }
             
             if (allParsedData.length > 0) {
                 parsedData = allParsedData;
                 displayPreview(allParsedData);
                 generatePreviewCharts(allParsedData);
                 sheetSelector.style.display = 'none';
-                showAlert('success', `Loaded ${allParsedData.length} records from ${checkboxes.length} sheet(s). Review charts and click Import.`);
+                showAlert('success', `✓ Loaded "${sheetName}": ${allParsedData.length} records. Review below and click Import.`);
             } else {
-                showAlert('warning', 'No data found in selected sheets');
+                showAlert('warning', `No data found in sheet "${sheetName}"`);
             }
         }
 
@@ -1699,61 +1825,129 @@ if (empty($_SESSION['user_id'])) {
         // Sidebar toggle (from main theme)
         // Sidebar toggle is handled by app.js
 
-        // Load current record count
+        // Load current record count and refresh periodically
         async function loadRecordCount() {
             try {
-                const response = await fetch('api/check-data.php');
+                const response = await fetch('api/check-data.php?nocache=' + Date.now());
                 const data = await response.json();
-                document.getElementById('currentRecordCount').textContent = data.total_records || 0;
-                return data.total_records || 0;
+                const count = data && typeof data.total_records !== 'undefined' ? parseInt(data.total_records) : 0;
+                document.getElementById('currentRecordCount').textContent = count.toLocaleString();
+                return count;
             } catch (error) {
-                document.getElementById('currentRecordCount').textContent = 'Error';
-                return 0;
+                console.error('Error loading record count:', error);
+                // Keep existing count if API fails
             }
         }
 
-        // Load record count on page load
+        // Refresh record count every 5 seconds
         window.addEventListener('load', () => {
-            loadRecordCount();
+            setInterval(loadRecordCount, 5000);
         });
 
         // Show delete confirmation modal
-        async function showDeleteModal() {
-            const count = await loadRecordCount();
-            document.getElementById('deleteCount').textContent = count;
-            document.getElementById('deleteModal').classList.add('show');
+        function showDeleteModal() {
+            console.log('DELETE BUTTON CLICKED!');
+            
+            const countElement = document.getElementById('currentRecordCount');
+            let count = '0';
+            if (countElement) {
+                count = countElement.textContent.replace(/,/g, '');
+            }
+            
+            console.log('Current count:', count);
+            
+            // Simple confirm dialog - NO conditions, just show it
+            const message = 'WARNING!\n\nAre you sure you want to DELETE ALL DATA?\n\n' + count + ' records will be permanently deleted.\n\nThis action CANNOT be undone!';
+            console.log('Showing confirm dialog with message:', message);
+            
+            const result = confirm(message);
+            console.log('Confirm result:', result);
+            
+            if (result === true) {
+                console.log('User clicked OK - deleting now');
+                deleteAllData(count);
+            } else {
+                console.log('User clicked Cancel');
+            }
         }
 
         // Close delete modal
         function closeDeleteModal() {
+            console.log('closeDeleteModal called');
             document.getElementById('deleteModal').classList.remove('show');
         }
 
-        // Confirm and delete all data
-        async function confirmDeleteAll() {
-            try {
-                showAlert('info', '<span class="spinner"></span> Deleting all records...');
-                
-                const response = await fetch('api/delete-all-records.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    closeDeleteModal();
-                    showAlert('success', `Successfully deleted ${result.deleted_count} records! You can now upload fresh data.`);
-                    document.getElementById('currentRecordCount').textContent = '0';
+        // Delete all data function
+        function deleteAllData(count) {
+            console.log('deleteAllData called with count:', count);
+            showAlert('info', 'Deleting ' + count + ' records... Please wait.');
+            
+            // Make the API call
+            fetch('api/delete-all-records.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => {
+                console.log('Response received:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                if (data.success) {
+                    showAlert('success', 'Successfully deleted ' + data.deleted_count + ' records! Reloading...');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
                 } else {
-                    showAlert('error', 'Error: ' + result.message);
+                    showAlert('error', 'Error: ' + data.message);
                 }
-            } catch (error) {
-                showAlert('error', 'Error deleting records: ' + error.message);
-            }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                showAlert('error', 'Error: ' + error.message);
+            });
         }
 
         // Profile dropdown
+        
+        // ===== DELETE ALL DATA BUTTON HANDLER =====
+        // This runs AFTER the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('PAGE LOADED - Setting up delete button');
+            const deleteBtn = document.getElementById('deleteAllBtn');
+            if (deleteBtn) {
+                console.log('Delete button found, adding click handler');
+                deleteBtn.addEventListener('click', function(e) {
+                    console.log('DELETE BUTTON CLICKED!!!');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const countElement = document.getElementById('currentRecordCount');
+                    let count = '0';
+                    if (countElement) {
+                        count = countElement.textContent.replace(/,/g, '');
+                    }
+                    
+                    console.log('Record count:', count);
+                    
+                    // Show confirmation dialog
+                    const message = 'WARNING!\n\nAre you ABSOLUTELY SURE you want to DELETE ALL DATA?\n\n' + count + ' records will be permanently deleted.\n\nThis action CANNOT be undone!';
+                    
+                    const confirmed = window.confirm(message);
+                    console.log('User confirmed:', confirmed);
+                    
+                    if (confirmed === true) {
+                        console.log('Proceeding with deletion...');
+                        deleteAllData(count);
+                    }
+                });
+            } else {
+                console.warn('Delete button NOT found!');
+            }
+        });
     </script>
 </body>
 </html>

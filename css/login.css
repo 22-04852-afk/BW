@@ -753,6 +753,128 @@ body {
 }
 
 /* ============================================
+   UNLOCK CODE SECTION
+   ============================================ */
+
+.unlock-code-section {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.lock-alert {
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.15), rgba(231, 76, 60, 0.08));
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.lock-alert .lock-icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+}
+
+.lock-alert h3 {
+    color: #ff6b6b;
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+
+.lock-alert p {
+    color: var(--color-text-lighter);
+    font-size: 13px;
+    margin-bottom: 5px;
+}
+
+.lock-alert .email-sent {
+    color: #51cf66;
+    font-weight: 500;
+}
+
+.lock-alert .email-sent i {
+    margin-right: 5px;
+}
+
+.lock-alert .email-not-sent {
+    color: #ffd60a;
+}
+
+.lock-alert .email-not-sent i {
+    margin-right: 5px;
+}
+
+.unlock-input {
+    background: rgba(244, 208, 63, 0.1) !important;
+    border-color: rgba(244, 208, 63, 0.3) !important;
+}
+
+.unlock-input:focus-within {
+    border-color: #f4d03f !important;
+    box-shadow: 0 0 15px rgba(244, 208, 63, 0.2) !important;
+}
+
+.unlock-input input {
+    text-align: center;
+    font-size: 24px !important;
+    font-weight: 700;
+    letter-spacing: 8px;
+    font-family: monospace;
+}
+
+#verifyUnlockBtn {
+    background: linear-gradient(135deg, #f4d03f, #e6a700);
+    margin-bottom: 10px;
+}
+
+#verifyUnlockBtn:hover {
+    background: linear-gradient(135deg, #e6a700, #d4940a);
+}
+
+.btn-back {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    color: var(--color-text-lighter);
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-back:hover {
+    border-color: var(--color-primary);
+    color: var(--color-text-light);
+}
+
+.btn-back i {
+    margin-right: 8px;
+}
+
+/* Light mode for unlock section */
+.light-mode .lock-alert {
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05));
+}
+
+.light-mode .lock-alert h3 {
+    color: #e74c3c;
+}
+
+.light-mode .lock-alert p {
+    color: #555;
+}
+
+.light-mode .unlock-input {
+    background: rgba(244, 208, 63, 0.08) !important;
+}
+
+/* ============================================
    RESPONSIVE
    ============================================ */
 

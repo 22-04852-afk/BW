@@ -8,10 +8,10 @@
 // EMAIL CONFIGURATION - UPDATE THESE SETTINGS
 // ============================================
 define('SMTP_HOST', 'smtp.gmail.com');           // Gmail SMTP server
-define('SMTP_PORT', 587);                         // TLS port
-define('SMTP_USER', '');                          // Your Gmail address (e.g., yourname@gmail.com)
-define('SMTP_PASS', '');                          // Your Gmail App Password (NOT your regular password)
-define('SMTP_FROM_EMAIL', '');                    // Same as SMTP_USER for Gmail
+define('SMTP_PORT', 465);                         // SSL port (more reliable)
+define('SMTP_USER', 'lizettemacalindol.official@gmail.com');  // Your Gmail address
+define('SMTP_PASS', 'wprgsvaawvpvlcup');          // Your Gmail App Password
+define('SMTP_FROM_EMAIL', 'lizettemacalindol.official@gmail.com');
 define('SMTP_FROM_NAME', 'BW Dashboard Security');
 
 // ============================================
@@ -38,7 +38,34 @@ function sendEmail($to, $subject, $htmlBody, $textBody = '') {
 }
 
 /**
- * Send email using direct SMTP connection
+ * Read SMTP response
+ */
+function smtpGetResponse($socket) {
+    $response = '';
+    while ($line = @fgets($socket, 515)) {
+        $response .= $line;
+        // Check if this is the last line (4th char is space)
+        if (isset($line[3]) && $line[3] == ' ') break;
+    }
+    return $response;
+}
+
+/**
+ * Send SMTP command and check response
+ */
+function smtpCommand($socket, $command, $expectedCode) {
+    fputs($socket, $command . "\r\n");
+    $response = smtpGetResponse($socket);
+    $code = substr($response, 0, 3);
+    if ($code != $expectedCode) {
+        error_log("SMTP Error - Expected $expectedCode, got: $response");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Send email using direct SMTP connection with SSL
  */
 function sendWithSMTP($to, $subject, $htmlBody) {
     $host = SMTP_HOST;
@@ -48,10 +75,27 @@ function sendWithSMTP($to, $subject, $htmlBody) {
     $from = SMTP_FROM_EMAIL ?: SMTP_USER;
     $fromName = SMTP_FROM_NAME;
     
-    // Create socket connection
-    $socket = @fsockopen($host, $port, $errno, $errstr, 30);
+    // Create SSL context for secure connection
+    $context = stream_context_create([
+        'ssl' => [
+            'verify_peer' => false,
+            'verify_peer_name' => false,
+            'allow_self_signed' => true
+        ]
+    ]);
+    
+    // Connect using SSL directly (port 465)
+    $socket = @stream_socket_client(
+        "ssl://$host:$port",
+        $errno,
+        $errstr,
+        30,
+        STREAM_CLIENT_CONNECT,
+        $context
+    );
+    
     if (!$socket) {
-        error_log("SMTP Connection failed: $errstr ($errno)");
+        error_log("SMTP SSL Connection failed: $errstr ($errno)");
         return false;
     }
     
@@ -59,44 +103,22 @@ function sendWithSMTP($to, $subject, $htmlBody) {
     stream_set_timeout($socket, 30);
     
     // Read greeting
-    $response = fgets($socket, 515);
+    $response = smtpGetResponse($socket);
     if (substr($response, 0, 3) != '220') {
         fclose($socket);
-        error_log("SMTP Error: $response");
+        error_log("SMTP Greeting Error: $response");
         return false;
     }
     
-    // Send EHLO
-    fputs($socket, "EHLO localhost\r\n");
-    $response = '';
-    while ($line = fgets($socket, 515)) {
-        $response .= $line;
-        if (substr($line, 3, 1) == ' ') break;
-    }
-    
-    // Start TLS
-    fputs($socket, "STARTTLS\r\n");
-    $response = fgets($socket, 515);
-    if (substr($response, 0, 3) != '220') {
+    // EHLO
+    if (!smtpCommand($socket, "EHLO localhost", '250')) {
         fclose($socket);
-        error_log("SMTP STARTTLS failed: $response");
         return false;
-    }
-    
-    // Enable TLS encryption
-    stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
-    
-    // Send EHLO again after TLS
-    fputs($socket, "EHLO localhost\r\n");
-    $response = '';
-    while ($line = fgets($socket, 515)) {
-        $response .= $line;
-        if (substr($line, 3, 1) == ' ') break;
     }
     
     // AUTH LOGIN
     fputs($socket, "AUTH LOGIN\r\n");
-    $response = fgets($socket, 515);
+    $response = smtpGetResponse($socket);
     if (substr($response, 0, 3) != '334') {
         fclose($socket);
         error_log("SMTP AUTH failed: $response");
@@ -105,7 +127,7 @@ function sendWithSMTP($to, $subject, $htmlBody) {
     
     // Send username (base64 encoded)
     fputs($socket, base64_encode($username) . "\r\n");
-    $response = fgets($socket, 515);
+    $response = smtpGetResponse($socket);
     if (substr($response, 0, 3) != '334') {
         fclose($socket);
         error_log("SMTP username failed: $response");
@@ -114,56 +136,51 @@ function sendWithSMTP($to, $subject, $htmlBody) {
     
     // Send password (base64 encoded)
     fputs($socket, base64_encode($password) . "\r\n");
-    $response = fgets($socket, 515);
+    $response = smtpGetResponse($socket);
     if (substr($response, 0, 3) != '235') {
         fclose($socket);
-        error_log("SMTP password failed: $response");
+        error_log("SMTP authentication failed: $response");
         return false;
     }
     
     // MAIL FROM
-    fputs($socket, "MAIL FROM:<$from>\r\n");
-    $response = fgets($socket, 515);
-    if (substr($response, 0, 3) != '250') {
+    if (!smtpCommand($socket, "MAIL FROM:<$from>", '250')) {
         fclose($socket);
-        error_log("SMTP MAIL FROM failed: $response");
         return false;
     }
     
     // RCPT TO
-    fputs($socket, "RCPT TO:<$to>\r\n");
-    $response = fgets($socket, 515);
-    if (substr($response, 0, 3) != '250') {
+    if (!smtpCommand($socket, "RCPT TO:<$to>", '250')) {
         fclose($socket);
-        error_log("SMTP RCPT TO failed: $response");
         return false;
     }
     
     // DATA
     fputs($socket, "DATA\r\n");
-    $response = fgets($socket, 515);
+    $response = smtpGetResponse($socket);
     if (substr($response, 0, 3) != '354') {
         fclose($socket);
         error_log("SMTP DATA failed: $response");
         return false;
     }
     
-    // Build message
-    $boundary = md5(uniqid(time()));
-    $headers = "From: $fromName <$from>\r\n";
-    $headers .= "To: $to\r\n";
-    $headers .= "Subject: $subject\r\n";
-    $headers .= "MIME-Version: 1.0\r\n";
-    $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-    $headers .= "Date: " . date('r') . "\r\n";
+    // Build message with headers
+    $message = "From: $fromName <$from>\r\n";
+    $message .= "To: $to\r\n";
+    $message .= "Subject: $subject\r\n";
+    $message .= "MIME-Version: 1.0\r\n";
+    $message .= "Content-Type: text/html; charset=UTF-8\r\n";
+    $message .= "Date: " . date('r') . "\r\n";
+    $message .= "\r\n";
+    $message .= $htmlBody;
     
-    $message = $headers . "\r\n" . $htmlBody;
-    
-    // Send message (escape dots at start of lines)
+    // Escape dots at start of lines (SMTP transparency)
     $message = str_replace("\r\n.", "\r\n..", $message);
+    
+    // Send message and end with CRLF.CRLF
     fputs($socket, $message . "\r\n.\r\n");
     
-    $response = fgets($socket, 515);
+    $response = smtpGetResponse($socket);
     if (substr($response, 0, 3) != '250') {
         fclose($socket);
         error_log("SMTP send failed: $response");
@@ -174,6 +191,7 @@ function sendWithSMTP($to, $subject, $htmlBody) {
     fputs($socket, "QUIT\r\n");
     fclose($socket);
     
+    error_log("Email sent successfully to: $to");
     return true;
 }
 
