@@ -57,24 +57,21 @@ try {
     
     // STEP 3: Delete from inventory (if exists)
     logToFile('STEP 3: Executing DELETE FROM inventory...');
-    @$conn->query("DELETE FROM inventory");
-    logToFile('Inventory cleared');
+    try { $conn->query("DELETE FROM inventory"); logToFile('Inventory cleared'); } catch (Exception $e) { logToFile('Inventory skip: ' . $e->getMessage()); }
     
     // STEP 4: Delete from security_alerts
     logToFile('STEP 4: Executing DELETE FROM security_alerts...');
-    @$conn->query("DELETE FROM security_alerts");
-    logToFile('Security alerts cleared');
+    try { $conn->query("DELETE FROM security_alerts"); logToFile('Security alerts cleared'); } catch (Exception $e) { logToFile('Security alerts skip: ' . $e->getMessage()); }
     
     // STEP 5: Delete from login_attempts
     logToFile('STEP 5: Executing DELETE FROM login_attempts...');
-    @$conn->query("DELETE FROM login_attempts");
-    logToFile('Login attempts cleared');
+    try { $conn->query("DELETE FROM login_attempts"); logToFile('Login attempts cleared'); } catch (Exception $e) { logToFile('Login attempts skip: ' . $e->getMessage()); }
     
     // STEP 6: Verify all data is gone
     logToFile('STEP 6: Verifying all data deleted...');
     $verify1 = $conn->query("SELECT COUNT(*) as total FROM delivery_records");
-    $verify2 = @$conn->query("SELECT COUNT(*) as total FROM inventory");
-    $verify3 = @$conn->query("SELECT COUNT(*) as total FROM security_alerts");
+    try { $verify2 = $conn->query("SELECT COUNT(*) as total FROM inventory"); } catch (Exception $e) { $verify2 = false; }
+    try { $verify3 = $conn->query("SELECT COUNT(*) as total FROM security_alerts"); } catch (Exception $e) { $verify3 = false; }
     
     if ($verify1) {
         $v1 = $verify1->fetch_assoc();

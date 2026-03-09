@@ -201,6 +201,30 @@ try {
         throw new Exception('Database connection failed');
     }
 
+    // Ensure dataset_name column exists
+    $isMysql = ($conn instanceof mysqli);
+    $colExists = false;
+    if ($isMysql) {
+        $chk = $conn->query("SHOW COLUMNS FROM delivery_records LIKE 'dataset_name'");
+        $colExists = ($chk && $chk->num_rows > 0);
+    } else {
+        $chk = $conn->query('PRAGMA table_info(delivery_records)');
+        if ($chk) {
+            while ($r = $chk->fetch_assoc()) {
+                if (strtolower($r['name']) === 'dataset_name') { $colExists = true; break; }
+            }
+        }
+    }
+    if (!$colExists) {
+        $conn->query('ALTER TABLE delivery_records ADD COLUMN dataset_name VARCHAR(50) DEFAULT NULL');
+    }
+    // Tag any pre-existing untagged rows as data1 (imported before this feature existed)
+    $conn->query("UPDATE delivery_records SET dataset_name = 'data1' WHERE dataset_name IS NULL OR dataset_name = ''");
+
+    // Get dataset_name from request (e.g. data1, data2)
+    $dataset_name = isset($request['dataset_name']) ? trim(strval($request['dataset_name'])) : '';
+    if (empty($dataset_name)) $dataset_name = 'data1';
+
     $imported_count = 0;
     $failed_count   = 0;
     $skipped_count  = 0;
@@ -336,8 +360,8 @@ try {
 
             // Insert into database
             $sql = "INSERT INTO delivery_records 
-                    (invoice_no, serial_no, delivery_month, delivery_day, delivery_year, delivery_date, item_code, item_name, company_name, quantity, status, notes, uom, sold_to_month, sold_to_day, groupings)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    (invoice_no, serial_no, delivery_month, delivery_day, delivery_year, delivery_date, item_code, item_name, company_name, quantity, status, notes, uom, sold_to_month, sold_to_day, groupings, dataset_name)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
             $stmt = $conn->prepare($sql);
             if (!$stmt) {
@@ -347,9 +371,9 @@ try {
             // Types: s=invoice_no, s=serial_no, s=delivery_month, i=delivery_day,
             //        i=delivery_year, s=delivery_date, s=item_code, s=item_name,
             //        s=company_name, i=quantity, s=status, s=notes, s=uom,
-            //        s=sold_to_month, i=sold_to_day, s=groupings
+            //        s=sold_to_month, i=sold_to_day, s=groupings, s=dataset_name
             $stmt->bind_param(
-                'sssiissssississs',
+                'sssiissssississss',
                 $invoice_no,
                 $serial_no,
                 $delivery_month,
@@ -365,7 +389,8 @@ try {
                 $uom,
                 $sold_to_month,
                 $sold_to_day,
-                $groupings
+                $groupings,
+                $dataset_name
             );
 
             if (!$stmt->execute()) {

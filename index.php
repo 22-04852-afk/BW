@@ -123,6 +123,28 @@ if ($result) {
     }
 }
 
+// Get imported datasets
+$datasets = [];
+$untagged_count = 0;
+try {
+    $col_check = $conn->query("SHOW COLUMNS FROM delivery_records LIKE 'dataset_name'");
+    if ($col_check && $col_check->num_rows > 0) {
+        $ds_result = $conn->query("SELECT dataset_name, COUNT(*) as record_count FROM delivery_records WHERE dataset_name IS NOT NULL AND dataset_name != '' GROUP BY dataset_name ORDER BY dataset_name ASC");
+        if ($ds_result) {
+            while ($ds_row = $ds_result->fetch_assoc()) {
+                $datasets[] = $ds_row;
+            }
+        }
+        // Count records with no dataset tag
+        $unt = $conn->query("SELECT COUNT(*) as cnt FROM delivery_records WHERE dataset_name IS NULL OR dataset_name = ''");
+        if ($unt && $r = $unt->fetch_assoc()) $untagged_count = intval($r['cnt']);
+    } else {
+        // Column doesn't exist yet — all records are untagged
+        $unt = $conn->query("SELECT COUNT(*) as cnt FROM delivery_records");
+        if ($unt && $r = $unt->fetch_assoc()) $untagged_count = intval($r['cnt']);
+    }
+} catch (Exception $e) { /* ignore */ }
+
 // Get pending count
 $pending_count = 0;
 $result = $conn->query("SELECT COUNT(*) as cnt FROM delivery_records WHERE status = 'Pending' OR status = 'In Transit'");
@@ -643,6 +665,62 @@ if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
                 </div>
             </div>
         </section>
+
+        <!-- Imported Datasets Section -->
+        <section class="datasets-overview">
+            <div class="datasets-header">
+                <h3><i class="fas fa-database"></i> Imported Datasets</h3>
+                <a href="delivery-records.php" class="datasets-view-all"><i class="fas fa-external-link-alt"></i> View All Records</a>
+            </div>
+            <div class="datasets-grid">
+                <?php if ($untagged_count > 0): ?>
+                <a href="delivery-records.php" class="dataset-card-dash">
+                    <div class="dataset-card-icon" style="background: linear-gradient(135deg, #5b9bd5, #3a7bbf);"><i class="fas fa-layer-group" style="color:#fff;"></i></div>
+                    <div class="dataset-card-info">
+                        <span class="dataset-card-name">ALL DATA</span>
+                        <span class="dataset-card-count"><?php echo number_format($untagged_count + array_sum(array_column($datasets, 'record_count'))); ?> records</span>
+                    </div>
+                    <i class="fas fa-chevron-right dataset-card-arrow"></i>
+                </a>
+                <?php endif; ?>
+                <?php foreach ($datasets as $ds): ?>
+                <a href="delivery-records.php" class="dataset-card-dash">
+                    <div class="dataset-card-icon"><i class="fas fa-table"></i></div>
+                    <div class="dataset-card-info">
+                        <span class="dataset-card-name"><?php echo htmlspecialchars(strtoupper($ds['dataset_name'])); ?></span>
+                        <span class="dataset-card-count"><?php echo number_format($ds['record_count']); ?> records</span>
+                    </div>
+                    <i class="fas fa-chevron-right dataset-card-arrow"></i>
+                </a>
+                <?php endforeach; ?>
+                <?php if (empty($datasets) && $untagged_count === 0): ?>
+                <div style="color:#8a9ab5;font-size:13px;padding:14px 0;"><i class="fas fa-info-circle" style="margin-right:6px;"></i>No datasets yet. <a href="upload-data.php" style="color:#f4d03f;">Upload data</a> to get started.</div>
+                <?php endif; ?>
+            </div>
+        </section>
+        <style>
+        .datasets-overview { margin: 0 0 28px 0; }
+        .datasets-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+        .datasets-header h3 { font-size: 16px; font-weight: 600; color: #e0e0e0; margin: 0; display: flex; align-items: center; gap: 8px; }
+        .datasets-header h3 i { color: #f4d03f; }
+        .datasets-view-all { font-size: 13px; color: #f4d03f; text-decoration: none; display: flex; align-items: center; gap: 6px; opacity: .85; transition: opacity .2s; }
+        .datasets-view-all:hover { opacity: 1; }
+        .datasets-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+        .dataset-card-dash { display: flex; align-items: center; gap: 14px; background: #1e2a3a; border: 1px solid #2d3f55; border-radius: 10px; padding: 14px 18px; text-decoration: none; color: inherit; transition: background .2s, border-color .2s, transform .15s; min-width: 180px; }
+        .dataset-card-dash:hover { background: #243447; border-color: #f4d03f; transform: translateY(-2px); }
+        .dataset-card-icon { width: 38px; height: 38px; border-radius: 8px; background: linear-gradient(135deg, #f4d03f, #e2b800); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .dataset-card-icon i { color: #1a1a2e; font-size: 16px; }
+        .dataset-card-info { display: flex; flex-direction: column; flex: 1; }
+        .dataset-card-name { font-size: 14px; font-weight: 600; color: #e0e0e0; letter-spacing: .5px; }
+        .dataset-card-count { font-size: 12px; color: #8a9ab5; margin-top: 2px; }
+        .dataset-card-arrow { color: #4a5f7a; font-size: 12px; }
+        .dataset-card-dash:hover .dataset-card-arrow { color: #f4d03f; }
+        body.light-mode .datasets-header h3 { color: #1a2332; }
+        body.light-mode .dataset-card-dash { background: #f0f4fa; border-color: #d0daea; color: #1a2332; }
+        body.light-mode .dataset-card-dash:hover { background: #e8eef8; border-color: #f4d03f; }
+        body.light-mode .dataset-card-name { color: #1a2332; }
+        body.light-mode .dataset-card-count { color: #5a6a82; }
+        </style>
 
         <!-- KPI CARDS SECTION -->
         <section class="kpi-section">

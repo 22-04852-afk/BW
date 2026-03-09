@@ -684,14 +684,25 @@ if ($conn) {
     </style>
 </head>
 <body>
-    <!-- Delete Confirmation Modal (No longer used - deletion happens immediately after browser confirm) -->
-    <div class="modal-overlay" id="deleteModal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-icon" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);">
-                <i class="fas fa-trash-alt"></i>
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" onclick="if(event.target===this)closeDeleteModal()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); justify-content:center; align-items:center; z-index:9999;">
+        <div style="background:linear-gradient(135deg,#1e2a38 0%,#2a3f5f 100%); border-radius:20px; padding:40px; text-align:center; max-width:420px; width:90%; border:1px solid rgba(255,255,255,0.1); box-shadow:0 20px 40px rgba(0,0,0,0.4);">
+            <div style="width:80px; height:80px; border-radius:50%; background:linear-gradient(135deg,#ff6b6b 0%,#ee5a24 100%); display:flex; justify-content:center; align-items:center; margin:0 auto 20px;">
+                <i class="fas fa-exclamation-triangle" style="font-size:36px; color:#fff;"></i>
             </div>
-            <h2 class="modal-title" style="color: #ff6b6b;">Deleting...</h2>
-            <p class="modal-message">Please wait while we delete your data...</p>
+            <h2 style="font-size:22px; font-weight:700; color:#ff6b6b; margin-bottom:10px;">Delete All Data?</h2>
+            <p style="color:#a0a0a0; font-size:14px; margin-bottom:25px; line-height:1.6;">
+                You are about to permanently delete <strong id="deleteModalCount" style="color:#ff6b6b;">0</strong> records.<br>
+                <span style="color:#ff6b6b; font-weight:600;">This action cannot be undone.</span>
+            </p>
+            <div style="display:flex; gap:16px; justify-content:center;">
+                <button onclick="confirmDeleteAll()" style="background:linear-gradient(135deg,#ff6b6b 0%,#ee5a24 100%); color:#fff; padding:12px 25px; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:14px; font-family:'Poppins',sans-serif; min-width:140px;">
+                    <i class="fas fa-trash-alt"></i> Yes, Delete All
+                </button>
+                <button onclick="closeDeleteModal()" style="background:rgba(255,255,255,0.1); color:#a0a0a0; padding:12px 25px; border:1px solid rgba(255,255,255,0.2); border-radius:8px; cursor:pointer; font-weight:600; font-size:14px; font-family:'Poppins',sans-serif; min-width:100px;">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1036,7 +1047,7 @@ if ($conn) {
                         </p>
                         <p class="delete-section-subtitle" style="font-size: 12px;">Delete all data to upload a new Excel file from scratch</p>
                     </div>
-                    <button id="deleteAllBtn" type="button" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: #fff; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; font-family: 'Poppins', sans-serif; transition: all 0.3s ease; display: flex; align-items: center; gap: 10px; white-space: nowrap; position: relative; z-index: 10;">
+                    <button id="deleteAllBtn" type="button" onclick="showDeleteModal()" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: #fff; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; font-family: 'Poppins', sans-serif; transition: all 0.3s ease; display: flex; align-items: center; gap: 10px; white-space: nowrap; position: relative; z-index: 10;">
                         <i class="fas fa-trash-alt"></i> Delete All Data
                     </button>
                     <style>
@@ -1218,7 +1229,6 @@ if ($conn) {
                 showAlert('error', `Error parsing ${file.name}: ${error.message}`);
             }
         }
-        }
 
         function parseFileWithSheets(file) {
             return new Promise((resolve, reject) => {
@@ -1302,80 +1312,140 @@ if ($conn) {
 
         function showSheetSelector(fileName, sheets) {
             sheetSelector.style.display = 'block';
+            const sheetNames = Object.keys(sheets);
+
             let html = `
-                <div style="background: linear-gradient(135deg, rgba(255, 214, 10, 0.1) 0%, rgba(255, 214, 10, 0.05) 100%); border: 1px solid rgba(255, 214, 10, 0.3); border-radius: 8px; padding: 15px; margin-bottom: 20px;">
-                    <p style="color: #f4d03f; margin: 0; font-weight: 600; margin-bottom: 8px;"><i class="fas fa-exclamation-circle"></i> Import One Sheet at a Time</p>
-                    <p style="color: #a0a0a0; margin: 0; font-size: 12px;">File "${fileName}" has ${Object.keys(sheets).length} sheets. To keep data separate, select <strong>ONE sheet</strong> to import now. You can upload the file again to import other sheets.</p>
-                </div>
-                <p style="color: #a0a0a0; margin-bottom: 15px; font-size: 13px;"><i class="fas fa-layer-group"></i> Available Sheets:</p>
+                <div style="background:#1b2838; border-radius:12px; padding:20px; border:1px solid rgba(255,255,255,0.12);">
+                    <div style="background:rgba(244,208,63,0.1); border:1px solid rgba(244,208,63,0.3); border-radius:8px; padding:14px; margin-bottom:16px;">
+                        <p style="color:#f4d03f; margin:0 0 6px; font-weight:700; font-size:13px;"><i class="fas fa-layer-group"></i> Select Sheets to Import</p>
+                        <p style="color:#9ab0c4; margin:0; font-size:12px;">File "<strong style="color:#e0e0e0;">${fileName}</strong>" has ${sheetNames.length} sheets. Select up to <strong style="color:#f4d03f;">3 sheets</strong> — each will be imported separately, data will NOT be merged.</p>
+                    </div>
+                    <p style="color:#7a8a9a; margin-bottom:10px; font-size:12px; font-weight:600;"><i class="fas fa-check-square"></i> Available Sheets &nbsp;·&nbsp; <span id="sheetSelectCount" style="color:#f4d03f;">0 / 3 selected</span></p>
+                    <div id="sheetCheckList">
             `;
-            
-            Object.keys(sheets).forEach((sheetName, index) => {
+
+            sheetNames.forEach((sheetName) => {
                 const info = sheets[sheetName];
                 html += `
-                    <label class="sheet-radio" style="display: flex; align-items: center; gap: 8px; padding: 12px 15px; background: rgba(255,255,255,0.05); border: 2px solid transparent; border-radius: 8px; cursor: pointer; margin-bottom: 8px; transition: all 0.3s ease;">
-                        <input type="radio" name="sheet-selection" class="sheet-check" data-file="${fileName}" data-sheet="${sheetName}" ${index === 0 ? 'checked' : ''} onchange="updateSelectedSheets(this)">
-                        <span style="color: #fff; font-weight: 500; flex: 1;">${sheetName}</span>
-                        <span style="color: #a0a0a0; font-size: 12px; white-space: nowrap;">(${info.rowCount} rows)</span>
+                    <label class="sheet-radio" style="display:flex; align-items:center; gap:10px; padding:11px 15px; background:rgba(255,255,255,0.04); border:2px solid rgba(255,255,255,0.08); border-radius:8px; cursor:pointer; margin-bottom:7px; transition:all 0.2s ease;">
+                        <input type="checkbox" class="sheet-check" data-file="${fileName}" data-sheet="${sheetName}" onchange="updateSelectedSheets(this)" style="width:16px; height:16px; cursor:pointer; accent-color:#f4d03f; flex-shrink:0;">
+                        <span style="color:#dce8f0; font-weight:500; flex:1; font-size:13px;">${sheetName}</span>
+                        <span style="color:#607080; font-size:12px; white-space:nowrap;">${info.rowCount} rows</span>
                     </label>
                 `;
             });
-            
+
             html += `
-                <div style="margin-top: 20px; display: flex; gap: 10px;">
-                    <button onclick="parseSelectedSheets()" style="flex: 1; background: linear-gradient(135deg, #f4d03f 0%, #f9d76a 100%); color: #1a3a5c; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <i class="fas fa-download"></i> Load This Sheet
-                    </button>
-                    <button onclick="resetUpload()" style="flex: 1; background: rgba(100, 100, 100, 0.5); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
+                    </div>
+                    <div style="margin-top:18px; display:flex; gap:10px;">
+                        <button id="importSheetsBtn" onclick="parseSelectedSheets()" style="flex:1; background:linear-gradient(135deg,#f4d03f 0%,#f9d76a 100%); color:#1a3a5c; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:700; font-size:13px; font-family:'Poppins',sans-serif; display:flex; align-items:center; justify-content:center; gap:8px;">
+                            <i class="fas fa-file-import"></i> Import Selected Sheets
+                        </button>
+                        <button onclick="resetUpload()" style="background:rgba(255,255,255,0.07); color:#8a9ab0; border:1px solid rgba(255,255,255,0.12); padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; font-family:'Poppins',sans-serif;">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
                 </div>
             `;
             sheetList.innerHTML = html;
         }
 
-        function updateSelectedSheets(radio) {
-            // Update radio button styles when selected
+        function updateSelectedSheets(checkbox) {
+            // Enforce max 3 selections
+            const checked = document.querySelectorAll('.sheet-check:checked');
+            if (checked.length > 3) {
+                checkbox.checked = false;
+            }
+            const actualCount = document.querySelectorAll('.sheet-check:checked').length;
+            const countEl = document.getElementById('sheetSelectCount');
+            if (countEl) countEl.textContent = actualCount + ' / 3 selected';
+
+            // Update label styles
             document.querySelectorAll('.sheet-radio').forEach(label => {
                 const input = label.querySelector('input');
-                if (input.checked) {
-                    label.style.background = 'rgba(244, 208, 63, 0.15)';
+                if (input && input.checked) {
+                    label.style.background = 'rgba(244,208,63,0.13)';
                     label.style.borderColor = '#f4d03f';
                 } else {
-                    label.style.background = 'rgba(255,255,255,0.05)';
-                    label.style.borderColor = 'transparent';
+                    label.style.background = 'rgba(255,255,255,0.04)';
+                    label.style.borderColor = 'rgba(255,255,255,0.08)';
                 }
             });
         }
 
         async function parseSelectedSheets() {
-            const selectedRadio = document.querySelector('.sheet-check:checked');
-            if (!selectedRadio) {
-                showAlert('error', 'Please select a sheet to import');
+            const checkedBoxes = Array.from(document.querySelectorAll('.sheet-check:checked'));
+            if (checkedBoxes.length === 0) {
+                showAlert('error', 'Please select at least one sheet to import.');
                 return;
             }
-            
-            const fileName = selectedRadio.dataset.file;
-            const sheetName = selectedRadio.dataset.sheet;
-            
-            showAlert('info', `Loading sheet "${sheetName}" from "${fileName}"...`);
-            allParsedData = [];
-            
-            if (workbookSheets[fileName] && workbookSheets[fileName][sheetName]) {
-                const worksheet = workbookSheets[fileName][sheetName].worksheet;
-                const rows = parseWorksheet(worksheet);
-                allParsedData = rows;
+
+            const btn = document.getElementById('importSheetsBtn');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Importing...'; }
+
+            // Fetch the next available dataset number from the server
+            let nextNum = 1;
+            try {
+                const dsRes = await fetch('api/get-datasets.php');
+                const dsData = await dsRes.json();
+                if (dsData.success) nextNum = dsData.next_num;
+            } catch (e) { /* use default 1 */ }
+
+            let totalImported = 0;
+            let totalFailed = 0;
+            let sheetsOk = 0;
+            const importedDatasets = [];
+
+            for (let i = 0; i < checkedBoxes.length; i++) {
+                const checkbox = checkedBoxes[i];
+                const fileName   = checkbox.dataset.file;
+                const sheetName  = checkbox.dataset.sheet;
+                const datasetName = 'data' + (nextNum + i);
+
+                showAlert('info', `Importing sheet ${i + 1} of ${checkedBoxes.length}: "${sheetName}" → ${datasetName}...`);
+
+                let rows = [];
+                if (workbookSheets[fileName] && workbookSheets[fileName][sheetName]) {
+                    rows = parseWorksheet(workbookSheets[fileName][sheetName].worksheet);
+                }
+
+                if (rows.length === 0) {
+                    showAlert('warning', `Sheet "${sheetName}" has no data, skipping.`);
+                    continue;
+                }
+
+                try {
+                    const response = await fetch('api/import-data.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            data: rows,
+                            fileName: sheetName,
+                            dataset_name: datasetName,
+                            timestamp: new Date().toISOString()
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        totalImported += result.imported || rows.length;
+                        totalFailed   += result.failed  || 0;
+                        sheetsOk++;
+                        importedDatasets.push(datasetName);
+                    } else {
+                        showAlert('error', `Error importing "${sheetName}": ${result.message}`);
+                        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-file-import"></i> Import Selected Sheets'; }
+                        return;
+                    }
+                } catch (err) {
+                    showAlert('error', `Failed to import "${sheetName}": ${err.message}`);
+                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-file-import"></i> Import Selected Sheets'; }
+                    return;
+                }
             }
-            
-            if (allParsedData.length > 0) {
-                parsedData = allParsedData;
-                displayPreview(allParsedData);
-                generatePreviewCharts(allParsedData);
-                sheetSelector.style.display = 'none';
-                showAlert('success', `✓ Loaded "${sheetName}": ${allParsedData.length} records. Review below and click Import.`);
-            } else {
-                showAlert('warning', `No data found in sheet "${sheetName}"`);
-            }
+
+            const datasetList = importedDatasets.join(', ');
+            showAlert('success', `✓ Done! Imported ${totalImported} records into ${datasetList}. Reloading...`);
+            setTimeout(() => location.reload(), 2000);
         }
 
         function generatePreviewCharts(data) {
@@ -1649,7 +1719,7 @@ if ($conn) {
             }
         }
 
-        function doImport() {
+        async function doImport() {
             console.log('Import button clicked! parsedData:', parsedData ? parsedData.length : 0);
             if (!parsedData || parsedData.length === 0) {
                 showAlert('error', 'No data to import. Please select file(s) first.');
@@ -1659,15 +1729,24 @@ if ($conn) {
             importBtn.innerHTML = '<span class="spinner"></span> Importing...';
             importBtn.disabled = true;
 
+            // Get next available dataset name
+            let datasetName = 'data1';
+            try {
+                const dsRes = await fetch('api/get-datasets.php');
+                const dsData = await dsRes.json();
+                if (dsData.success) datasetName = dsData.next_name;
+            } catch (e) { /* use default */ }
+
             // Prepare data for import
             const fileNames = selectedFiles.map(f => f.name).join(', ');
             const importData = {
                 data: parsedData,
                 fileName: fileNames,
+                dataset_name: datasetName,
                 timestamp: new Date().toISOString()
             };
 
-            console.log('Sending import data with', parsedData.length, 'rows from', selectedFiles.length, 'file(s)');
+            console.log('Sending import data with', parsedData.length, 'rows, dataset:', datasetName);
 
             // Send to backend
             fetch('api/import-data.php', {
@@ -1846,35 +1925,24 @@ if ($conn) {
 
         // Show delete confirmation modal
         function showDeleteModal() {
-            console.log('DELETE BUTTON CLICKED!');
-            
             const countElement = document.getElementById('currentRecordCount');
-            let count = '0';
-            if (countElement) {
-                count = countElement.textContent.replace(/,/g, '');
-            }
-            
-            console.log('Current count:', count);
-            
-            // Simple confirm dialog - NO conditions, just show it
-            const message = 'WARNING!\n\nAre you sure you want to DELETE ALL DATA?\n\n' + count + ' records will be permanently deleted.\n\nThis action CANNOT be undone!';
-            console.log('Showing confirm dialog with message:', message);
-            
-            const result = confirm(message);
-            console.log('Confirm result:', result);
-            
-            if (result === true) {
-                console.log('User clicked OK - deleting now');
-                deleteAllData(count);
-            } else {
-                console.log('User clicked Cancel');
-            }
+            const count = countElement ? countElement.textContent.trim() : '0';
+            document.getElementById('deleteModalCount').textContent = count;
+            const modal = document.getElementById('deleteModal');
+            modal.style.display = 'flex';
         }
 
         // Close delete modal
         function closeDeleteModal() {
-            console.log('closeDeleteModal called');
-            document.getElementById('deleteModal').classList.remove('show');
+            document.getElementById('deleteModal').style.display = 'none';
+        }
+
+        // Confirm delete (called from modal button)
+        function confirmDeleteAll() {
+            closeDeleteModal();
+            const countElement = document.getElementById('currentRecordCount');
+            const count = countElement ? countElement.textContent.replace(/,/g, '').trim() : '0';
+            deleteAllData(count);
         }
 
         // Delete all data function
@@ -1913,41 +1981,7 @@ if ($conn) {
 
         // Profile dropdown
         
-        // ===== DELETE ALL DATA BUTTON HANDLER =====
-        // This runs AFTER the page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('PAGE LOADED - Setting up delete button');
-            const deleteBtn = document.getElementById('deleteAllBtn');
-            if (deleteBtn) {
-                console.log('Delete button found, adding click handler');
-                deleteBtn.addEventListener('click', function(e) {
-                    console.log('DELETE BUTTON CLICKED!!!');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const countElement = document.getElementById('currentRecordCount');
-                    let count = '0';
-                    if (countElement) {
-                        count = countElement.textContent.replace(/,/g, '');
-                    }
-                    
-                    console.log('Record count:', count);
-                    
-                    // Show confirmation dialog
-                    const message = 'WARNING!\n\nAre you ABSOLUTELY SURE you want to DELETE ALL DATA?\n\n' + count + ' records will be permanently deleted.\n\nThis action CANNOT be undone!';
-                    
-                    const confirmed = window.confirm(message);
-                    console.log('User confirmed:', confirmed);
-                    
-                    if (confirmed === true) {
-                        console.log('Proceeding with deletion...');
-                        deleteAllData(count);
-                    }
-                });
-            } else {
-                console.warn('Delete button NOT found!');
-            }
-        });
+        // (Delete button uses onclick="showDeleteModal()" directly on the element)
     </script>
 </body>
 </html>

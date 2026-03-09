@@ -45,6 +45,17 @@ if ($result) {
         $delivery_records[] = $row;
     }
 }
+
+// Get distinct dataset names (data1, data2, ...)
+$datasets = [];
+try {
+    $dsResult = $conn->query("SELECT DISTINCT dataset_name FROM delivery_records WHERE dataset_name IS NOT NULL AND dataset_name != '' ORDER BY dataset_name ASC");
+    if ($dsResult) {
+        while ($row = $dsResult->fetch_assoc()) {
+            $datasets[] = $row['dataset_name'];
+        }
+    }
+} catch (Exception $e) { /* column may not exist yet */ }
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -443,6 +454,47 @@ if ($result) {
             margin-top: 6px;
             width: fit-content;
             letter-spacing: 0;
+        }
+
+        /* Dataset Tabs */
+        .dataset-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+            align-items: center;
+        }
+        .dataset-tab {
+            background: rgba(255,255,255,0.06);
+            border: 2px solid rgba(255,255,255,0.1);
+            color: #a0a0a0;
+            padding: 8px 18px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.25s ease;
+            white-space: nowrap;
+        }
+        .dataset-tab:hover {
+            border-color: #f4d03f;
+            color: #f4d03f;
+        }
+        .dataset-tab.active {
+            background: linear-gradient(135deg, #f4d03f 0%, #d4a00e 100%);
+            border-color: #f4d03f;
+            color: #1a2a38;
+        }
+        .light-mode .dataset-tab {
+            background: rgba(0,0,0,0.04);
+            border-color: rgba(0,0,0,0.12);
+            color: #5a6a7a;
+        }
+        .light-mode .dataset-tab.active {
+            background: linear-gradient(135deg, #f4d03f 0%, #d4a00e 100%);
+            border-color: #f4d03f;
+            color: #1a2a38;
         }
 
         /* Export Button */
@@ -1053,6 +1105,20 @@ if ($result) {
             </button>
         </div>
 
+        <!-- Dataset Tabs -->
+        <?php if (!empty($datasets)): ?>
+        <div class="dataset-tabs">
+            <button class="dataset-tab active" onclick="filterByDataset('all', this)">
+                <i class="fas fa-layer-group"></i> All Data
+            </button>
+            <?php foreach ($datasets as $ds): ?>
+            <button class="dataset-tab" onclick="filterByDataset('<?php echo htmlspecialchars($ds, ENT_QUOTES); ?>', this)">
+                <i class="fas fa-table"></i> <?php echo htmlspecialchars(strtoupper($ds)); ?>
+            </button>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
         <!-- Filters -->
         <div class="filters">
             <button class="filter-btn active">All</button>
@@ -1117,7 +1183,7 @@ if ($result) {
                         // Check if this is Andison Manila
                         $andison_class = (isset($record['company_name']) && $record['company_name'] === 'to Andison Manila') ? 'andison-manila-row' : '';
                     ?>
-                    <tr data-record-id="<?php echo htmlspecialchars($record['id'] ?? ''); ?>" data-row-index="<?php echo $row_index; ?>" class="<?php echo $hidden_class . ' ' . $andison_class; ?>">
+                    <tr data-record-id="<?php echo htmlspecialchars($record['id'] ?? ''); ?>" data-row-index="<?php echo $row_index; ?>" data-dataset="<?php echo htmlspecialchars($record['dataset_name'] ?? '', ENT_QUOTES); ?>" class="<?php echo $hidden_class . ' ' . $andison_class; ?>">
                         <td><?php echo htmlspecialchars($record['invoice_no'] ?? ''); ?></td>
                         <td><?php echo htmlspecialchars($date_col); ?></td>
                         <td><?php echo htmlspecialchars($record['delivery_month'] ?? ''); ?></td>
@@ -2129,6 +2195,28 @@ if ($result) {
                 s.textContent = '@keyframes toastSlideIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}';
                 document.head.appendChild(s);
             }
+
+        // Dataset tab filter
+        let activeDataset = 'all';
+        function filterByDataset(dataset, btn) {
+            activeDataset = dataset;
+            document.querySelectorAll('.dataset-tab').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            const rows = document.querySelectorAll('tbody tr[data-record-id]');
+            let visible = 0;
+            rows.forEach(row => {
+                const rowDataset = row.dataset.dataset || '';
+                const match = (dataset === 'all') || (rowDataset === dataset);
+                row.classList.toggle('hidden-row', !match);
+                if (match) visible++;
+            });
+            const countEl = document.getElementById('visibleRowCount');
+            if (countEl) countEl.textContent = visible;
+            // Clear search when switching dataset
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) searchInput.value = '';
+            updateSearchCount();
+        }
 
             document.body.appendChild(toast);
             setTimeout(() => { if (toast.parentElement) toast.remove(); }, 4000);
