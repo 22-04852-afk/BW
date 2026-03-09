@@ -749,7 +749,7 @@ if ($conn) {
                 </div>
             </div>
             <div class="modal-buttons">
-                <button class="btn-modal btn-modal-primary" onclick="goToDeliveryRecords()">
+                <button class="btn-modal btn-modal-primary" onclick="goToDeliveryRecords(lastImportedDataset)">
                     <i class="fas fa-list"></i> View Records
                 </button>
                 <button class="btn-modal btn-modal-secondary" onclick="closeSuccessModal()">
@@ -1421,7 +1421,7 @@ if ($conn) {
                         <p style="color:#f4d03f; margin:0 0 6px; font-weight:700; font-size:13px;"><i class="fas fa-layer-group"></i> Select Data to Import</p>
                         <p style="color:#9ab0c4; margin:0; font-size:12px;">You have <strong style="color:#e0e0e0;">${allFilesInfo.length} file(s)</strong>. Each selected item will be imported as a <strong style="color:#f4d03f;">SEPARATE dataset</strong>.</p>
                     </div>
-                    <p style="color:#7a8a9a; margin-bottom:10px; font-size:12px; font-weight:600;"><i class="fas fa-check-square"></i> Select datasets to import &nbsp;·&nbsp; <span id="sheetSelectCount" style="color:#f4d03f;">0 selected</span></p>
+                    <p style="color:#7a8a9a; margin-bottom:10px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:10px;"><i class="fas fa-check-square"></i> Select datasets to import &nbsp;·&nbsp; <span id="sheetSelectCount" style="color:#f4d03f;">0 selected</span> <button onclick="toggleAllSheets(false)" style="margin-left:auto; padding:3px 10px; border-radius:5px; border:1px solid rgba(255,100,100,0.4); background:rgba(255,100,100,0.1); color:#ff8080; font-size:11px; cursor:pointer; font-family:inherit;">Deselect All</button> <button onclick="toggleAllSheets(true)" style="padding:3px 10px; border-radius:5px; border:1px solid rgba(244,208,63,0.4); background:rgba(244,208,63,0.1); color:#f4d03f; font-size:11px; cursor:pointer; font-family:inherit;">Select All</button></p>
                     <div id="sheetCheckList">
             `;
             
@@ -1495,6 +1495,11 @@ if ($conn) {
             updateMultiSelect();
         }
 
+        function toggleAllSheets(select) {
+            document.querySelectorAll('.sheet-check').forEach(cb => cb.checked = select);
+            updateMultiSelect();
+        }
+
         function updateMultiSelect() {
             const checked = document.querySelectorAll('.sheet-check:checked').length;
             const countEl = document.getElementById('sheetSelectCount');
@@ -1526,6 +1531,14 @@ if ($conn) {
             const btn = document.getElementById('importSheetsBtn');
             if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Importing...'; }
 
+            // Always get next available dataset number from the server
+            let nextNum = 1;
+            try {
+                const dsRes = await fetch('api/get-datasets.php');
+                const dsData = await dsRes.json();
+                if (dsData.success) nextNum = dsData.next_num;
+            } catch (e) { /* use default 1 */ }
+
             let totalImported = 0;
             let totalFailed = 0;
             const importedDatasets = [];
@@ -1535,40 +1548,26 @@ if ($conn) {
                 const fileName = checkbox.dataset.file;
                 const itemType = checkbox.dataset.type;
                 const fileIdx = parseInt(checkbox.dataset.idx);
+                const datasetName = 'data' + (nextNum + i);
                 
                 let rows = [];
-                let defaultName = '';
                 
                 if (itemType === 'single') {
-                    // Single sheet file
                     const fileInfo = allFilesInfoStore[fileIdx];
                     rows = fileInfo.data;
-                    defaultName = fileName.replace(/\.(xlsx|xls|csv)$/i, '');
                 } else {
-                    // Sheet from multi-sheet file
                     const sheetName = checkbox.dataset.sheet;
                     if (workbookSheets[fileName] && workbookSheets[fileName][sheetName]) {
                         rows = parseWorksheet(workbookSheets[fileName][sheetName].worksheet);
                     }
-                    defaultName = sheetName;
                 }
-                
-                // Get custom name from input
-                let selector = itemType === 'single' 
-                    ? `.custom-dataset-name[data-file="${fileName}"][data-type="single"]`
-                    : `.custom-dataset-name[data-file="${fileName}"][data-sheet="${checkbox.dataset.sheet}"]`;
-                const customNameInput = document.querySelector(selector);
-                const customName = customNameInput?.value?.trim();
-                
-                // Use custom name or default
-                let datasetName = (customName || defaultName).replace(/[^a-zA-Z0-9_\- ]/g, '').trim().substring(0, 50) || ('data' + (i + 1));
 
                 if (rows.length === 0) {
-                    showAlert('warning', `"${datasetName}" has no data, skipping.`);
+                    showAlert('warning', `Item ${i + 1} has no data, skipping.`);
                     continue;
                 }
 
-                showAlert('info', `Importing ${i + 1} of ${checkedBoxes.length}: "${datasetName}"...`);
+                showAlert('info', `Importing ${i + 1} of ${checkedBoxes.length} as "${datasetName}"...`);
 
                 try {
                     const response = await fetch('api/import-data.php', {
@@ -1576,7 +1575,7 @@ if ($conn) {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             data: rows,
-                            fileName: datasetName,
+                            fileName: fileName,
                             dataset_name: datasetName,
                             timestamp: new Date().toISOString()
                         })
@@ -1587,20 +1586,19 @@ if ($conn) {
                         totalFailed += result.failed || 0;
                         importedDatasets.push(datasetName);
                     } else {
-                        showAlert('error', `Error importing "${datasetName}": ${result.message}`);
+                        showAlert('error', `Error importing item ${i + 1}: ${result.message}`);
                         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-file-import"></i> Import Selected as Separate Datasets'; }
                         return;
                     }
                 } catch (err) {
-                    showAlert('error', `Failed to import "${datasetName}": ${err.message}`);
+                    showAlert('error', `Failed to import item ${i + 1}: ${err.message}`);
                     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-file-import"></i> Import Selected as Separate Datasets'; }
                     return;
                 }
             }
 
-            const datasetList = importedDatasets.join(', ');
-            showAlert('success', `✓ Done! Created ${importedDatasets.length} separate dataset(s): ${datasetList}. Reloading...`);
-            setTimeout(() => location.reload(), 2000);
+            const firstDataset = importedDatasets[0] || null;
+            showSuccessModal(totalImported, totalFailed, importedDatasets.join(', '), firstDataset);
         }
 
         function updateSelectedSheets(checkbox) {
@@ -1657,14 +1655,9 @@ if ($conn) {
                 const fileName   = checkbox.dataset.file;
                 const sheetName  = checkbox.dataset.sheet;
                 
-                // Get custom name from input field if user changed it
-                const customNameInput = document.querySelector(`.custom-dataset-name[data-sheet="${sheetName}"]`);
-                const customName = customNameInput?.value?.trim();
-                
-                // Use custom name if provided, otherwise use sheet name
-                let datasetName = (customName || sheetName).replace(/[^a-zA-Z0-9_\- ]/g, '').trim().substring(0, 50) || ('data' + (nextNum + i));
+                const datasetName = 'data' + (nextNum + i);
 
-                showAlert('info', `Importing sheet ${i + 1} of ${checkedBoxes.length}: "${sheetName}"...`);
+                showAlert('info', `Importing sheet ${i + 1} of ${checkedBoxes.length}: "${sheetName}" → ${datasetName}...`);
 
                 let rows = [];
                 if (workbookSheets[fileName] && workbookSheets[fileName][sheetName]) {
@@ -1705,9 +1698,8 @@ if ($conn) {
                 }
             }
 
-            const datasetList = importedDatasets.join(', ');
-            showAlert('success', `✓ Done! Imported ${totalImported} records into ${datasetList}. Reloading...`);
-            setTimeout(() => location.reload(), 2000);
+            const firstDataset = importedDatasets[0] || null;
+            showSuccessModal(totalImported, totalFailed, importedDatasets.join(', '), firstDataset);
         }
 
         function generatePreviewCharts(data) {
@@ -1991,26 +1983,13 @@ if ($conn) {
             importBtn.innerHTML = '<span class="spinner"></span> Importing...';
             importBtn.disabled = true;
 
-            // Get dataset name from user input or generate one
-            const userDatasetName = document.getElementById('datasetNameInput')?.value?.trim();
+            // Always get next available dataset number from the server
             let datasetName = 'data1';
-            
-            if (userDatasetName) {
-                // Use user-provided name (sanitize for database)
-                datasetName = userDatasetName.replace(/[^a-zA-Z0-9_\- ]/g, '').trim().substring(0, 50);
-            } else {
-                // Auto-generate from filename or use next available number
-                const fileName = selectedFiles[0]?.name?.replace(/\.(xlsx|xls|csv)$/i, '')?.trim();
-                if (fileName) {
-                    datasetName = fileName.replace(/[^a-zA-Z0-9_\- ]/g, '').trim().substring(0, 50);
-                } else {
-                    try {
-                        const dsRes = await fetch('api/get-datasets.php');
-                        const dsData = await dsRes.json();
-                        if (dsData.success) datasetName = dsData.next_name;
-                    } catch (e) { /* use default */ }
-                }
-            }
+            try {
+                const dsRes = await fetch('api/get-datasets.php');
+                const dsData = await dsRes.json();
+                if (dsData.success) datasetName = dsData.next_name;
+            } catch (e) { /* use default data1 */ }
 
             // Prepare data for import
             const fileNames = selectedFiles.map(f => f.name).join(', ');
@@ -2042,7 +2021,7 @@ if ($conn) {
 
                 if (result.success) {
                     // Show success popup modal
-                    showSuccessModal(result.imported, result.failed || 0, fileNames);
+                    showSuccessModal(result.imported, result.failed || 0, fileNames, datasetName);
                     // Don't auto-reset - let user click 'View Records' or 'Import More'
                 } else {
                     showAlert('error', result.message || 'Import failed. Please try again.');
@@ -2105,11 +2084,15 @@ if ($conn) {
             }
         }
 
-        function showSuccessModal(imported, failed, fileName) {
+        let lastImportedDataset = null;
+
+        function showSuccessModal(imported, failed, fileName, datasetName) {
+            lastImportedDataset = datasetName || null;
             document.getElementById('modalImported').textContent = imported;
             document.getElementById('modalFailed').textContent = failed;
-            document.getElementById('modalMessage').textContent = 
-                `Successfully imported ${imported} records from "${fileName}"`;
+            const dsLabel = datasetName ? ` → saved as <strong style="color:#f4d03f">${datasetName.toUpperCase()}</strong>` : '';
+            document.getElementById('modalMessage').innerHTML = 
+                `Successfully imported ${imported} records from "${fileName}"${dsLabel}`;
             document.getElementById('successModal').classList.add('show');
         }
 
@@ -2118,8 +2101,12 @@ if ($conn) {
             resetUpload();
         }
 
-        function goToDeliveryRecords() {
-            window.location.href = 'delivery-records.php';
+        function goToDeliveryRecords(dataset) {
+            if (dataset) {
+                window.location.href = 'delivery-records.php?dataset=' + encodeURIComponent(dataset);
+            } else {
+                window.location.href = 'delivery-records.php';
+            }
         }
 
         function downloadTemplate() {

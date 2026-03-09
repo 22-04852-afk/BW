@@ -25,19 +25,19 @@ try {
     // Tag any pre-existing untagged rows as data1 (imported before this feature existed)
     $conn->query("UPDATE delivery_records SET dataset_name = 'data1' WHERE dataset_name IS NULL OR dataset_name = ''");
 
-    // Get sorted distinct dataset names
-    $result = $conn->query("SELECT DISTINCT dataset_name FROM delivery_records WHERE dataset_name IS NOT NULL AND dataset_name != '' ORDER BY dataset_name ASC");
+    // Get sorted dataset names with record counts
+    $result = $conn->query("SELECT dataset_name, COUNT(*) as record_count FROM delivery_records WHERE dataset_name IS NOT NULL AND dataset_name != '' GROUP BY dataset_name ORDER BY dataset_name ASC");
     $datasets = [];
     if ($result) {
         while ($row = $result->fetch_assoc()) {
-            $datasets[] = $row['dataset_name'];
+            $datasets[] = ['name' => $row['dataset_name'], 'count' => intval($row['record_count'])];
         }
     }
 
     // Determine next available dataset number
     $maxNum = 0;
-    foreach ($datasets as $name) {
-        if (preg_match('/^data(\d+)$/i', $name, $m)) {
+    foreach ($datasets as $ds) {
+        if (preg_match('/^data(\d+)$/i', $ds['name'], $m)) {
             $maxNum = max($maxNum, intval($m[1]));
         }
     }

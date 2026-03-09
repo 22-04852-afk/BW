@@ -15,17 +15,6 @@ $user_id = $_SESSION['user_id'];
 $user_email = $_SESSION['user_email'] ?? 'User';
 $user_name = $_SESSION['user_name'] ?? 'User';
 
-// Get selected dataset from URL parameter
-$selected_dataset = isset($_GET['dataset']) ? trim($_GET['dataset']) : 'all';
-
-// Build dataset filter clause for queries
-$dataset_filter = "";
-if ($selected_dataset !== 'all' && $selected_dataset !== '') {
-    $safe_dataset = $conn->real_escape_string($selected_dataset);
-    $dataset_filter = " AND dataset_name = '$safe_dataset'";
-}
-$dataset_filter_where = $dataset_filter ? str_replace(' AND ', ' WHERE ', $dataset_filter) : "";
-
 // Users table is created by db_config.php (MySQL) or the SQLite bootstrap.
 // No duplicate CREATE TABLE needed here.
 
@@ -40,25 +29,25 @@ $stats = [
 ];
 
 // Count total delivered
-$result = $conn->query("SELECT COALESCE(SUM(quantity), 0) as total FROM delivery_records WHERE status = 'Delivered'$dataset_filter");
+$result = $conn->query("SELECT COALESCE(SUM(quantity), 0) as total FROM delivery_records WHERE status = 'Delivered'");
 if ($result && $row = $result->fetch_assoc()) {
     $stats['total_delivered'] = intval($row['total']);
 }
 
 // Count total sold (different from delivered - could be from sales data)
-$result = $conn->query("SELECT COUNT(*) as total FROM delivery_records WHERE status IN ('Delivered', 'In Transit')$dataset_filter");
+$result = $conn->query("SELECT COUNT(*) as total FROM delivery_records WHERE status IN ('Delivered', 'In Transit')");
 if ($result && $row = $result->fetch_assoc()) {
     $stats['total_sold'] = intval($row['total']);
 }
 
 // Count unique companies
-$result = $conn->query("SELECT COUNT(DISTINCT company_name) as total FROM delivery_records WHERE 1=1$dataset_filter");
+$result = $conn->query("SELECT COUNT(DISTINCT company_name) as total FROM delivery_records");
 if ($result && $row = $result->fetch_assoc()) {
     $stats['total_companies'] = intval($row['total']);
 }
 
 // Count unique item codes (models)
-$result = $conn->query("SELECT COUNT(DISTINCT item_code) as total FROM delivery_records WHERE 1=1$dataset_filter");
+$result = $conn->query("SELECT COUNT(DISTINCT item_code) as total FROM delivery_records");
 if ($result && $row = $result->fetch_assoc()) {
     $stats['active_models'] = intval($row['total']);
 }
@@ -76,7 +65,7 @@ $top_clients = [];
 $result = $conn->query("
     SELECT company_name, COUNT(*) as delivery_count, SUM(quantity) as total_quantity
     FROM delivery_records
-    WHERE 1=1$dataset_filter
+    WHERE 1=1
     GROUP BY company_name
     ORDER BY total_quantity DESC
     LIMIT 15
@@ -93,7 +82,7 @@ $monthly_sales = array_fill_keys($months, 0);
 $result = $conn->query("
     SELECT delivery_month, COALESCE(SUM(quantity), 0) AS total
     FROM delivery_records
-    WHERE 1=1$dataset_filter
+    WHERE 1=1
     GROUP BY delivery_month
 ");
 if ($result) {
@@ -109,7 +98,7 @@ $top_products = [];
 $result = $conn->query("
     SELECT item_code, item_name, SUM(quantity) as total 
     FROM delivery_records 
-    WHERE item_code IS NOT NULL AND item_code != '' AND item_code != '-'$dataset_filter
+    WHERE item_code IS NOT NULL AND item_code != '' AND item_code != '-'
     GROUP BY item_code 
     ORDER BY total DESC 
     LIMIT 10
@@ -125,7 +114,7 @@ $company_deliveries = [];
 $result = $conn->query("
     SELECT company_name, SUM(quantity) as total 
     FROM delivery_records 
-    WHERE company_name IS NOT NULL AND company_name != '' AND company_name != '-'$dataset_filter
+    WHERE company_name IS NOT NULL AND company_name != '' AND company_name != '-'
     GROUP BY company_name 
     ORDER BY total DESC 
     LIMIT 8
@@ -179,7 +168,7 @@ try {
 
 // Get pending count
 $pending_count = 0;
-$result = $conn->query("SELECT COUNT(*) as cnt FROM delivery_records WHERE (status = 'Pending' OR status = 'In Transit')$dataset_filter");
+$result = $conn->query("SELECT COUNT(*) as cnt FROM delivery_records WHERE (status = 'Pending' OR status = 'In Transit')");
 if ($result && $row = $result->fetch_assoc()) {
     $pending_count = intval($row['cnt']);
 }
@@ -702,34 +691,10 @@ if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
         <section class="datasets-overview">
             <div class="datasets-header">
                 <h3><i class="fas fa-database"></i> Imported Datasets</h3>
-                <?php if ($selected_dataset !== 'all'): ?>
-                <span style="color:#f4d03f; font-size:12px; font-weight:600;">
-                    <i class="fas fa-filter"></i> Viewing: <?php echo htmlspecialchars(strtoupper($selected_dataset)); ?>
-                </span>
-                <?php endif; ?>
+                <a href="delivery-records.php" class="datasets-view-all"><i class="fas fa-external-link-alt"></i> View All Records</a>
             </div>
-            <div class="datasets-grid">
-                <a href="index.php" class="dataset-card-dash <?php echo $selected_dataset === 'all' ? 'active' : ''; ?>">
-                    <div class="dataset-card-icon" style="background: linear-gradient(135deg, #5b9bd5, #3a7bbf);"><i class="fas fa-layer-group" style="color:#fff;"></i></div>
-                    <div class="dataset-card-info">
-                        <span class="dataset-card-name">ALL DATA</span>
-                        <span class="dataset-card-count"><?php echo number_format($untagged_count + array_sum(array_column($datasets, 'record_count'))); ?> records</span>
-                    </div>
-                    <?php if ($selected_dataset === 'all'): ?><i class="fas fa-check-circle" style="color:#51cf66;"></i><?php endif; ?>
-                </a>
-                <?php foreach ($datasets as $ds): ?>
-                <a href="index.php?dataset=<?php echo urlencode($ds['dataset_name']); ?>" class="dataset-card-dash <?php echo $selected_dataset === $ds['dataset_name'] ? 'active' : ''; ?>">
-                    <div class="dataset-card-icon"><i class="fas fa-table"></i></div>
-                    <div class="dataset-card-info">
-                        <span class="dataset-card-name"><?php echo htmlspecialchars(strtoupper($ds['dataset_name'])); ?></span>
-                        <span class="dataset-card-count"><?php echo number_format($ds['record_count']); ?> records</span>
-                    </div>
-                    <?php if ($selected_dataset === $ds['dataset_name']): ?><i class="fas fa-check-circle" style="color:#51cf66;"></i><?php endif; ?>
-                </a>
-                <?php endforeach; ?>
-                <?php if (empty($datasets) && $untagged_count === 0): ?>
-                <div style="color:#8a9ab5;font-size:13px;padding:14px 0;"><i class="fas fa-info-circle" style="margin-right:6px;"></i>No datasets yet. <a href="upload-data.php" style="color:#f4d03f;">Upload data</a> to get started.</div>
-                <?php endif; ?>
+            <div class="datasets-grid" id="datasetsGrid">
+                <!-- Cards rendered dynamically by JS below -->
             </div>
         </section>
         <style>
@@ -757,6 +722,45 @@ if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
         .dataset-card-dash.active { background: #243447; border-color: #f4d03f; box-shadow: 0 0 12px rgba(244, 208, 63, 0.25); }
         body.light-mode .dataset-card-dash.active { background: #fff8e1; border-color: #f4d03f; }
         </style>
+        <script>
+        function renderDatasetCards(datasets) {
+            const grid = document.getElementById('datasetsGrid');
+            if (!grid) return;
+            const total = datasets.reduce(function(s, d){ return s + d.count; }, 0);
+            let html = '<a href="delivery-records.php" class="dataset-card-dash">'
+                + '<div class="dataset-card-icon" style="background:linear-gradient(135deg,#5b9bd5,#3a7bbf)"><i class="fas fa-layer-group" style="color:#fff"></i></div>'
+                + '<div class="dataset-card-info"><span class="dataset-card-name">ALL DATA</span>'
+                + '<span class="dataset-card-count">' + total.toLocaleString() + ' records</span></div>'
+                + '<i class="fas fa-chevron-right dataset-card-arrow"></i></a>';
+            datasets.forEach(function(ds) {
+                html += '<a href="delivery-records.php?dataset=' + encodeURIComponent(ds.name) + '" class="dataset-card-dash">'
+                    + '<div class="dataset-card-icon"><i class="fas fa-table"></i></div>'
+                    + '<div class="dataset-card-info"><span class="dataset-card-name">' + ds.name.toUpperCase() + '</span>'
+                    + '<span class="dataset-card-count">' + ds.count.toLocaleString() + ' records</span></div>'
+                    + '<i class="fas fa-chevron-right dataset-card-arrow"></i></a>';
+            });
+            if (datasets.length === 0) {
+                html = '<div style="color:#8a9ab5;font-size:13px;padding:14px 0;"><i class="fas fa-info-circle" style="margin-right:6px;"></i>No datasets yet. <a href="upload-data.php" style="color:#f4d03f;">Upload data</a> to get started.</div>';
+            }
+            grid.innerHTML = html;
+        }
+
+        async function refreshDatasets() {
+            try {
+                const res = await fetch('api/get-datasets.php');
+                const data = await res.json();
+                if (data.success) renderDatasetCards(data.datasets);
+            } catch(e) {}
+        }
+
+        // Initial render from PHP data (avoids flash on load)
+        renderDatasetCards(<?php echo json_encode(array_map(function($ds){ return ['name'=>$ds['dataset_name'],'count'=>intval($ds['record_count'])]; }, $datasets)); ?>);
+
+        // Auto-refresh when user returns to this tab (e.g. after importing in another tab)
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') refreshDatasets();
+        });
+        </script>
 
         <!-- KPI CARDS SECTION -->
         <section class="kpi-section">

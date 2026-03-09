@@ -466,53 +466,6 @@ try {
             letter-spacing: 0;
         }
 
-        /* Dataset Tabs */
-        .dataset-tabs {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-bottom: 18px;
-            align-items: center;
-        }
-        .dataset-tab {
-            background: rgba(255,255,255,0.06);
-            border: 2px solid rgba(255,255,255,0.1);
-            color: #a0a0a0;
-            padding: 8px 18px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-family: 'Poppins', sans-serif;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all 0.25s ease;
-            white-space: nowrap;
-        }
-        .dataset-tab:hover {
-            border-color: #f4d03f;
-            color: #f4d03f;
-        }
-        .dataset-tab.active {
-            background: linear-gradient(135deg, #f4d03f 0%, #d4a00e 100%);
-            border-color: #f4d03f;
-            color: #1a2a38;
-        }
-        .light-mode .dataset-tab {
-            background: rgba(0,0,0,0.04);
-            border-color: rgba(0,0,0,0.12);
-            color: #5a6a7a;
-        }
-        .light-mode .dataset-tab.active {
-            background: linear-gradient(135deg, #f4d03f 0%, #d4a00e 100%);
-            border-color: #f4d03f;
-            color: #1a2a38;
-        }
-        .dataset-tab-wrapper:hover .dataset-edit-btn {
-            opacity: 1 !important;
-        }
-        .dataset-edit-btn:hover {
-            color: #f4d03f !important;
-        }
-
         /* Export Button */
         .btn-export {
             background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
@@ -1132,25 +1085,6 @@ try {
                 <i class="fas fa-plus"></i> Add Record
             </button>
         </div>
-
-        <!-- Dataset Tabs -->
-        <?php if (!empty($datasets)): ?>
-        <div class="dataset-tabs">
-            <button class="dataset-tab active" onclick="filterByDataset('all', this)">
-                <i class="fas fa-layer-group"></i> All Data
-            </button>
-            <?php foreach ($datasets as $ds): ?>
-            <div class="dataset-tab-wrapper" style="display:inline-flex; align-items:center; position:relative;">
-                <button class="dataset-tab" onclick="filterByDataset('<?php echo htmlspecialchars($ds, ENT_QUOTES); ?>', this)">
-                    <i class="fas fa-table"></i> <?php echo htmlspecialchars(strtoupper($ds)); ?>
-                </button>
-                <button class="dataset-edit-btn" onclick="openRenameModal('<?php echo htmlspecialchars($ds, ENT_QUOTES); ?>')" title="Rename or Delete" style="background:none; border:none; color:#8a9ab5; cursor:pointer; padding:4px 8px; font-size:12px; margin-left:-8px; opacity:0.7; transition:opacity 0.2s;">
-                    <i class="fas fa-ellipsis-v"></i>
-                </button>
-            </div>
-            <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
 
         <!-- Filters -->
         <div class="filters">
@@ -2228,28 +2162,6 @@ try {
                 s.textContent = '@keyframes toastSlideIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}';
                 document.head.appendChild(s);
             }
-
-        // Dataset tab filter
-        let activeDataset = 'all';
-        function filterByDataset(dataset, btn) {
-            activeDataset = dataset;
-            document.querySelectorAll('.dataset-tab').forEach(b => b.classList.remove('active'));
-            if (btn) btn.classList.add('active');
-            const rows = document.querySelectorAll('tbody tr[data-record-id]');
-            let visible = 0;
-            rows.forEach(row => {
-                const rowDataset = row.dataset.dataset || '';
-                const match = (dataset === 'all') || (rowDataset === dataset);
-                row.classList.toggle('hidden-row', !match);
-                if (match) visible++;
-            });
-            const countEl = document.getElementById('visibleRowCount');
-            if (countEl) countEl.textContent = visible;
-            // Clear search when switching dataset
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) searchInput.value = '';
-            updateSearchCount();
-        }
 
             document.body.appendChild(toast);
             setTimeout(() => { if (toast.parentElement) toast.remove(); }, 4000);
