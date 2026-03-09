@@ -15,6 +15,22 @@ $user_id = $_SESSION['user_id'];
 $user_email = $_SESSION['user_email'] ?? 'User';
 $user_name = $_SESSION['user_name'] ?? 'User';
 
+// Get selected dataset from GET parameter or session
+$selected_dataset = isset($_GET['dataset']) ? trim(strval($_GET['dataset'])) : (isset($_SESSION['active_dataset']) ? $_SESSION['active_dataset'] : null);
+
+// If a dataset is selected via GET, update the session
+if (isset($_GET['dataset'])) {
+    $_SESSION['active_dataset'] = $selected_dataset;
+}
+
+// Build dataset filter for queries
+$dataset_filter = '';
+$dataset_filter_params = [];
+if (!empty($selected_dataset)) {
+    $dataset_filter = ' AND dataset_name = ?';
+    $dataset_filter_params[] = $selected_dataset;
+}
+
 // Users table is created by db_config.php (MySQL) or the SQLite bootstrap.
 // No duplicate CREATE TABLE needed here.
 
@@ -29,27 +45,63 @@ $stats = [
 ];
 
 // Count total delivered
-$result = $conn->query("SELECT COALESCE(SUM(quantity), 0) as total FROM delivery_records WHERE status = 'Delivered'");
-if ($result && $row = $result->fetch_assoc()) {
-    $stats['total_delivered'] = intval($row['total']);
+$sql = "SELECT COALESCE(SUM(quantity), 0) as total FROM delivery_records WHERE status = 'Delivered'" . $dataset_filter;
+$stmt = $conn->prepare($sql);
+if ($stmt) {
+    if (!empty($dataset_filter_params)) {
+        $stmt->bind_param('s', $dataset_filter_params[0]);
+    }
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($row = $result->fetch_assoc()) {
+        $stats['total_delivered'] = intval($row['total']);
+    }
+    $stmt->close();
 }
 
 // Count total sold (different from delivered - could be from sales data)
-$result = $conn->query("SELECT COUNT(*) as total FROM delivery_records WHERE status IN ('Delivered', 'In Transit')");
-if ($result && $row = $result->fetch_assoc()) {
-    $stats['total_sold'] = intval($row['total']);
+$sql = "SELECT COUNT(*) as total FROM delivery_records WHERE status IN ('Delivered', 'In Transit')" . $dataset_filter;
+$stmt = $conn->prepare($sql);
+if ($stmt) {
+    if (!empty($dataset_filter_params)) {
+        $stmt->bind_param('s', $dataset_filter_params[0]);
+    }
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($row = $result->fetch_assoc()) {
+        $stats['total_sold'] = intval($row['total']);
+    }
+    $stmt->close();
 }
 
 // Count unique companies
-$result = $conn->query("SELECT COUNT(DISTINCT company_name) as total FROM delivery_records");
-if ($result && $row = $result->fetch_assoc()) {
-    $stats['total_companies'] = intval($row['total']);
+$sql = "SELECT COUNT(DISTINCT company_name) as total FROM delivery_records WHERE 1=1" . $dataset_filter;
+$stmt = $conn->prepare($sql);
+if ($stmt) {
+    if (!empty($dataset_filter_params)) {
+        $stmt->bind_param('s', $dataset_filter_params[0]);
+    }
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($row = $result->fetch_assoc()) {
+        $stats['total_companies'] = intval($row['total']);
+    }
+    $stmt->close();
 }
 
 // Count unique item codes (models)
-$result = $conn->query("SELECT COUNT(DISTINCT item_code) as total FROM delivery_records");
-if ($result && $row = $result->fetch_assoc()) {
-    $stats['active_models'] = intval($row['total']);
+$sql = "SELECT COUNT(DISTINCT item_code) as total FROM delivery_records WHERE 1=1" . $dataset_filter;
+$stmt = $conn->prepare($sql);
+if ($stmt) {
+    if (!empty($dataset_filter_params)) {
+        $stmt->bind_param('s', $dataset_filter_params[0]);
+    }
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($row = $result->fetch_assoc()) {
+        $stats['active_models'] = intval($row['total']);
+    }
+    $stmt->close();
 }
 
 // Calculate monthly average
@@ -62,67 +114,95 @@ $stats['yearly_total'] = $stats['total_delivered'] + $stats['total_sold'];
 
 // Get top clients
 $top_clients = [];
-$result = $conn->query("
+$sql = "
     SELECT company_name, COUNT(*) as delivery_count, SUM(quantity) as total_quantity
     FROM delivery_records
-    WHERE 1=1
+    WHERE 1=1" . $dataset_filter . "
     GROUP BY company_name
     ORDER BY total_quantity DESC
     LIMIT 15
-");
-if ($result) {
+";
+$stmt = $conn->prepare($sql);
+if ($stmt) {
+    if (!empty($dataset_filter_params)) {
+        $stmt->bind_param('s', $dataset_filter_params[0]);
+    }
+    $stmt->execute();
+    $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
         $top_clients[] = $row;
     }
+    $stmt->close();
 }
 
 // Get monthly sales data — single query instead of 12
 $months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 $monthly_sales = array_fill_keys($months, 0);
-$result = $conn->query("
+$sql = "
     SELECT delivery_month, COALESCE(SUM(quantity), 0) AS total
     FROM delivery_records
-    WHERE 1=1
+    WHERE 1=1" . $dataset_filter . "
     GROUP BY delivery_month
-");
-if ($result) {
+";
+$stmt = $conn->prepare($sql);
+if ($stmt) {
+    if (!empty($dataset_filter_params)) {
+        $stmt->bind_param('s', $dataset_filter_params[0]);
+    }
+    $stmt->execute();
+    $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
         if (array_key_exists($row['delivery_month'], $monthly_sales)) {
             $monthly_sales[$row['delivery_month']] = intval($row['total']);
         }
     }
+    $stmt->close();
 }
 
 // Get top products by item code
 $top_products = [];
-$result = $conn->query("
+$sql = "
     SELECT item_code, item_name, SUM(quantity) as total 
-    FROM delivery_records 
-    WHERE item_code IS NOT NULL AND item_code != '' AND item_code != '-'
+    FROM delivery_records
+    WHERE item_code IS NOT NULL AND item_code != '' AND item_code != '-'" . $dataset_filter . "
     GROUP BY item_code 
     ORDER BY total DESC 
     LIMIT 10
-");
-if ($result) {
+";
+$stmt = $conn->prepare($sql);
+if ($stmt) {
+    if (!empty($dataset_filter_params)) {
+        $stmt->bind_param('s', $dataset_filter_params[0]);
+    }
+    $stmt->execute();
+    $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
         $top_products[] = $row;
     }
+    $stmt->close();
 }
 
 // Get delivery by company for pie chart
 $company_deliveries = [];
-$result = $conn->query("
+$sql = "
     SELECT company_name, SUM(quantity) as total 
     FROM delivery_records 
-    WHERE company_name IS NOT NULL AND company_name != '' AND company_name != '-'
+    WHERE company_name IS NOT NULL AND company_name != '' AND company_name != '-'" . $dataset_filter . "
     GROUP BY company_name 
     ORDER BY total DESC 
     LIMIT 8
-");
-if ($result) {
+";
+$stmt = $conn->prepare($sql);
+if ($stmt) {
+    if (!empty($dataset_filter_params)) {
+        $stmt->bind_param('s', $dataset_filter_params[0]);
+    }
+    $stmt->execute();
+    $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
         $company_deliveries[] = $row;
     }
+    $stmt->close();
 }
 
 // Get imported datasets
@@ -150,7 +230,7 @@ try {
     }
     
     if ($colExists) {
-        $ds_result = $conn->query("SELECT dataset_name, COUNT(*) as record_count FROM delivery_records WHERE dataset_name IS NOT NULL AND dataset_name != '' GROUP BY dataset_name ORDER BY dataset_name ASC");
+        $ds_result = $conn->query("SELECT dataset_name, COUNT(*) as record_count FROM delivery_records WHERE dataset_name IS NOT NULL AND dataset_name != '' GROUP BY dataset_name ORDER BY dataset_name ASC LIMIT 5");
         if ($ds_result) {
             while ($ds_row = $ds_result->fetch_assoc()) {
                 $datasets[] = $ds_row;
@@ -726,21 +806,38 @@ if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
         function renderDatasetCards(datasets) {
             const grid = document.getElementById('datasetsGrid');
             if (!grid) return;
-            const total = datasets.reduce(function(s, d){ return s + d.count; }, 0);
-            let html = '<a href="delivery-records.php" class="dataset-card-dash">'
+            
+            // Get current selected dataset from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentDataset = urlParams.get('dataset');
+            
+            // Limit to first 5 datasets
+            const displayDatasets = datasets.slice(0, 5);
+            const total = displayDatasets.reduce(function(s, d){ return s + d.count; }, 0);
+            
+            let html = '<a href="index.php" class="dataset-card-dash" ' + (currentDataset === null ? 'style="border-color:#f4d03f; box-shadow: 0 0 12px rgba(244, 208, 63, 0.25);"' : '') + '>'
                 + '<div class="dataset-card-icon" style="background:linear-gradient(135deg,#5b9bd5,#3a7bbf)"><i class="fas fa-layer-group" style="color:#fff"></i></div>'
                 + '<div class="dataset-card-info"><span class="dataset-card-name">ALL DATA</span>'
                 + '<span class="dataset-card-count">' + total.toLocaleString() + ' records</span></div>'
                 + '<i class="fas fa-chevron-right dataset-card-arrow"></i></a>';
-            datasets.forEach(function(ds) {
-                html += '<a href="delivery-records.php?dataset=' + encodeURIComponent(ds.name) + '" class="dataset-card-dash">'
+                
+            displayDatasets.forEach(function(ds) {
+                const isActive = currentDataset === ds.name;
+                html += '<a href="?dataset=' + encodeURIComponent(ds.name) + '" class="dataset-card-dash" ' + (isActive ? 'style="border-color:#f4d03f; box-shadow: 0 0 12px rgba(244, 208, 63, 0.25);"' : '') + '>'
                     + '<div class="dataset-card-icon"><i class="fas fa-table"></i></div>'
-                    + '<div class="dataset-card-info"><span class="dataset-card-name">' + ds.name.toUpperCase() + '</span>'
+                    + '<div class="dataset-card-info"><span class="dataset-card-name">' + ds.name.toUpperCase() + (isActive ? ' <i class="fas fa-check-circle" style="color:#f4d03f; margin-left:6px; font-size:12px;"></i>' : '') + '</span>'
                     + '<span class="dataset-card-count">' + ds.count.toLocaleString() + ' records</span></div>'
                     + '<i class="fas fa-chevron-right dataset-card-arrow"></i></a>';
             });
+            
             if (datasets.length === 0) {
                 html = '<div style="color:#8a9ab5;font-size:13px;padding:14px 0;"><i class="fas fa-info-circle" style="margin-right:6px;"></i>No datasets yet. <a href="upload-data.php" style="color:#f4d03f;">Upload data</a> to get started.</div>';
+            } else if (datasets.length > 5) {
+                html += '<a href="delivery-records.php" class="dataset-card-dash" style="opacity:0.6; border-color:#8a9ab0;">'
+                    + '<div class="dataset-card-icon" style="background:#8a9ab5;"><i class="fas fa-ellipsis-h" style="color:#fff"></i></div>'
+                    + '<div class="dataset-card-info"><span class="dataset-card-name">VIEW ALL</span>'
+                    + '<span class="dataset-card-count">' + (datasets.length - 5) + ' more datasets</span></div>'
+                    + '<i class="fas fa-chevron-right dataset-card-arrow"></i></a>';
             }
             grid.innerHTML = html;
         }

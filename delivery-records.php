@@ -8,8 +8,16 @@ if (empty($_SESSION['user_id'])) {
 // Include database configuration
 require_once 'db_config.php';
 
-// Get selected dataset from URL parameter
-$selected_dataset = isset($_GET['dataset']) ? trim($_GET['dataset']) : 'all';
+// Include dataset indicator helper
+require_once 'dataset-indicator.php';
+
+// Get selected dataset from URL parameter or session
+$selected_dataset = isset($_GET['dataset']) ? trim($_GET['dataset']) : (isset($_SESSION['active_dataset']) ? $_SESSION['active_dataset'] : 'all');
+
+// Update session if dataset is passed via GET
+if (isset($_GET['dataset'])) {
+    $_SESSION['active_dataset'] = $selected_dataset;
+}
 
 // Build dataset filter clause for queries
 $dataset_filter = "";

@@ -6,27 +6,43 @@ if (empty($_SESSION['user_id'])) {
 }
 
 require_once 'db_config.php';
+require_once 'dataset-indicator.php';
+
+// Get selected dataset from URL or session
+$selected_dataset = isset($_GET['dataset']) ? trim($_GET['dataset']) : (isset($_SESSION['active_dataset']) ? $_SESSION['active_dataset'] : 'all');
+
+// Update session if dataset is passed via GET
+if (isset($_GET['dataset'])) {
+    $_SESSION['active_dataset'] = $selected_dataset;
+}
+
+// Build dataset filter
+$dataset_filter = "";
+if ($selected_dataset !== 'all' && $selected_dataset !== '') {
+    $safe_dataset = $conn->real_escape_string($selected_dataset);
+    $dataset_filter = " AND dataset_name = '$safe_dataset'";
+}
 
 $allMonths = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 // Units SOLD to companies (records with company_name)
 $unitsSold = 0;
-$r = $conn->query("SELECT COALESCE(SUM(quantity),0) as t FROM delivery_records WHERE company_name IS NOT NULL AND company_name != ''");
+$r = $conn->query("SELECT COALESCE(SUM(quantity),0) as t FROM delivery_records WHERE company_name IS NOT NULL AND company_name != ''$dataset_filter");
 if ($r && $row = $r->fetch_assoc()) $unitsSold = intval($row['t']);
 
 // Total deliveries (all records)
 $totalDeliveries = 0;
-$r = $conn->query("SELECT COUNT(*) as t FROM delivery_records");
+$r = $conn->query("SELECT COUNT(*) as t FROM delivery_records WHERE 1=1$dataset_filter");
 if ($r && $row = $r->fetch_assoc()) $totalDeliveries = intval($row['t']);
 
 // Unique products
 $uniqueProducts = 0;
-$r = $conn->query("SELECT COUNT(DISTINCT item_name) as t FROM delivery_records WHERE item_name IS NOT NULL AND item_name != ''");
+$r = $conn->query("SELECT COUNT(DISTINCT item_name) as t FROM delivery_records WHERE item_name IS NOT NULL AND item_name != ''$dataset_filter");
 if ($r && $row = $r->fetch_assoc()) $uniqueProducts = intval($row['t']);
 
 // Monthly sales data
 $monthly_sales = array_fill_keys($allMonths, 0);
-$r = $conn->query("SELECT delivery_month, COALESCE(SUM(quantity),0) AS total FROM delivery_records WHERE delivery_month IS NOT NULL AND delivery_month != '' GROUP BY delivery_month");
+$r = $conn->query("SELECT delivery_month, COALESCE(SUM(quantity),0) AS total FROM delivery_records WHERE delivery_month IS NOT NULL AND delivery_month != ''$dataset_filter GROUP BY delivery_month");
 if ($r) {
     while ($row = $r->fetch_assoc()) {
         if (array_key_exists($row['delivery_month'], $monthly_sales))
@@ -36,14 +52,14 @@ if ($r) {
 
 // Top products
 $top_products = [];
-$r = $conn->query("SELECT item_name, SUM(quantity) as total_qty FROM delivery_records WHERE item_name IS NOT NULL AND item_name != '' GROUP BY item_name ORDER BY total_qty DESC LIMIT 5");
+$r = $conn->query("SELECT item_name, SUM(quantity) as total_qty FROM delivery_records WHERE item_name IS NOT NULL AND item_name != ''$dataset_filter GROUP BY item_name ORDER BY total_qty DESC LIMIT 5");
 if ($r) {
     while ($row = $r->fetch_assoc()) $top_products[] = $row;
 }
 
 // Recent deliveries
 $recent_sales = [];
-$r = $conn->query("SELECT invoice_no, item_name, quantity, company_name, delivery_date, delivery_month, delivery_day FROM delivery_records ORDER BY id DESC LIMIT 10");
+$r = $conn->query("SELECT invoice_no, item_name, quantity, company_name, delivery_date, delivery_month, delivery_day FROM delivery_records WHERE 1=1$dataset_filter ORDER BY id DESC LIMIT 10");
 if ($r) {
     while ($row = $r->fetch_assoc()) $recent_sales[] = $row;
 }
@@ -357,7 +373,7 @@ $topQtys     = json_encode(array_column($top_products, 'total_qty'));
         <div class="page-header">
             <h1 class="page-title">
                 <i class="fas fa-chart-pie"></i>
-                Sales Overview
+                Sales Overview<?php echo renderDatasetIndicator($active_dataset); ?>
             </h1>
         </div>
 

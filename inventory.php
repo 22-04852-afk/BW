@@ -6,9 +6,15 @@ if (empty($_SESSION['user_id'])) {
 }
 
 require_once 'db_config.php';
+require_once 'dataset-indicator.php';
 
-// Get selected dataset from URL parameter
-$selected_dataset = isset($_GET['dataset']) ? trim($_GET['dataset']) : 'all';
+// Get selected dataset from URL or session
+$selected_dataset = isset($_GET['dataset']) ? trim($_GET['dataset']) : (isset($_SESSION['active_dataset']) ? $_SESSION['active_dataset'] : 'all');
+
+// Update session if dataset is passed via GET
+if (isset($_GET['dataset'])) {
+    $_SESSION['active_dataset'] = $selected_dataset;
+}
 
 // Build dataset filter clause for queries
 $dataset_filter = "";
@@ -76,10 +82,15 @@ if ($result) {
             $lastDeliveryDate = date('Y-m-d', strtotime($row['last_delivery_timestamp']));
         }
         
+        // Prevent negative stock display - cap at 0 for display, but keep actual value
+        $currentStock = intval($row['current_stock']);
+        $displayStock = max($currentStock, 0); // Never show negative to user
+        
         $items[] = [
             'code' => $row['item_code'],
             'name' => $row['item_name'],
-            'stock' => intval($row['current_stock']),
+            'stock' => $displayStock,  // Display value (capped at 0)
+            'actual_stock' => $currentStock,  // Keep actual for negative detection
             'units_added' => intval($row['units_added']),
             'units_delivered' => intval($row['units_delivered']),
             'deliveries' => intval($row['delivery_count']),
@@ -92,7 +103,7 @@ if ($result) {
 $totalItems = count($items);
 $totalStock = array_sum(array_column($items, 'stock'));
 $totalDeliveries = array_sum(array_column($items, 'deliveries'));
-$negativeStockItems = array_filter($items, function($item) { return $item['stock'] < 0; });
+$negativeStockItems = array_filter($items, function($item) { return $item['actual_stock'] < 0; });
 $hasNegativeStock = count($negativeStockItems) > 0;
 ?>
 <!DOCTYPE html>
@@ -372,33 +383,42 @@ $hasNegativeStock = count($negativeStockItems) > 0;
         }
 
         .btn-submit, .btn-cancel {
-            padding: 12px 24px;
+            padding: 12px 28px;
             border: none;
             border-radius: 8px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             transition: all 0.3s ease;
             font-size: 14px;
             margin-right: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-family: 'Arial', sans-serif;
         }
 
         .btn-submit {
-            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-            color: white;
+            background: linear-gradient(135deg, #2c5aa0 0%, #1e3a8a 100%);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(44, 90, 160, 0.3);
         }
 
         .btn-submit:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(46, 204, 113, 0.3);
+            box-shadow: 0 6px 20px rgba(44, 90, 160, 0.5);
+            background: linear-gradient(135deg, #3d7bc4 0%, #2c5aa0 100%);
         }
 
         .btn-cancel {
-            background: #666;
-            color: white;
+            background: #e8eef7;
+            color: #1e3a8a;
+            border: 1px solid #2c5aa0;
+            font-weight: 700;
         }
 
         .btn-cancel:hover {
-            background: #777;
+            background: #d8e5f0;
+            border-color: #1e3a8a;
+            color: #1e3a8a;
         }
 
         .modal-body {
@@ -406,46 +426,70 @@ $hasNegativeStock = count($negativeStockItems) > 0;
         }
 
         .init-stock-item {
-            display: grid;
-            grid-template-columns: 1fr 1.5fr;
-            gap: 15px;
-            margin-bottom: 15px;
-            padding: 15px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-            align-items: start;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 18px;
+            background: linear-gradient(135deg, rgba(44, 90, 160, 0.08) 0%, rgba(30, 58, 138, 0.06) 100%);
+            border: 1px solid #2c5aa0;
+            border-radius: 10px;
             position: relative;
+            box-shadow: 0 4px 12px rgba(44, 90, 160, 0.1);
+            transition: all 0.3s ease;
         }
 
-        .init-stock-item > div:last-child {
-            grid-column: 1 / -1;
-            text-align: right;
-            margin-top: -5px;
+        .init-stock-item:hover {
+            border-color: #3d7bc4;
+            box-shadow: 0 6px 16px rgba(44, 90, 160, 0.15);
+            background: linear-gradient(135deg, rgba(44, 90, 160, 0.12) 0%, rgba(30, 58, 138, 0.1) 100%);
         }
 
         .init-stock-item label {
             font-size: 12px;
-            color: #999;
+            color: #1e3a8a;
             display: block;
             text-transform: uppercase;
-            margin-bottom: 5px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            font-family: 'Arial', sans-serif;
         }
 
-        .init-stock-item input {
-            background: #1a3a5c;
-            border: 1px solid rgba(255,255,255,0.2);
-            color: #fff;
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 14px;
+        .init-stock-item input[type="text"],
+        .init-stock-item input[type="number"] {
             width: 100%;
-            box-sizing: border-box;
+            padding: 12px;
+            border: 2px solid #2c5aa0;
+            border-radius: 6px;
+            background: #f0f4f8;
+            color: #000;
+            font-size: 14px;
+            font-family: 'Arial', sans-serif;
+            transition: all 0.2s ease;
         }
 
-        .init-stock-item input:focus {
+        .init-stock-item input[type="text"]:focus,
+        .init-stock-item input[type="number"]:focus {
+            background: #fff;
+            border-color: #3d7bc4;
             outline: none;
-            border-color: #f4d03f;
-            box-shadow: 0 0 10px rgba(244, 208, 63, 0.3);
+            box-shadow: 0 0 0 3px rgba(44, 90, 160, 0.15);
+        }
+
+        .init-stock-item input[type="text"] {
+            color: #000;
+            font-weight: 600;
+        }
+
+        .init-stock-item input[type="number"] {
+            color: #000;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .init-stock-item input[type="number"]::placeholder {
+            color: #ccc;
         }
 
         /* Modal Styles */
@@ -467,14 +511,15 @@ $hasNegativeStock = count($negativeStockItems) > 0;
         }
 
         .modal-content {
-            background: linear-gradient(135deg, #1e2a38 0%, #2a3f5f 100%);
+            background: linear-gradient(135deg, #f5f7fa 0%, #f0f4f8 100%);
             margin: 50px auto;
             padding: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            border: 2px solid #2c5aa0;
+            border-radius: 14px;
             width: 90%;
-            max-width: 500px;
+            max-width: 550px;
             animation: slideDown 0.3s ease;
+            box-shadow: 0 20px 60px rgba(44, 90, 160, 0.15), 0 0 30px rgba(44, 90, 160, 0.08);
         }
 
         @keyframes slideDown {
@@ -494,29 +539,33 @@ $hasNegativeStock = count($negativeStockItems) > 0;
             align-items: center;
             margin-bottom: 25px;
             padding-bottom: 15px;
-            border-bottom: 2px solid rgba(244, 208, 63, 0.3);
+            border-bottom: 2px solid #2c5aa0;
         }
 
         .modal-header h2 {
-            color: #fff;
+            color: #1e3a8a;
             font-size: 20px;
             margin: 0;
             display: flex;
             align-items: center;
             gap: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            font-family: 'Arial', sans-serif;
         }
 
         .modal-header h2 i {
-            color: #f4d03f;
+            color: #2c5aa0;
+            font-size: 22px;
         }
 
         .close-btn {
             background: none;
             border: none;
-            color: #a0a0a0;
+            color: #999;
             font-size: 28px;
             cursor: pointer;
-            transition: color 0.3s;
+            transition: all 0.3s;
             padding: 0;
             width: 30px;
             height: 30px;
@@ -526,7 +575,8 @@ $hasNegativeStock = count($negativeStockItems) > 0;
         }
 
         .close-btn:hover {
-            color: #fff;
+            color: #2c5aa0;
+            transform: scale(1.1);
         }
 
         .form-group {
@@ -654,32 +704,32 @@ $hasNegativeStock = count($negativeStockItems) > 0;
         /* Light Mode Modal */
         html.light-mode .modal-content,
         body.light-mode .modal-content {
-            background: linear-gradient(145deg, #ffffff, #f8f9fa);
-            border: 1px solid #c5ddf0;
+            background: linear-gradient(145deg, #ffffff, #f5f7fa);
+            border: 2px solid #2c5aa0;
         }
 
         html.light-mode .modal-header h2,
         body.light-mode .modal-header h2 {
-            color: #1a3a5c;
+            color: #1e3a8a;
         }
 
         html.light-mode .modal-header,
         body.light-mode .modal-header {
-            border-bottom: 2px solid rgba(30, 136, 229, 0.2);
+            border-bottom: 2px solid #2c5aa0;
         }
 
         html.light-mode .form-group label,
         body.light-mode .form-group label {
-            color: #5a6a7a;
+            color: #1e3a8a;
         }
 
         html.light-mode .form-group input,
         body.light-mode .form-group input,
         html.light-mode .form-group textarea,
         body.light-mode .form-group textarea {
-            background: linear-gradient(145deg, #ffffff, #f0f7ff);
-            border: 2px solid rgba(30, 136, 229, 0.3);
-            color: #1a3a5c;
+            background: linear-gradient(145deg, #ffffff, #f0f4f8);
+            border: 2px solid #2c5aa0;
+            color: #000;
         }
 
         html.light-mode .form-group input::placeholder,
@@ -693,8 +743,8 @@ $hasNegativeStock = count($negativeStockItems) > 0;
         body.light-mode .form-group input:focus,
         html.light-mode .form-group textarea:focus,
         body.light-mode .form-group textarea:focus {
-            border-color: #1e88e5;
-            box-shadow: 0 0 15px rgba(30, 136, 229, 0.2);
+            border-color: #1e3a8a;
+            box-shadow: 0 0 15px rgba(44, 90, 160, 0.2);
         }
 
         @media (max-width: 768px) {
@@ -1062,6 +1112,9 @@ $hasNegativeStock = count($negativeStockItems) > 0;
                 <button class="add-stock-btn" onclick="openAddStockModal()">
                     <i class="fas fa-plus"></i> Add Stock
                 </button>
+                <button class="add-stock-btn" style="background: linear-gradient(135deg, #f4d03f 0%, #f9d76a 100%); margin-left: 8px;" onclick="openAddItemModal()">
+                    <i class="fas fa-plus"></i> Add New Item
+                </button>
             </div>
             
             <!-- Dataset Indicator Banner -->
@@ -1100,6 +1153,21 @@ $hasNegativeStock = count($negativeStockItems) > 0;
                 <i class="fas fa-table"></i>
                 Item Inventory Details
             </h2>
+
+            <?php if ($hasNegativeStock): ?>
+            <div style="background: linear-gradient(135deg, rgba(44, 90, 160, 0.1) 0%, rgba(44, 90, 160, 0.05) 100%); border: 2px solid #2c5aa0; border-radius: 10px; padding: 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fas fa-exclamation-circle" style="color: #2c5aa0; font-size: 20px;"></i>
+                    <div>
+                        <strong style="color: #1e3a8a; font-size: 15px; font-family: 'Arial', sans-serif;">⚠️ Need Stock Initialization</strong>
+                        <p style="color: #1e3a8a; margin: 4px 0 0 0; font-size: 12px; opacity: 0.8; font-family: 'Arial', sans-serif;">Some items showing zero stock. Set their actual quantities below.</p>
+                    </div>
+                </div>
+                <button class="btn-submit" style="margin: 0; white-space: nowrap; padding: 10px 20px;" onclick="openInitializeModal()">
+                    <i class="fas fa-inbox"></i> Set Stock
+                </button>
+            </div>
+            <?php endif; ?>
 
             <div class="inventory-table-container">
                 <?php if (empty($items)): ?>
@@ -1150,19 +1218,21 @@ $hasNegativeStock = count($negativeStockItems) > 0;
 
     <!-- Initialize Inventory Modal -->
     <div id="initializeModal" class="modal">
-        <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-content" style="max-width: 700px; max-height: 80vh; display: flex; flex-direction: column;">
             <div class="modal-header">
                 <h2><i class="fas fa-inbox"></i> Fix Negative Stock</h2>
                 <button class="close-btn" onclick="closeInitializeModal()">&times;</button>
             </div>
-            <div class="modal-body" style="max-height: 400px; overflow-y: auto;">
-                <p style="color: #999; margin-bottom: 20px;">
-                    <i class="fas fa-info-circle"></i> These items have negative stock because they were delivered before being added to inventory. 
-                    Set the actual quantity you have in stock now:
-                </p>
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px;">
+                <div style="background: linear-gradient(135deg, rgba(44, 90, 160, 0.1) 0%, rgba(44, 90, 160, 0.05) 100%); border-left: 4px solid #2c5aa0; border-radius: 8px; padding: 14px 16px; margin-bottom: 20px;">
+                    <p style="color: #1e3a8a; margin: 0; font-size: 13px; line-height: 1.6; font-family: 'Arial', sans-serif;">
+                        <i class="fas fa-info-circle" style="color: #2c5aa0; margin-right: 8px;"></i>
+                        Items showing zero stock were delivered before being added to inventory. Enter the actual quantity you have in stock now for each item.
+                    </p>
+                </div>
                 <div id="negativeStockItems"></div>
             </div>
-            <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 10px; justify-content: flex-end;">
                 <button class="btn-submit" onclick="submitInitializeStock()">
                     <i class="fas fa-check"></i> Add Initial Stock
                 </button>
@@ -1231,6 +1301,58 @@ $hasNegativeStock = count($negativeStockItems) > 0;
         </div>
     </div>
 
+    <!-- Add New Item Modal -->
+    <div id="addItemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-box-plus"></i> Add New Item</h2>
+                <button class="close-btn" onclick="closeAddItemModal()">&times;</button>
+            </div>
+            <div id="itemModalAlert" class="alert"></div>
+            <form id="addItemForm" onsubmit="submitAddItem(event)">
+                <div class="form-group">
+                    <label for="itemCode">Item Code</label>
+                    <input 
+                        type="text" 
+                        id="itemCode" 
+                        name="item_code" 
+                        placeholder="E.g., BW-001, KB-001" 
+                        required
+                    >
+                </div>
+                <div class="form-group">
+                    <label for="itemName">Item Name / Description</label>
+                    <input 
+                        type="text" 
+                        id="itemName" 
+                        name="item_name" 
+                        placeholder="E.g., 2 Year Carbon Monoxide Detector" 
+                        required
+                    >
+                </div>
+                <div class="form-group">
+                    <label for="initialQty">Initial Stock (units)</label>
+                    <input 
+                        type="number" 
+                        id="initialQty" 
+                        name="initial_qty" 
+                        placeholder="Enter initial quantity" 
+                        min="0"
+                    >
+                    <small style="color: #999; margin-top: 5px; display: block;">Optional: Set the initial stock quantity now</small>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit">
+                        <i class="fas fa-check"></i> Create Item
+                    </button>
+                    <button type="button" class="btn-cancel" onclick="closeAddItemModal()">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="js/app.js" defer></script>
     <script>
         // Initialize Stock Modal
@@ -1243,21 +1365,24 @@ $hasNegativeStock = count($negativeStockItems) > 0;
             
             let html = '';
             items.forEach(item => {
-                // Suggest just enough to cover the negative (bring to 0)
-                // User can adjust it to their actual stock level
                 const suggested = Math.abs(item['stock']);
                 html += `
                     <div class="init-stock-item">
                         <div>
-                            <label>Item Code</label>
-                            <input type="text" value="${item['code']}" readonly style="background: #2a3f5f;">
+                            <label style="color: #1e3a8a; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-family: 'Arial', sans-serif;">📦 Item Name</label>
+                            <input type="text" value="${item['name']}" readonly style="background: #f0f4f8; color: #000; border: 2px solid #2c5aa0; font-weight: 500; padding: 12px; width: 100%; box-sizing: border-box; border-radius: 6px; margin-top: 6px; font-size: 14px; font-family: 'Arial', sans-serif;">
                         </div>
-                        <div>
-                            <label>Actual Stock You Have (units)</label>
-                            <input type="number" id="qty_${item['code']}" placeholder="E.g., ${suggested}" min="0" required>
+                        <div style="font-size: 11px; color: #333; margin-top: 8px; display: flex; align-items: center; gap: 6px; font-family: 'Arial', sans-serif;">
+                            <span style="width: 20px; height: 1px; background: #2c5aa0;"></span>
+                            Code: <strong style="color: #1e3a8a; font-weight: 700;">${item['code']}</strong>
                         </div>
-                        <div style="font-size: 12px; color: #999;">
-                            Current: <span style="color: #ff6b6b; font-weight: bold;">${item['stock']}</span>
+                        <div style="margin-top: 16px;">
+                            <label style="color: #1e3a8a; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-family: 'Arial', sans-serif;">📊 Enter Stock Qty</label>
+                            <input type="number" id="qty_${item['code']}" placeholder="0" min="0" required style="background: #f0f4f8; color: #000; border: 2px solid #2c5aa0; padding: 14px; width: 100%; font-size: 20px; font-weight: 700; box-sizing: border-box; border-radius: 6px; margin-top: 6px; transition: all 0.3s; font-family: 'Arial', sans-serif;">
+                        </div>
+                        <div style="font-size: 12px; color: #333; margin-top: 10px; display: flex; align-items: center; gap: 8px; font-family: 'Arial', sans-serif;">
+                            <span style="width: 4px; height: 4px; background: #d4463f; border-radius: 50%;"></span>
+                            Status: <span style="color: #d4463f; font-weight: 700;">${item['stock']}</span> units
                         </div>
                     </div>
                 `;
@@ -1397,6 +1522,68 @@ $hasNegativeStock = count($negativeStockItems) > 0;
 
             document.addEventListener('click', function() {
                 profileMenu.classList.remove('active');
+            });
+        }
+
+        // Add New Item Modal Functions
+        function openAddItemModal() {
+            document.getElementById('addItemModal').style.display = 'block';
+            document.getElementById('addItemForm').reset();
+            document.getElementById('itemModalAlert').style.display = 'none';
+        }
+
+        function closeAddItemModal() {
+            document.getElementById('addItemModal').style.display = 'none';
+            document.getElementById('addItemForm').reset();
+            document.getElementById('itemModalAlert').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const addStockModal = document.getElementById('addStockModal');
+            const addItemModal = document.getElementById('addItemModal');
+            
+            if (event.target === addStockModal) {
+                closeAddStockModal();
+            }
+            if (event.target === addItemModal) {
+                closeAddItemModal();
+            }
+        }
+
+        // Submit add item form
+        function submitAddItem(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(document.getElementById('addItemForm'));
+            const alertDiv = document.getElementById('itemModalAlert');
+
+            fetch('api/add-item.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alertDiv.className = 'alert alert-success';
+                    alertDiv.innerHTML = `<i class="fas fa-check-circle"></i> Item created successfully! Refreshing...`;
+                    alertDiv.style.display = 'block';
+                    
+                    // Refresh page after 1.5 seconds
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    alertDiv.className = 'alert alert-error';
+                    alertDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${data.error || 'Error creating item'}`;
+                    alertDiv.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alertDiv.className = 'alert alert-error';
+                alertDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error creating item`;
+                alertDiv.style.display = 'block';
             });
         }
     </script>

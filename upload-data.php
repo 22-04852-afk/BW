@@ -1363,9 +1363,9 @@ if ($conn) {
                 <div style="background:#1b2838; border-radius:12px; padding:20px; border:1px solid rgba(255,255,255,0.12);">
                     <div style="background:rgba(244,208,63,0.1); border:1px solid rgba(244,208,63,0.3); border-radius:8px; padding:14px; margin-bottom:16px;">
                         <p style="color:#f4d03f; margin:0 0 6px; font-weight:700; font-size:13px;"><i class="fas fa-layer-group"></i> Select Sheets to Import</p>
-                        <p style="color:#9ab0c4; margin:0; font-size:12px;">File "<strong style="color:#e0e0e0;">${fileName}</strong>" has ${sheetNames.length} sheets. Select up to <strong style="color:#f4d03f;">3 sheets</strong> — each will be imported separately, data will NOT be merged.</p>
+                        <p style="color:#9ab0c4; margin:0; font-size:12px;">File "<strong style="color:#e0e0e0;">${fileName}</strong>" has ${sheetNames.length} sheets. Select up to <strong style="color:#f4d03f;">5 sheets</strong> — each will be imported separately, data will NOT be merged.</p>
                     </div>
-                    <p style="color:#7a8a9a; margin-bottom:10px; font-size:12px; font-weight:600;"><i class="fas fa-check-square"></i> Available Sheets &nbsp;·&nbsp; <span id="sheetSelectCount" style="color:#f4d03f;">0 / 3 selected</span></p>
+                    <p style="color:#7a8a9a; margin-bottom:10px; font-size:12px; font-weight:600;"><i class="fas fa-check-square"></i> Available Sheets &nbsp;·&nbsp; <span id="sheetSelectCount" style="color:#f4d03f;">0 / 5 selected</span></p>
                     <div id="sheetCheckList">
             `;
 
@@ -1548,7 +1548,11 @@ if ($conn) {
                 const fileName = checkbox.dataset.file;
                 const itemType = checkbox.dataset.type;
                 const fileIdx = parseInt(checkbox.dataset.idx);
-                const datasetName = 'data' + (nextNum + i);
+                
+                // Get the custom dataset name from the input field
+                const itemDiv = checkbox.closest('.sheet-item');
+                const customNameInput = itemDiv ? itemDiv.querySelector('.custom-dataset-name') : null;
+                const datasetName = customNameInput && customNameInput.value.trim() ? customNameInput.value.trim() : ('data' + (nextNum + i));
                 
                 let rows = [];
                 
@@ -1602,14 +1606,14 @@ if ($conn) {
         }
 
         function updateSelectedSheets(checkbox) {
-            // Enforce max 3 selections
+            // Enforce max 5 selections
             const checked = document.querySelectorAll('.sheet-check:checked');
-            if (checked.length > 3) {
+            if (checked.length > 5) {
                 checkbox.checked = false;
             }
             const actualCount = document.querySelectorAll('.sheet-check:checked').length;
             const countEl = document.getElementById('sheetSelectCount');
-            if (countEl) countEl.textContent = actualCount + ' / 3 selected';
+            if (countEl) countEl.textContent = actualCount + ' / 5 selected';
 
             // Update styles and show/hide name edit
             document.querySelectorAll('.sheet-item').forEach(item => {
@@ -1655,7 +1659,10 @@ if ($conn) {
                 const fileName   = checkbox.dataset.file;
                 const sheetName  = checkbox.dataset.sheet;
                 
-                const datasetName = 'data' + (nextNum + i);
+                // Get the custom dataset name from the input field
+                const itemDiv = checkbox.closest('.sheet-item');
+                const customNameInput = itemDiv ? itemDiv.querySelector('.custom-dataset-name') : null;
+                const datasetName = customNameInput && customNameInput.value.trim() ? customNameInput.value.trim() : ('data' + (nextNum + i));
 
                 showAlert('info', `Importing sheet ${i + 1} of ${checkedBoxes.length}: "${sheetName}" → ${datasetName}...`);
 
@@ -2099,6 +2106,10 @@ if ($conn) {
         function closeSuccessModal() {
             document.getElementById('successModal').classList.remove('show');
             resetUpload();
+            // Redirect back to index to show imported datasets
+            setTimeout(() => {
+                window.location.href = 'index.php';
+            }, 500);
         }
 
         function goToDeliveryRecords(dataset) {

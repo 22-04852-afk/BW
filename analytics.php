@@ -7,6 +7,22 @@ if (empty($_SESSION['user_id'])) {
 
 // Database connection
 require_once 'db_config.php';
+require_once 'dataset-indicator.php';
+
+// Get selected dataset from URL or session
+$selected_dataset = isset($_GET['dataset']) ? trim($_GET['dataset']) : (isset($_SESSION['active_dataset']) ? $_SESSION['active_dataset'] : 'all');
+
+// Update session if dataset is passed via GET
+if (isset($_GET['dataset'])) {
+    $_SESSION['active_dataset'] = $selected_dataset;
+}
+
+// Build dataset filter
+$dataset_filter = "";
+if ($selected_dataset !== 'all' && $selected_dataset !== '') {
+    $safe_dataset = $conn->real_escape_string($selected_dataset);
+    $dataset_filter = " AND dataset_name = '$safe_dataset'";
+}
 
 // Initialize variables
 $totalAndison = 0;
@@ -18,13 +34,13 @@ $groupA = [];
 $groupB = [];
 
 // Total delivered to Andison (all records in delivery_records)
-$result = $conn->query("SELECT COUNT(*) as total_orders, COALESCE(SUM(quantity), 0) as total_units FROM delivery_records");
+$result = $conn->query("SELECT COUNT(*) as total_orders, COALESCE(SUM(quantity), 0) as total_units FROM delivery_records WHERE 1=1$dataset_filter");
 if ($result && $row = $result->fetch_assoc()) {
     $totalAndison = intval($row['total_units']);
 }
 
 // Get unique companies count
-$result = $conn->query("SELECT COUNT(DISTINCT company_name) as company_count FROM delivery_records WHERE company_name IS NOT NULL AND company_name != ''");
+$result = $conn->query("SELECT COUNT(DISTINCT company_name) as company_count FROM delivery_records WHERE company_name IS NOT NULL AND company_name != ''$dataset_filter");
 if ($result && $row = $result->fetch_assoc()) {
     $companyCount = intval($row['company_count']);
 }
@@ -35,7 +51,7 @@ $result = $conn->query("
            COUNT(*) as order_count,
            COALESCE(SUM(quantity), 0) as total_qty
     FROM delivery_records 
-    WHERE delivery_month IS NOT NULL AND delivery_month != ''
+    WHERE delivery_month IS NOT NULL AND delivery_month != ''$dataset_filter
     GROUP BY delivery_month 
     ORDER BY CASE delivery_month
         WHEN 'January' THEN 1 WHEN 'February' THEN 2 WHEN 'March' THEN 3
@@ -56,7 +72,7 @@ $result = $conn->query("
            COUNT(*) as order_count,
            COALESCE(SUM(quantity), 0) as total_qty
     FROM delivery_records 
-    WHERE company_name IS NOT NULL AND company_name != ''
+    WHERE company_name IS NOT NULL AND company_name != ''$dataset_filter
     GROUP BY company_name 
     ORDER BY total_qty DESC 
     LIMIT 15
@@ -74,7 +90,7 @@ $result = $conn->query("
            COALESCE(SUM(quantity), 0) as total_qty,
            COUNT(DISTINCT company_name) as company_count
     FROM delivery_records 
-    WHERE item_name IS NOT NULL
+    WHERE item_name IS NOT NULL$dataset_filter
     GROUP BY item_name, item_code
     ORDER BY total_qty DESC
 ");
@@ -499,7 +515,7 @@ foreach ($topCompanies as $company) {
         <div class="content-wrapper">
             <div class="page-title">
                 <i class="fas fa-chart-bar"></i>
-                <h1>Analytics Dashboard</h1>
+                <h1>Analytics Dashboard<?php echo renderDatasetIndicator($active_dataset); ?></h1>
             </div>
 
             <!-- KEY METRICS SECTION -->

@@ -225,6 +225,82 @@ try {
     $dataset_name = isset($request['dataset_name']) ? trim(strval($request['dataset_name'])) : '';
     if (empty($dataset_name)) $dataset_name = 'data1';
 
+    // Detect all columns from the uploaded data and auto-create missing ones
+    $all_columns_in_data = [];
+    if (!empty($data) && is_array($data[0])) {
+        foreach ($data[0] as $col => $val) {
+            $all_columns_in_data[] = trim($col);
+        }
+    }
+
+    // For each column in the data, check if it needs to be created
+    $existing_columns = [];
+    if ($isMysql) {
+        $result = $conn->query("SHOW COLUMNS FROM delivery_records");
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $existing_columns[strtolower($row['Field'])] = true;
+            }
+        }
+    } else {
+        $result = $conn->query('PRAGMA table_info(delivery_records)');
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $existing_columns[strtolower($row['name'])] = true;
+            }
+        }
+    }
+
+    // Auto-create columns for unmapped data
+    foreach ($all_columns_in_data as $col) {
+        $col_lower = strtolower(trim($col));
+        $mapped_name = isset($lower_mappings[$col_lower]) ? $lower_mappings[$col_lower] : null;
+        
+        // If this column is mapped to a standard field, skip it (it already exists)
+        if ($mapped_name && isset($existing_columns[$mapped_name])) {
+            continue;
+        }
+        
+        // If this column is a mapped field but doesn't exist as the mapped name, skip (will be created later)
+        if ($mapped_name) {
+            continue;
+        }
+        
+        // If this is an unmapped column and doesn't exist, create it
+        if (!isset($existing_columns[$col_lower])) {
+            // Create a safe column name from the header
+            $safe_col_name = strtolower(trim($col));
+            $safe_col_name = preg_replace('/[^a-z0-9_]/', '_', $safe_col_name);
+            $safe_col_name = preg_replace('/_+/', '_', $safe_col_name);
+            $safe_col_name = trim($safe_col_name, '_');
+            
+            if (!empty($safe_col_name) && !isset($existing_columns[$safe_col_name])) {
+                // Determine column type based on content
+                $is_numeric = true;
+                $is_date = true;
+                foreach ($data as $row) {
+                    if (isset($row[$col])) {
+                        $val = $row[$col];
+                        if (!is_numeric($val)) $is_numeric = false;
+                        if (!empty($val) && !preg_match('/^\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}/', $val) && !preg_match('/^\d{4}-\d{2}-\d{2}/', $val)) {
+                            $is_date = false;
+                        }
+                    }
+                }
+                
+                $col_type = 'VARCHAR(255)';
+                if ($is_numeric) $col_type = 'DECIMAL(12,2)';
+                elseif ($is_date) $col_type = 'VARCHAR(50)';
+                
+                // Alter table to add column
+                $alter_sql = "ALTER TABLE delivery_records ADD COLUMN `{$safe_col_name}` {$col_type} DEFAULT NULL";
+                $conn->query($alter_sql);
+                
+                $existing_columns[$safe_col_name] = true;
+            }
+        }
+    }
+
     $imported_count = 0;
     $failed_count   = 0;
     $skipped_count  = 0;
@@ -398,6 +474,52 @@ try {
                 $failed_count++;
             } else {
                 $imported_count++;
+                
+                // Get the last inserted ID
+                $last_id = 0;
+                if ($isMysql) {
+                    $last_id = $conn->insert_id;
+                } else {
+                    // SQLite
+                    $res = $conn->query("SELECT last_insert_rowid() as id");
+                    if ($res) {
+                        $row = $res->fetch_assoc();
+                        $last_id = intval($row['id']);
+                    }
+                }
+                
+                // Insert unmapped column data
+                if ($last_id > 0) {
+                    foreach ($record as $col => $value) {
+                        $col_lower = strtolower(trim($col));
+                        
+                        // Skip if this column is mapped
+                        if (isset($lower_mappings[$col_lower])) {
+                            continue;
+                        }
+                        
+                        // Create safe column name
+                        $safe_col_name = strtolower(trim($col));
+                        $safe_col_name = preg_replace('/[^a-z0-9_]/', '_', $safe_col_name);
+                        $safe_col_name = preg_replace('/_+/', '_', $safe_col_name);
+                        $safe_col_name = trim($safe_col_name, '_');
+                        
+                        // Update with unmapped column value
+                        if (!empty($safe_col_name) && !empty($value)) {
+                            if ($isMysql) {
+                                $update_sql = "UPDATE delivery_records SET `{$safe_col_name}` = ? WHERE id = ?";
+                            } else {
+                                $update_sql = "UPDATE delivery_records SET [{$safe_col_name}] = ? WHERE id = ?";
+                            }
+                            $update_stmt = $conn->prepare($update_sql);
+                            if ($update_stmt) {
+                                $update_stmt->bind_param('si', $value, $last_id);
+                                $update_stmt->execute();
+                                $update_stmt->close();
+                            }
+                        }
+                    }
+                }
             }
             
             $stmt->close();

@@ -8,6 +8,24 @@ if (empty($_SESSION['user_id'])) {
 // Database connection
 require_once 'db_config.php';
 
+// Include dataset indicator helper
+require_once 'dataset-indicator.php';
+
+// Get selected dataset from URL or session
+$selected_dataset = isset($_GET['dataset']) ? trim($_GET['dataset']) : (isset($_SESSION['active_dataset']) ? $_SESSION['active_dataset'] : 'all');
+
+// Update session if dataset is passed via GET
+if (isset($_GET['dataset'])) {
+    $_SESSION['active_dataset'] = $selected_dataset;
+}
+
+// Build dataset filter
+$dataset_filter = "";
+if ($selected_dataset !== 'all' && $selected_dataset !== '') {
+    $safe_dataset = $conn->real_escape_string($selected_dataset);
+    $dataset_filter = " AND dataset_name = '$safe_dataset'";
+}
+
 // Initialize variables
 $totalUnits = 0;
 $totalOrders = 0;
@@ -15,20 +33,20 @@ $activeClients = 0;
 $recentDeliveries = [];
 
 // Get total units delivered
-$result = $conn->query("SELECT COUNT(*) as total_orders, COALESCE(SUM(quantity), 0) as total_units FROM delivery_records");
+$result = $conn->query("SELECT COUNT(*) as total_orders, COALESCE(SUM(quantity), 0) as total_units FROM delivery_records WHERE 1=1$dataset_filter");
 if ($result && $row = $result->fetch_assoc()) {
     $totalUnits = intval($row['total_units']);
     $totalOrders = intval($row['total_orders']);
 }
 
 // Get unique companies count
-$result = $conn->query("SELECT COUNT(DISTINCT company_name) as company_count FROM delivery_records WHERE company_name IS NOT NULL AND company_name != ''");
+$result = $conn->query("SELECT COUNT(DISTINCT company_name) as company_count FROM delivery_records WHERE company_name IS NOT NULL AND company_name != ''$dataset_filter");
 if ($result && $row = $result->fetch_assoc()) {
     $activeClients = intval($row['company_count']);
 }
 
 // Get recent deliveries for export
-$result = $conn->query("SELECT * FROM delivery_records ORDER BY id DESC LIMIT 100");
+$result = $conn->query("SELECT * FROM delivery_records WHERE 1=1$dataset_filter ORDER BY id DESC LIMIT 100");
 if ($result) {
     while ($row = $result->fetch_assoc()) {
         $recentDeliveries[] = $row;
@@ -37,7 +55,7 @@ if ($result) {
 
 // Get top 5 products by quantity
 $topProducts = [];
-$result = $conn->query("SELECT item_code, item_name, SUM(quantity) as total_qty, COUNT(*) as order_count FROM delivery_records WHERE item_code IS NOT NULL AND item_code != '' GROUP BY item_code ORDER BY total_qty DESC LIMIT 5");
+$result = $conn->query("SELECT item_code, item_name, SUM(quantity) as total_qty, COUNT(*) as order_count FROM delivery_records WHERE item_code IS NOT NULL AND item_code != ''$dataset_filter GROUP BY item_code ORDER BY total_qty DESC LIMIT 5");
 if ($result) {
     while ($row = $result->fetch_assoc()) {
         $topProducts[] = $row;
@@ -46,7 +64,7 @@ if ($result) {
 
 // Get top 5 clients by quantity
 $topClients = [];
-$result = $conn->query("SELECT company_name, SUM(quantity) as total_qty, COUNT(*) as order_count FROM delivery_records WHERE company_name IS NOT NULL AND company_name != '' GROUP BY company_name ORDER BY total_qty DESC LIMIT 5");
+$result = $conn->query("SELECT company_name, SUM(quantity) as total_qty, COUNT(*) as order_count FROM delivery_records WHERE company_name IS NOT NULL AND company_name != ''$dataset_filter GROUP BY company_name ORDER BY total_qty DESC LIMIT 5");
 if ($result) {
     while ($row = $result->fetch_assoc()) {
         $topClients[] = $row;
@@ -774,6 +792,7 @@ if ($result) {
     <main class="main-content" id="mainContent">
         <div class="page-title">
             <i class="fas fa-file-pdf"></i> Reports & Analytics
+            <?php echo renderDatasetIndicator($active_dataset); ?>
         </div>
 
         <!-- Report Cards -->

@@ -26,7 +26,7 @@ try {
     $conn->query("UPDATE delivery_records SET dataset_name = 'data1' WHERE dataset_name IS NULL OR dataset_name = ''");
 
     // Get sorted dataset names with record counts
-    $result = $conn->query("SELECT dataset_name, COUNT(*) as record_count FROM delivery_records WHERE dataset_name IS NOT NULL AND dataset_name != '' GROUP BY dataset_name ORDER BY dataset_name ASC");
+    $result = $conn->query("SELECT dataset_name, COUNT(*) as record_count FROM delivery_records WHERE dataset_name IS NOT NULL AND dataset_name != '' GROUP BY dataset_name ORDER BY dataset_name ASC LIMIT 5");
     $datasets = [];
     if ($result) {
         while ($row = $result->fetch_assoc()) {

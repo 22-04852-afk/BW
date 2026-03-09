@@ -7,6 +7,22 @@ if (empty($_SESSION['user_id'])) {
 
 // Include database configuration
 require_once 'db_config.php';
+require_once 'dataset-indicator.php';
+
+// Get selected dataset from URL or session
+$selected_dataset = isset($_GET['dataset']) ? trim($_GET['dataset']) : (isset($_SESSION['active_dataset']) ? $_SESSION['active_dataset'] : 'all');
+
+// Update session if dataset is passed via GET
+if (isset($_GET['dataset'])) {
+    $_SESSION['active_dataset'] = $selected_dataset;
+}
+
+// Build dataset filter
+$dataset_filter = "";
+if ($selected_dataset !== 'all' && $selected_dataset !== '') {
+    $safe_dataset = $conn->real_escape_string($selected_dataset);
+    $dataset_filter = " AND dataset_name = '$safe_dataset'";
+}
 
 // Get all unique companies with their stats
 $companies = [];
@@ -19,7 +35,7 @@ $result = $conn->query("
         MAX(delivery_date) as last_delivery,
         MAX(delivery_month) as last_month
     FROM delivery_records 
-    WHERE company_name IS NOT NULL AND company_name != '' AND company_name != '-'
+    WHERE company_name IS NOT NULL AND company_name != '' AND company_name != ''$dataset_filter
     GROUP BY company_name 
     ORDER BY total_units DESC
 ");
@@ -455,7 +471,7 @@ foreach ($companies as $c) {
     <!-- MAIN CONTENT -->
     <main class="main-content" id="mainContent">
         <div class="page-title">
-            <i class="fas fa-building"></i> Client Companies
+            <i class="fas fa-building"></i> Client Companies<?php echo renderDatasetIndicator($active_dataset); ?>
         </div>
 
         <div class="search-container">
