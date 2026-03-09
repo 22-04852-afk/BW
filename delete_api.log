@@ -180,3 +180,60 @@
 [2026-03-09 03:43:18] Verification - security_alerts: 0 records remaining
 [2026-03-09 03:43:18] SUCCESS: Deleted 0 delivery records and cleared all related data
 [2026-03-09 03:43:18] === DELETE API END ===\n
+[2026-03-09 04:09:34] === DELETE API CALLED ===
+[2026-03-09 04:09:34] Request Method: POST
+[2026-03-09 04:09:34] User Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0
+[2026-03-09 04:09:34] Database connection OK
+[2026-03-09 04:09:34] STEP 1: Getting count of delivery_records...
+[2026-03-09 04:09:34] Found 697 delivery records
+[2026-03-09 04:09:34] STEP 2: Executing DELETE FROM delivery_records...
+[2026-03-09 04:09:34] Successfully deleted 697 records from delivery_records
+[2026-03-09 04:09:34] STEP 3: Executing DELETE FROM inventory...
+[2026-03-09 04:09:34] Inventory cleared
+[2026-03-09 04:09:34] STEP 4: Executing DELETE FROM security_alerts...
+[2026-03-09 04:09:34] Security alerts cleared
+[2026-03-09 04:09:34] STEP 5: Executing DELETE FROM login_attempts...
+[2026-03-09 04:09:34] Login attempts cleared
+[2026-03-09 04:09:34] STEP 6: Verifying all data deleted...
+[2026-03-09 04:09:34] Verification - delivery_records: 0 records remaining
+[2026-03-09 04:09:34] Verification - security_alerts: 0 records remaining
+[2026-03-09 04:09:34] SUCCESS: Deleted 697 delivery records and cleared all related data
+[2026-03-09 04:09:34] === DELETE API END ===\n
+[2026-03-09 04:39:15] === DELETE API CALLED ===
+[2026-03-09 04:39:15] Request Method: POST
+[2026-03-09 04:39:15] User Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0
+[2026-03-09 04:39:15] Database connection OK
+[2026-03-09 04:39:15] STEP 1: Getting count of delivery_records...
+[2026-03-09 04:39:15] Found 697 delivery records
+[2026-03-09 04:39:15] STEP 2: Executing DELETE FROM delivery_records...
+[2026-03-09 04:39:15] Successfully deleted 697 records from delivery_records
+[2026-03-09 04:39:15] STEP 3: Executing DELETE FROM inventory...
+[2026-03-09 04:39:15] Inventory cleared
+[2026-03-09 04:39:15] STEP 4: Executing DELETE FROM security_alerts...
+[2026-03-09 04:39:15] Security alerts cleared
+[2026-03-09 04:39:15] STEP 5: Executing DELETE FROM login_attempts...
+[2026-03-09 04:39:15] Login attempts cleared
+[2026-03-09 04:39:15] STEP 6: Verifying all data deleted...
+[2026-03-09 04:39:15] Verification - delivery_records: 0 records remaining
+[2026-03-09 04:39:15] Verification - security_alerts: 0 records remaining
+[2026-03-09 04:39:15] SUCCESS: Deleted 697 delivery records and cleared all related data
+[2026-03-09 04:39:15] === DELETE API END ===\n
+[2026-03-09 05:02:48] === DELETE API CALLED ===
+[2026-03-09 05:02:48] Request Method: POST
+[2026-03-09 05:02:48] User Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0
+[2026-03-09 05:02:48] Database connection OK
+[2026-03-09 05:02:48] STEP 1: Getting count of delivery_records...
+[2026-03-09 05:02:48] Found 1394 delivery records
+[2026-03-09 05:02:48] STEP 2: Executing DELETE FROM delivery_records...
+[2026-03-09 05:02:48] Successfully deleted 1394 records from delivery_records
+[2026-03-09 05:02:48] STEP 3: Executing DELETE FROM inventory...
+[2026-03-09 05:02:48] Inventory cleared
+[2026-03-09 05:02:48] STEP 4: Executing DELETE FROM security_alerts...
+[2026-03-09 05:02:48] Security alerts cleared
+[2026-03-09 05:02:48] STEP 5: Executing DELETE FROM login_attempts...
+[2026-03-09 05:02:48] Login attempts cleared
+[2026-03-09 05:02:48] STEP 6: Verifying all data deleted...
+[2026-03-09 05:02:48] Verification - delivery_records: 0 records remaining
+[2026-03-09 05:02:48] Verification - security_alerts: 0 records remaining
+[2026-03-09 05:02:48] SUCCESS: Deleted 1394 delivery records and cleared all related data
+[2026-03-09 05:02:48] === DELETE API END ===\n

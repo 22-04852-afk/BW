@@ -681,6 +681,30 @@ if ($conn) {
         .light-mode .delete-section-subtitle {
             color: #666;
         }
+
+        /* Light Mode for Dataset Name Input */
+        .light-mode .dataset-name-input {
+            background: rgba(244, 208, 63, 0.08) !important;
+            border-color: rgba(180, 150, 0, 0.3) !important;
+        }
+
+        .light-mode .dataset-name-input label {
+            color: #b49600 !important;
+        }
+
+        .light-mode .dataset-name-input input {
+            background: #fff !important;
+            border-color: #d0d5dd !important;
+            color: #1a1a2e !important;
+        }
+
+        .light-mode .dataset-name-input input::placeholder {
+            color: #888 !important;
+        }
+
+        .light-mode .dataset-name-input p {
+            color: #666 !important;
+        }
     </style>
 </head>
 <body>
@@ -988,6 +1012,18 @@ if ($conn) {
                     </div>
                 </div>
 
+                <!-- Dataset Name Input -->
+                <div class="dataset-name-input" style="margin-top: 20px; padding: 15px; background: rgba(244, 208, 63, 0.1); border: 1px solid rgba(244, 208, 63, 0.3); border-radius: 10px;">
+                    <label style="display: flex; align-items: center; gap: 10px; color: #f4d03f; font-weight: 600; font-size: 14px; margin-bottom: 10px;">
+                        <i class="fas fa-tag"></i> Dataset Name
+                    </label>
+                    <input type="text" id="datasetNameInput" placeholder="Enter a name for this dataset (e.g., January Data, 2024 Sales)" 
+                        style="width: 100%; padding: 12px 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-size: 14px; font-family: 'Poppins', sans-serif;">
+                    <p style="color: #8a9ab5; font-size: 12px; margin-top: 8px; margin-bottom: 0;">
+                        <i class="fas fa-info-circle"></i> This name will help identify this dataset. Leave blank to auto-generate.
+                    </p>
+                </div>
+
                 <div class="table-container">
                     <table id="previewTable">
                         <thead id="tableHead"></thead>
@@ -1194,40 +1230,49 @@ if ($conn) {
         }
 
         async function parseAllFiles() {
-            if (selectedFiles.length > 1) {
-                showAlert('warning', 'Please upload and import files ONE AT A TIME to keep data separate. Processing first file only.');
-            } else {
-                showAlert('info', `Parsing file "${selectedFiles[0].name}"... Please wait.`);
+            if (selectedFiles.length === 0) {
+                showAlert('error', 'No files selected.');
+                return;
             }
+            
+            showAlert('info', `Processing ${selectedFiles.length} file(s)... Please wait.`);
             
             allParsedData = [];
             workbookSheets = {};
             
-            // Only process the first file
-            const file = selectedFiles[0];
-            try {
-                const result = await parseFileWithSheets(file);
-                if (result.hasMultipleSheets) {
-                    // Show sheet selector - user must pick one sheet
-                    workbookSheets[file.name] = result.sheets;
-                    showSheetSelector(file.name, result.sheets);
-                    return; // Wait for user to select a sheet
-                } else {
-                    // Single sheet file - load directly
-                    allParsedData = result.data;
-                    
-                    if (allParsedData.length > 0) {
-                        parsedData = allParsedData;
-                        displayPreview(allParsedData);
-                        generatePreviewCharts(allParsedData);
-                        showAlert('success', `✓ Loaded "${file.name}": ${allParsedData.length} records. Review below and click Import.`);
+            // Check if any file has multiple sheets
+            let hasMultiSheetFile = false;
+            let allFilesInfo = [];
+            
+            for (const file of selectedFiles) {
+                try {
+                    const result = await parseFileWithSheets(file);
+                    if (result.hasMultipleSheets) {
+                        hasMultiSheetFile = true;
+                        workbookSheets[file.name] = result.sheets;
+                        allFilesInfo.push({ 
+                            fileName: file.name, 
+                            type: 'multi', 
+                            sheets: result.sheets,
+                            sheetNames: Object.keys(result.sheets)
+                        });
                     } else {
-                        showAlert('warning', `No data found in "${file.name}"`);
+                        // Single sheet file
+                        allFilesInfo.push({
+                            fileName: file.name,
+                            type: 'single',
+                            data: result.data,
+                            rowCount: result.data.length
+                        });
                     }
+                } catch (error) {
+                    showAlert('error', `Error parsing ${file.name}: ${error.message}`);
+                    return;
                 }
-            } catch (error) {
-                showAlert('error', `Error parsing ${file.name}: ${error.message}`);
             }
+            
+            // Show combined file/sheet selector for all files
+            showMultiFileSelector(allFilesInfo);
         }
 
         function parseFileWithSheets(file) {
@@ -1327,11 +1372,18 @@ if ($conn) {
             sheetNames.forEach((sheetName) => {
                 const info = sheets[sheetName];
                 html += `
-                    <label class="sheet-radio" style="display:flex; align-items:center; gap:10px; padding:11px 15px; background:rgba(255,255,255,0.04); border:2px solid rgba(255,255,255,0.08); border-radius:8px; cursor:pointer; margin-bottom:7px; transition:all 0.2s ease;">
-                        <input type="checkbox" class="sheet-check" data-file="${fileName}" data-sheet="${sheetName}" onchange="updateSelectedSheets(this)" style="width:16px; height:16px; cursor:pointer; accent-color:#f4d03f; flex-shrink:0;">
-                        <span style="color:#dce8f0; font-weight:500; flex:1; font-size:13px;">${sheetName}</span>
-                        <span style="color:#607080; font-size:12px; white-space:nowrap;">${info.rowCount} rows</span>
-                    </label>
+                    <div class="sheet-item" style="background:rgba(255,255,255,0.04); border:2px solid rgba(255,255,255,0.08); border-radius:8px; margin-bottom:10px; transition:all 0.2s ease; overflow:hidden;">
+                        <label class="sheet-radio" style="display:flex; align-items:center; gap:10px; padding:11px 15px; cursor:pointer;">
+                            <input type="checkbox" class="sheet-check" data-file="${fileName}" data-sheet="${sheetName}" onchange="updateSelectedSheets(this)" style="width:16px; height:16px; cursor:pointer; accent-color:#f4d03f; flex-shrink:0;">
+                            <span style="color:#dce8f0; font-weight:500; flex:1; font-size:13px;">${sheetName}</span>
+                            <span style="color:#607080; font-size:12px; white-space:nowrap;">${info.rowCount} rows</span>
+                        </label>
+                        <div class="sheet-name-edit" style="display:none; padding:0 15px 12px 41px;">
+                            <label style="font-size:11px; color:#8a9ab5; display:block; margin-bottom:5px;"><i class="fas fa-tag"></i> Dataset Name (optional):</label>
+                            <input type="text" class="custom-dataset-name" data-sheet="${sheetName}" value="${sheetName}" placeholder="Custom name..." 
+                                style="width:100%; padding:8px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.3); color:#fff; font-size:13px; font-family:'Poppins',sans-serif;">
+                        </div>
+                    </div>
                 `;
             });
 
@@ -1350,6 +1402,207 @@ if ($conn) {
             sheetList.innerHTML = html;
         }
 
+        // Store parsed file info for multi-file import
+        let allFilesInfoStore = [];
+
+        function showMultiFileSelector(allFilesInfo) {
+            allFilesInfoStore = allFilesInfo;
+            sheetSelector.style.display = 'block';
+            
+            let totalItems = 0;
+            allFilesInfo.forEach(f => {
+                if (f.type === 'single') totalItems++;
+                else totalItems += f.sheetNames.length;
+            });
+            
+            let html = `
+                <div style="background:#1b2838; border-radius:12px; padding:20px; border:1px solid rgba(255,255,255,0.12);">
+                    <div style="background:rgba(244,208,63,0.1); border:1px solid rgba(244,208,63,0.3); border-radius:8px; padding:14px; margin-bottom:16px;">
+                        <p style="color:#f4d03f; margin:0 0 6px; font-weight:700; font-size:13px;"><i class="fas fa-layer-group"></i> Select Data to Import</p>
+                        <p style="color:#9ab0c4; margin:0; font-size:12px;">You have <strong style="color:#e0e0e0;">${allFilesInfo.length} file(s)</strong>. Each selected item will be imported as a <strong style="color:#f4d03f;">SEPARATE dataset</strong>.</p>
+                    </div>
+                    <p style="color:#7a8a9a; margin-bottom:10px; font-size:12px; font-weight:600;"><i class="fas fa-check-square"></i> Select datasets to import &nbsp;·&nbsp; <span id="sheetSelectCount" style="color:#f4d03f;">0 selected</span></p>
+                    <div id="sheetCheckList">
+            `;
+            
+            allFilesInfo.forEach((fileInfo, fileIdx) => {
+                if (fileInfo.type === 'single') {
+                    // Single sheet file - show as one item
+                    const baseName = fileInfo.fileName.replace(/\.(xlsx|xls|csv)$/i, '');
+                    html += `
+                        <div class="sheet-item" style="background:rgba(255,255,255,0.04); border:2px solid rgba(255,255,255,0.08); border-radius:8px; margin-bottom:10px; transition:all 0.2s ease; overflow:hidden;">
+                            <label class="sheet-radio" style="display:flex; align-items:center; gap:10px; padding:11px 15px; cursor:pointer;">
+                                <input type="checkbox" class="sheet-check" data-file="${fileInfo.fileName}" data-type="single" data-idx="${fileIdx}" onchange="updateMultiSelect()" style="width:16px; height:16px; cursor:pointer; accent-color:#f4d03f; flex-shrink:0;" checked>
+                                <i class="fas fa-file-excel" style="color:#27ae60;"></i>
+                                <span style="color:#dce8f0; font-weight:500; flex:1; font-size:13px;">${fileInfo.fileName}</span>
+                                <span style="color:#607080; font-size:12px; white-space:nowrap;">${fileInfo.rowCount} rows</span>
+                            </label>
+                            <div class="sheet-name-edit" style="display:block; padding:0 15px 12px 41px;">
+                                <label style="font-size:11px; color:#8a9ab5; display:block; margin-bottom:5px;"><i class="fas fa-tag"></i> Dataset Name:</label>
+                                <input type="text" class="custom-dataset-name" data-file="${fileInfo.fileName}" data-type="single" value="${baseName}" placeholder="Dataset name..." 
+                                    style="width:100%; padding:8px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.3); color:#fff; font-size:13px; font-family:'Poppins',sans-serif;">
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Multi-sheet file - show file header then sheets
+                    html += `
+                        <div style="margin-bottom:10px;">
+                            <div style="background:rgba(0,217,255,0.1); padding:10px 15px; border-radius:8px 8px 0 0; border:1px solid rgba(0,217,255,0.2); border-bottom:none; display:flex; align-items:center; gap:10px;">
+                                <i class="fas fa-file-excel" style="color:#00d9ff;"></i>
+                                <span style="color:#00d9ff; font-weight:600; font-size:13px;">${fileInfo.fileName}</span>
+                                <span style="color:#607080; font-size:11px;">(${fileInfo.sheetNames.length} sheets)</span>
+                            </div>
+                    `;
+                    
+                    fileInfo.sheetNames.forEach((sheetName, sheetIdx) => {
+                        const sheetInfo = fileInfo.sheets[sheetName];
+                        const isLast = sheetIdx === fileInfo.sheetNames.length - 1;
+                        html += `
+                            <div class="sheet-item" style="background:rgba(255,255,255,0.04); border:2px solid rgba(255,255,255,0.08); ${isLast ? 'border-radius:0 0 8px 8px;' : ''} margin-bottom:0; border-top:none; transition:all 0.2s ease; overflow:hidden;">
+                                <label class="sheet-radio" style="display:flex; align-items:center; gap:10px; padding:11px 15px 11px 30px; cursor:pointer;">
+                                    <input type="checkbox" class="sheet-check" data-file="${fileInfo.fileName}" data-sheet="${sheetName}" data-type="sheet" data-idx="${fileIdx}" onchange="updateMultiSelect()" style="width:16px; height:16px; cursor:pointer; accent-color:#f4d03f; flex-shrink:0;" checked>
+                                    <i class="fas fa-table" style="color:#8a9ab5; font-size:12px;"></i>
+                                    <span style="color:#dce8f0; font-weight:500; flex:1; font-size:13px;">${sheetName}</span>
+                                    <span style="color:#607080; font-size:12px; white-space:nowrap;">${sheetInfo.rowCount} rows</span>
+                                </label>
+                                <div class="sheet-name-edit" style="display:block; padding:0 15px 12px 56px;">
+                                    <label style="font-size:11px; color:#8a9ab5; display:block; margin-bottom:5px;"><i class="fas fa-tag"></i> Dataset Name:</label>
+                                    <input type="text" class="custom-dataset-name" data-file="${fileInfo.fileName}" data-sheet="${sheetName}" data-type="sheet" value="${sheetName}" placeholder="Dataset name..." 
+                                        style="width:100%; padding:8px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.3); color:#fff; font-size:13px; font-family:'Poppins',sans-serif;">
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `</div>`;
+                }
+            });
+            
+            html += `
+                    </div>
+                    <div style="margin-top:18px; display:flex; gap:10px;">
+                        <button id="importSheetsBtn" onclick="importMultipleDatasets()" style="flex:1; background:linear-gradient(135deg,#f4d03f 0%,#f9d76a 100%); color:#1a3a5c; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:700; font-size:13px; font-family:'Poppins',sans-serif; display:flex; align-items:center; justify-content:center; gap:8px;">
+                            <i class="fas fa-file-import"></i> Import Selected as Separate Datasets
+                        </button>
+                        <button onclick="resetUpload()" style="background:rgba(255,255,255,0.07); color:#8a9ab0; border:1px solid rgba(255,255,255,0.12); padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; font-family:'Poppins',sans-serif;">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+            sheetList.innerHTML = html;
+            updateMultiSelect();
+        }
+
+        function updateMultiSelect() {
+            const checked = document.querySelectorAll('.sheet-check:checked').length;
+            const countEl = document.getElementById('sheetSelectCount');
+            if (countEl) countEl.textContent = checked + ' selected';
+            
+            // Update visual state of items
+            document.querySelectorAll('.sheet-item').forEach(item => {
+                const input = item.querySelector('.sheet-check');
+                const nameEdit = item.querySelector('.sheet-name-edit');
+                if (input && input.checked) {
+                    item.style.background = 'rgba(244,208,63,0.13)';
+                    item.style.borderColor = '#f4d03f';
+                    if (nameEdit) nameEdit.style.display = 'block';
+                } else {
+                    item.style.background = 'rgba(255,255,255,0.04)';
+                    item.style.borderColor = 'rgba(255,255,255,0.08)';
+                    if (nameEdit) nameEdit.style.display = 'none';
+                }
+            });
+        }
+
+        async function importMultipleDatasets() {
+            const checkedBoxes = Array.from(document.querySelectorAll('.sheet-check:checked'));
+            if (checkedBoxes.length === 0) {
+                showAlert('error', 'Please select at least one item to import.');
+                return;
+            }
+
+            const btn = document.getElementById('importSheetsBtn');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Importing...'; }
+
+            let totalImported = 0;
+            let totalFailed = 0;
+            const importedDatasets = [];
+
+            for (let i = 0; i < checkedBoxes.length; i++) {
+                const checkbox = checkedBoxes[i];
+                const fileName = checkbox.dataset.file;
+                const itemType = checkbox.dataset.type;
+                const fileIdx = parseInt(checkbox.dataset.idx);
+                
+                let rows = [];
+                let defaultName = '';
+                
+                if (itemType === 'single') {
+                    // Single sheet file
+                    const fileInfo = allFilesInfoStore[fileIdx];
+                    rows = fileInfo.data;
+                    defaultName = fileName.replace(/\.(xlsx|xls|csv)$/i, '');
+                } else {
+                    // Sheet from multi-sheet file
+                    const sheetName = checkbox.dataset.sheet;
+                    if (workbookSheets[fileName] && workbookSheets[fileName][sheetName]) {
+                        rows = parseWorksheet(workbookSheets[fileName][sheetName].worksheet);
+                    }
+                    defaultName = sheetName;
+                }
+                
+                // Get custom name from input
+                let selector = itemType === 'single' 
+                    ? `.custom-dataset-name[data-file="${fileName}"][data-type="single"]`
+                    : `.custom-dataset-name[data-file="${fileName}"][data-sheet="${checkbox.dataset.sheet}"]`;
+                const customNameInput = document.querySelector(selector);
+                const customName = customNameInput?.value?.trim();
+                
+                // Use custom name or default
+                let datasetName = (customName || defaultName).replace(/[^a-zA-Z0-9_\- ]/g, '').trim().substring(0, 50) || ('data' + (i + 1));
+
+                if (rows.length === 0) {
+                    showAlert('warning', `"${datasetName}" has no data, skipping.`);
+                    continue;
+                }
+
+                showAlert('info', `Importing ${i + 1} of ${checkedBoxes.length}: "${datasetName}"...`);
+
+                try {
+                    const response = await fetch('api/import-data.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            data: rows,
+                            fileName: datasetName,
+                            dataset_name: datasetName,
+                            timestamp: new Date().toISOString()
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        totalImported += result.imported || rows.length;
+                        totalFailed += result.failed || 0;
+                        importedDatasets.push(datasetName);
+                    } else {
+                        showAlert('error', `Error importing "${datasetName}": ${result.message}`);
+                        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-file-import"></i> Import Selected as Separate Datasets'; }
+                        return;
+                    }
+                } catch (err) {
+                    showAlert('error', `Failed to import "${datasetName}": ${err.message}`);
+                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-file-import"></i> Import Selected as Separate Datasets'; }
+                    return;
+                }
+            }
+
+            const datasetList = importedDatasets.join(', ');
+            showAlert('success', `✓ Done! Created ${importedDatasets.length} separate dataset(s): ${datasetList}. Reloading...`);
+            setTimeout(() => location.reload(), 2000);
+        }
+
         function updateSelectedSheets(checkbox) {
             // Enforce max 3 selections
             const checked = document.querySelectorAll('.sheet-check:checked');
@@ -1360,15 +1613,18 @@ if ($conn) {
             const countEl = document.getElementById('sheetSelectCount');
             if (countEl) countEl.textContent = actualCount + ' / 3 selected';
 
-            // Update label styles
-            document.querySelectorAll('.sheet-radio').forEach(label => {
-                const input = label.querySelector('input');
+            // Update styles and show/hide name edit
+            document.querySelectorAll('.sheet-item').forEach(item => {
+                const input = item.querySelector('.sheet-check');
+                const nameEdit = item.querySelector('.sheet-name-edit');
                 if (input && input.checked) {
-                    label.style.background = 'rgba(244,208,63,0.13)';
-                    label.style.borderColor = '#f4d03f';
+                    item.style.background = 'rgba(244,208,63,0.13)';
+                    item.style.borderColor = '#f4d03f';
+                    if (nameEdit) nameEdit.style.display = 'block';
                 } else {
-                    label.style.background = 'rgba(255,255,255,0.04)';
-                    label.style.borderColor = 'rgba(255,255,255,0.08)';
+                    item.style.background = 'rgba(255,255,255,0.04)';
+                    item.style.borderColor = 'rgba(255,255,255,0.08)';
+                    if (nameEdit) nameEdit.style.display = 'none';
                 }
             });
         }
@@ -1400,9 +1656,15 @@ if ($conn) {
                 const checkbox = checkedBoxes[i];
                 const fileName   = checkbox.dataset.file;
                 const sheetName  = checkbox.dataset.sheet;
-                const datasetName = 'data' + (nextNum + i);
+                
+                // Get custom name from input field if user changed it
+                const customNameInput = document.querySelector(`.custom-dataset-name[data-sheet="${sheetName}"]`);
+                const customName = customNameInput?.value?.trim();
+                
+                // Use custom name if provided, otherwise use sheet name
+                let datasetName = (customName || sheetName).replace(/[^a-zA-Z0-9_\- ]/g, '').trim().substring(0, 50) || ('data' + (nextNum + i));
 
-                showAlert('info', `Importing sheet ${i + 1} of ${checkedBoxes.length}: "${sheetName}" → ${datasetName}...`);
+                showAlert('info', `Importing sheet ${i + 1} of ${checkedBoxes.length}: "${sheetName}"...`);
 
                 let rows = [];
                 if (workbookSheets[fileName] && workbookSheets[fileName][sheetName]) {
@@ -1729,13 +1991,26 @@ if ($conn) {
             importBtn.innerHTML = '<span class="spinner"></span> Importing...';
             importBtn.disabled = true;
 
-            // Get next available dataset name
+            // Get dataset name from user input or generate one
+            const userDatasetName = document.getElementById('datasetNameInput')?.value?.trim();
             let datasetName = 'data1';
-            try {
-                const dsRes = await fetch('api/get-datasets.php');
-                const dsData = await dsRes.json();
-                if (dsData.success) datasetName = dsData.next_name;
-            } catch (e) { /* use default */ }
+            
+            if (userDatasetName) {
+                // Use user-provided name (sanitize for database)
+                datasetName = userDatasetName.replace(/[^a-zA-Z0-9_\- ]/g, '').trim().substring(0, 50);
+            } else {
+                // Auto-generate from filename or use next available number
+                const fileName = selectedFiles[0]?.name?.replace(/\.(xlsx|xls|csv)$/i, '')?.trim();
+                if (fileName) {
+                    datasetName = fileName.replace(/[^a-zA-Z0-9_\- ]/g, '').trim().substring(0, 50);
+                } else {
+                    try {
+                        const dsRes = await fetch('api/get-datasets.php');
+                        const dsData = await dsRes.json();
+                        if (dsData.success) datasetName = dsData.next_name;
+                    } catch (e) { /* use default */ }
+                }
+            }
 
             // Prepare data for import
             const fileNames = selectedFiles.map(f => f.name).join(', ');

@@ -15,6 +15,17 @@ $user_id = $_SESSION['user_id'];
 $user_email = $_SESSION['user_email'] ?? 'User';
 $user_name = $_SESSION['user_name'] ?? 'User';
 
+// Get selected dataset from URL parameter
+$selected_dataset = isset($_GET['dataset']) ? trim($_GET['dataset']) : 'all';
+
+// Build dataset filter clause for queries
+$dataset_filter = "";
+if ($selected_dataset !== 'all' && $selected_dataset !== '') {
+    $safe_dataset = $conn->real_escape_string($selected_dataset);
+    $dataset_filter = " AND dataset_name = '$safe_dataset'";
+}
+$dataset_filter_where = $dataset_filter ? str_replace(' AND ', ' WHERE ', $dataset_filter) : "";
+
 // Users table is created by db_config.php (MySQL) or the SQLite bootstrap.
 // No duplicate CREATE TABLE needed here.
 
@@ -29,25 +40,25 @@ $stats = [
 ];
 
 // Count total delivered
-$result = $conn->query("SELECT COALESCE(SUM(quantity), 0) as total FROM delivery_records WHERE status = 'Delivered'");
+$result = $conn->query("SELECT COALESCE(SUM(quantity), 0) as total FROM delivery_records WHERE status = 'Delivered'$dataset_filter");
 if ($result && $row = $result->fetch_assoc()) {
     $stats['total_delivered'] = intval($row['total']);
 }
 
 // Count total sold (different from delivered - could be from sales data)
-$result = $conn->query("SELECT COUNT(*) as total FROM delivery_records WHERE status IN ('Delivered', 'In Transit')");
+$result = $conn->query("SELECT COUNT(*) as total FROM delivery_records WHERE status IN ('Delivered', 'In Transit')$dataset_filter");
 if ($result && $row = $result->fetch_assoc()) {
     $stats['total_sold'] = intval($row['total']);
 }
 
 // Count unique companies
-$result = $conn->query("SELECT COUNT(DISTINCT company_name) as total FROM delivery_records");
+$result = $conn->query("SELECT COUNT(DISTINCT company_name) as total FROM delivery_records WHERE 1=1$dataset_filter");
 if ($result && $row = $result->fetch_assoc()) {
     $stats['total_companies'] = intval($row['total']);
 }
 
 // Count unique item codes (models)
-$result = $conn->query("SELECT COUNT(DISTINCT item_code) as total FROM delivery_records");
+$result = $conn->query("SELECT COUNT(DISTINCT item_code) as total FROM delivery_records WHERE 1=1$dataset_filter");
 if ($result && $row = $result->fetch_assoc()) {
     $stats['active_models'] = intval($row['total']);
 }
@@ -65,6 +76,7 @@ $top_clients = [];
 $result = $conn->query("
     SELECT company_name, COUNT(*) as delivery_count, SUM(quantity) as total_quantity
     FROM delivery_records
+    WHERE 1=1$dataset_filter
     GROUP BY company_name
     ORDER BY total_quantity DESC
     LIMIT 15
@@ -81,6 +93,7 @@ $monthly_sales = array_fill_keys($months, 0);
 $result = $conn->query("
     SELECT delivery_month, COALESCE(SUM(quantity), 0) AS total
     FROM delivery_records
+    WHERE 1=1$dataset_filter
     GROUP BY delivery_month
 ");
 if ($result) {
@@ -96,7 +109,7 @@ $top_products = [];
 $result = $conn->query("
     SELECT item_code, item_name, SUM(quantity) as total 
     FROM delivery_records 
-    WHERE item_code IS NOT NULL AND item_code != '' AND item_code != '-'
+    WHERE item_code IS NOT NULL AND item_code != '' AND item_code != '-'$dataset_filter
     GROUP BY item_code 
     ORDER BY total DESC 
     LIMIT 10
@@ -112,7 +125,7 @@ $company_deliveries = [];
 $result = $conn->query("
     SELECT company_name, SUM(quantity) as total 
     FROM delivery_records 
-    WHERE company_name IS NOT NULL AND company_name != '' AND company_name != '-'
+    WHERE company_name IS NOT NULL AND company_name != '' AND company_name != '-'$dataset_filter
     GROUP BY company_name 
     ORDER BY total DESC 
     LIMIT 8
@@ -127,8 +140,27 @@ if ($result) {
 $datasets = [];
 $untagged_count = 0;
 try {
-    $col_check = $conn->query("SHOW COLUMNS FROM delivery_records LIKE 'dataset_name'");
-    if ($col_check && $col_check->num_rows > 0) {
+    // Check if dataset_name column exists (works for both MySQL and SQLite)
+    $isMysql = ($conn instanceof mysqli);
+    $colExists = false;
+    
+    if ($isMysql) {
+        $col_check = $conn->query("SHOW COLUMNS FROM delivery_records LIKE 'dataset_name'");
+        $colExists = ($col_check && $col_check->num_rows > 0);
+    } else {
+        // SQLite - use PRAGMA
+        $col_check = $conn->query("PRAGMA table_info(delivery_records)");
+        if ($col_check) {
+            while ($c = $col_check->fetch_assoc()) {
+                if (strtolower($c['name']) === 'dataset_name') {
+                    $colExists = true;
+                    break;
+                }
+            }
+        }
+    }
+    
+    if ($colExists) {
         $ds_result = $conn->query("SELECT dataset_name, COUNT(*) as record_count FROM delivery_records WHERE dataset_name IS NOT NULL AND dataset_name != '' GROUP BY dataset_name ORDER BY dataset_name ASC");
         if ($ds_result) {
             while ($ds_row = $ds_result->fetch_assoc()) {
@@ -147,7 +179,7 @@ try {
 
 // Get pending count
 $pending_count = 0;
-$result = $conn->query("SELECT COUNT(*) as cnt FROM delivery_records WHERE status = 'Pending' OR status = 'In Transit'");
+$result = $conn->query("SELECT COUNT(*) as cnt FROM delivery_records WHERE (status = 'Pending' OR status = 'In Transit')$dataset_filter");
 if ($result && $row = $result->fetch_assoc()) {
     $pending_count = intval($row['cnt']);
 }
@@ -670,27 +702,29 @@ if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
         <section class="datasets-overview">
             <div class="datasets-header">
                 <h3><i class="fas fa-database"></i> Imported Datasets</h3>
-                <a href="delivery-records.php" class="datasets-view-all"><i class="fas fa-external-link-alt"></i> View All Records</a>
+                <?php if ($selected_dataset !== 'all'): ?>
+                <span style="color:#f4d03f; font-size:12px; font-weight:600;">
+                    <i class="fas fa-filter"></i> Viewing: <?php echo htmlspecialchars(strtoupper($selected_dataset)); ?>
+                </span>
+                <?php endif; ?>
             </div>
             <div class="datasets-grid">
-                <?php if ($untagged_count > 0): ?>
-                <a href="delivery-records.php" class="dataset-card-dash">
+                <a href="index.php" class="dataset-card-dash <?php echo $selected_dataset === 'all' ? 'active' : ''; ?>">
                     <div class="dataset-card-icon" style="background: linear-gradient(135deg, #5b9bd5, #3a7bbf);"><i class="fas fa-layer-group" style="color:#fff;"></i></div>
                     <div class="dataset-card-info">
                         <span class="dataset-card-name">ALL DATA</span>
                         <span class="dataset-card-count"><?php echo number_format($untagged_count + array_sum(array_column($datasets, 'record_count'))); ?> records</span>
                     </div>
-                    <i class="fas fa-chevron-right dataset-card-arrow"></i>
+                    <?php if ($selected_dataset === 'all'): ?><i class="fas fa-check-circle" style="color:#51cf66;"></i><?php endif; ?>
                 </a>
-                <?php endif; ?>
                 <?php foreach ($datasets as $ds): ?>
-                <a href="delivery-records.php" class="dataset-card-dash">
+                <a href="index.php?dataset=<?php echo urlencode($ds['dataset_name']); ?>" class="dataset-card-dash <?php echo $selected_dataset === $ds['dataset_name'] ? 'active' : ''; ?>">
                     <div class="dataset-card-icon"><i class="fas fa-table"></i></div>
                     <div class="dataset-card-info">
                         <span class="dataset-card-name"><?php echo htmlspecialchars(strtoupper($ds['dataset_name'])); ?></span>
                         <span class="dataset-card-count"><?php echo number_format($ds['record_count']); ?> records</span>
                     </div>
-                    <i class="fas fa-chevron-right dataset-card-arrow"></i>
+                    <?php if ($selected_dataset === $ds['dataset_name']): ?><i class="fas fa-check-circle" style="color:#51cf66;"></i><?php endif; ?>
                 </a>
                 <?php endforeach; ?>
                 <?php if (empty($datasets) && $untagged_count === 0): ?>
@@ -720,6 +754,8 @@ if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
         body.light-mode .dataset-card-dash:hover { background: #e8eef8; border-color: #f4d03f; }
         body.light-mode .dataset-card-name { color: #1a2332; }
         body.light-mode .dataset-card-count { color: #5a6a82; }
+        .dataset-card-dash.active { background: #243447; border-color: #f4d03f; box-shadow: 0 0 12px rgba(244, 208, 63, 0.25); }
+        body.light-mode .dataset-card-dash.active { background: #fff8e1; border-color: #f4d03f; }
         </style>
 
         <!-- KPI CARDS SECTION -->

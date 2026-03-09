@@ -7,12 +7,31 @@ if (empty($_SESSION['user_id'])) {
 
 require_once 'db_config.php';
 
+// Get selected dataset from URL parameter
+$selected_dataset = isset($_GET['dataset']) ? trim($_GET['dataset']) : 'all';
+
+// Build dataset filter clause for queries
+$dataset_filter = "";
+if ($selected_dataset !== 'all' && $selected_dataset !== '') {
+    $safe_dataset = $conn->real_escape_string($selected_dataset);
+    $dataset_filter = " AND dataset_name = '$safe_dataset'";
+}
+
 // Search/filter by item
 $searchItem = isset($_GET['search']) ? trim($_GET['search']) : '';
 $searchQuery = '';
 if ($searchItem) {
     $searchItem = $conn->real_escape_string($searchItem);
     $searchQuery = "WHERE (item_code LIKE '%{$searchItem}%' OR item_name LIKE '%{$searchItem}%')";
+}
+
+// Add dataset filter to where clause
+if ($dataset_filter) {
+    if (strpos($searchQuery, 'WHERE') !== false) {
+        $searchQuery .= $dataset_filter;
+    } else {
+        $searchQuery = "WHERE 1=1$dataset_filter";
+    }
 }
 
 // Get all items with stock and delivery counts
@@ -1022,7 +1041,10 @@ $hasNegativeStock = count($negativeStockItems) > 0;
                     Inventory
                 </h1>
                 <div class="search-box">
-                    <form method="get" style="display: flex; gap: 10px; width: 100%;">
+                    <form method="get" style="display: flex; gap: 10px; width: 100%; align-items: center;">
+                        <?php if ($selected_dataset !== 'all'): ?>
+                        <input type="hidden" name="dataset" value="<?php echo htmlspecialchars($selected_dataset); ?>">
+                        <?php endif; ?>
                         <input 
                             type="text" 
                             name="search" 
@@ -1031,7 +1053,7 @@ $hasNegativeStock = count($negativeStockItems) > 0;
                         >
                         <button type="submit"><i class="fas fa-search"></i> Search</button>
                         <?php if ($searchItem): ?>
-                            <a href="inventory.php" style="padding: 12px 24px; background: #666; border-radius: 8px; color: #fff; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                            <a href="inventory.php<?php echo $selected_dataset !== 'all' ? '?dataset=' . urlencode($selected_dataset) : ''; ?>" style="padding: 12px 24px; background: #666; border-radius: 8px; color: #fff; text-decoration: none; display: flex; align-items: center; gap: 6px;">
                                 <i class="fas fa-times"></i> Clear
                             </a>
                         <?php endif; ?>
@@ -1040,10 +1062,17 @@ $hasNegativeStock = count($negativeStockItems) > 0;
                 <button class="add-stock-btn" onclick="openAddStockModal()">
                     <i class="fas fa-plus"></i> Add Stock
                 </button>
-                <?php if ($hasNegativeStock): ?>
-                <button class="add-stock-btn" style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);" onclick="openInitializeModal()">
-                    <i class="fas fa-exclamation-triangle"></i> Fix Negative Stock (<?php echo count($negativeStockItems); ?>)
-                </button>
+            </div>
+            
+            <!-- Dataset Indicator Banner -->
+            <div style="background: linear-gradient(90deg, #2a3f5f 0%, #1e2a38 100%); border-left: 4px solid #f4d03f; padding: 12px 16px; margin-bottom: 20px; border-radius: 6px; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-database" style="color: #f4d03f; font-size: 14px;"></i>
+                <span style="color: #8a9ab5; font-size: 12px;">Current Dataset:</span>
+                <strong style="color: #fff; font-size: 13px;"><?php echo $selected_dataset === 'all' ? 'ALL DATA' : htmlspecialchars(strtoupper($selected_dataset)); ?></strong>
+                <?php if ($selected_dataset !== 'all'): ?>
+                <a href="inventory.php" style="margin-left: auto; color: #f4d03f; font-size: 12px; text-decoration: none; opacity: 0.8; transition: opacity .2s;" title="View all datasets">
+                    <i class="fas fa-times-circle"></i> Clear
+                </a>
                 <?php endif; ?>
             </div>
 

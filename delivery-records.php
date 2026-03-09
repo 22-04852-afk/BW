@@ -8,6 +8,16 @@ if (empty($_SESSION['user_id'])) {
 // Include database configuration
 require_once 'db_config.php';
 
+// Get selected dataset from URL parameter
+$selected_dataset = isset($_GET['dataset']) ? trim($_GET['dataset']) : 'all';
+
+// Build dataset filter clause for queries
+$dataset_filter = "";
+if ($selected_dataset !== 'all' && $selected_dataset !== '') {
+    $safe_dataset = $conn->real_escape_string($selected_dataset);
+    $dataset_filter = " AND dataset_name = '$safe_dataset'";
+}
+
 // Get statistics from database
 $stats = [
     'total_delivered' => 0,
@@ -18,7 +28,7 @@ $stats = [
 ];
 
 // Count by status
-$result = $conn->query("SELECT status, COUNT(*) as count, COALESCE(SUM(quantity), 0) as qty FROM delivery_records GROUP BY status");
+$result = $conn->query("SELECT status, COUNT(*) as count, COALESCE(SUM(quantity), 0) as qty FROM delivery_records WHERE 1=1$dataset_filter GROUP BY status");
 if ($result) {
     while ($row = $result->fetch_assoc()) {
         $status = strtolower($row['status']);
@@ -39,7 +49,7 @@ $success_rate = $stats['total_records'] > 0 ? round(($stats['total_delivered'] /
 
 // Get all delivery records
 $delivery_records = [];
-$result = $conn->query("SELECT * FROM delivery_records ORDER BY id DESC");
+$result = $conn->query("SELECT * FROM delivery_records WHERE 1=1$dataset_filter ORDER BY id DESC");
 if ($result) {
     while ($row = $result->fetch_assoc()) {
         $delivery_records[] = $row;
@@ -495,6 +505,12 @@ try {
             background: linear-gradient(135deg, #f4d03f 0%, #d4a00e 100%);
             border-color: #f4d03f;
             color: #1a2a38;
+        }
+        .dataset-tab-wrapper:hover .dataset-edit-btn {
+            opacity: 1 !important;
+        }
+        .dataset-edit-btn:hover {
+            color: #f4d03f !important;
         }
 
         /* Export Button */
@@ -1061,6 +1077,18 @@ try {
         <div class="page-title">
             <i class="fas fa-truck"></i> Delivery Records
         </div>
+        
+        <!-- Dataset Indicator Banner -->
+        <div style="background: linear-gradient(90deg, #2a3f5f 0%, #1e2a38 100%); border-left: 4px solid #f4d03f; padding: 12px 16px; margin-bottom: 20px; border-radius: 6px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-database" style="color: #f4d03f; font-size: 14px;"></i>
+            <span style="color: #8a9ab5; font-size: 12px;">Current Dataset:</span>
+            <strong style="color: #fff; font-size: 13px;"><?php echo $selected_dataset === 'all' ? 'ALL DATA' : htmlspecialchars(strtoupper($selected_dataset)); ?></strong>
+            <?php if ($selected_dataset !== 'all'): ?>
+            <a href="delivery-records.php" style="margin-left: auto; color: #f4d03f; font-size: 12px; text-decoration: none; opacity: 0.8; transition: opacity .2s;" title="View all datasets">
+                <i class="fas fa-times-circle"></i> Clear
+            </a>
+            <?php endif; ?>
+        </div>
 
         <!-- Summary -->
         <div class="summary-grid">
@@ -1112,9 +1140,14 @@ try {
                 <i class="fas fa-layer-group"></i> All Data
             </button>
             <?php foreach ($datasets as $ds): ?>
-            <button class="dataset-tab" onclick="filterByDataset('<?php echo htmlspecialchars($ds, ENT_QUOTES); ?>', this)">
-                <i class="fas fa-table"></i> <?php echo htmlspecialchars(strtoupper($ds)); ?>
-            </button>
+            <div class="dataset-tab-wrapper" style="display:inline-flex; align-items:center; position:relative;">
+                <button class="dataset-tab" onclick="filterByDataset('<?php echo htmlspecialchars($ds, ENT_QUOTES); ?>', this)">
+                    <i class="fas fa-table"></i> <?php echo htmlspecialchars(strtoupper($ds)); ?>
+                </button>
+                <button class="dataset-edit-btn" onclick="openRenameModal('<?php echo htmlspecialchars($ds, ENT_QUOTES); ?>')" title="Rename or Delete" style="background:none; border:none; color:#8a9ab5; cursor:pointer; padding:4px 8px; font-size:12px; margin-left:-8px; opacity:0.7; transition:opacity 0.2s;">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+            </div>
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
@@ -2221,6 +2254,122 @@ try {
             document.body.appendChild(toast);
             setTimeout(() => { if (toast.parentElement) toast.remove(); }, 4000);
         }
+
+        // Dataset Management Functions
+        let currentDatasetToManage = '';
+        
+        function openRenameModal(datasetName) {
+            currentDatasetToManage = datasetName;
+            document.getElementById('currentDatasetName').textContent = datasetName.toUpperCase();
+            document.getElementById('newDatasetName').value = datasetName;
+            document.getElementById('datasetManageModal').style.display = 'flex';
+        }
+        
+        function closeDatasetModal() {
+            document.getElementById('datasetManageModal').style.display = 'none';
+            currentDatasetToManage = '';
+        }
+        
+        async function renameDataset() {
+            const newName = document.getElementById('newDatasetName').value.trim();
+            if (!newName) {
+                alert('Please enter a new name');
+                return;
+            }
+            
+            try {
+                const response = await fetch('api/manage-dataset.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'rename',
+                        old_name: currentDatasetToManage,
+                        new_name: newName
+                    })
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update localStorage if this was the selected dataset
+                    const selectedDataset = localStorage.getItem('selectedDataset');
+                    if (selectedDataset === currentDatasetToManage) {
+                        localStorage.setItem('selectedDataset', result.new_dataset_name);
+                    }
+                    showToast(result.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+            closeDatasetModal();
+        }
+        
+        async function deleteDataset() {
+            if (!confirm(`Are you sure you want to DELETE all records in "${currentDatasetToManage.toUpperCase()}"? This cannot be undone!`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('api/manage-dataset.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'delete',
+                        dataset_name: currentDatasetToManage
+                    })
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Clear localStorage if this was the selected dataset
+                    const selectedDataset = localStorage.getItem('selectedDataset');
+                    if (selectedDataset === currentDatasetToManage) {
+                        localStorage.setItem('selectedDataset', 'all');
+                    }
+                    showToast(result.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+            closeDatasetModal();
+        }
     </script>
+    
+    <!-- Dataset Management Modal -->
+    <div id="datasetManageModal" onclick="if(event.target===this)closeDatasetModal()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); justify-content:center; align-items:center; z-index:9999;">
+        <div style="background:linear-gradient(135deg,#1e2a38 0%,#2a3f5f 100%); border-radius:16px; padding:30px; max-width:420px; width:90%; border:1px solid rgba(255,255,255,0.1); box-shadow:0 20px 40px rgba(0,0,0,0.4);">
+            <h3 style="color:#f4d03f; margin:0 0 20px; font-size:18px; display:flex; align-items:center; gap:10px;">
+                <i class="fas fa-database"></i> Manage Dataset
+            </h3>
+            <p style="color:#8a9ab5; margin-bottom:20px; font-size:13px;">
+                Current dataset: <strong id="currentDatasetName" style="color:#fff;"></strong>
+            </p>
+            
+            <div style="margin-bottom:20px;">
+                <label style="color:#a0b0c0; font-size:12px; display:block; margin-bottom:8px;">
+                    <i class="fas fa-tag"></i> New Name:
+                </label>
+                <input type="text" id="newDatasetName" placeholder="Enter new dataset name..." 
+                    style="width:100%; padding:12px 15px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.3); color:#fff; font-size:14px; font-family:'Poppins',sans-serif; box-sizing:border-box;">
+            </div>
+            
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button onclick="renameDataset()" style="flex:1; background:linear-gradient(135deg,#f4d03f 0%,#e2b800 100%); color:#1a1a2e; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; font-family:'Poppins',sans-serif;">
+                    <i class="fas fa-save"></i> Save Name
+                </button>
+                <button onclick="deleteDataset()" style="background:linear-gradient(135deg,#ff6b6b 0%,#ee5a24 100%); color:#fff; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; font-family:'Poppins',sans-serif;">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+                <button onclick="closeDatasetModal()" style="background:rgba(255,255,255,0.1); color:#a0a0a0; border:1px solid rgba(255,255,255,0.2); padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; font-family:'Poppins',sans-serif;">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

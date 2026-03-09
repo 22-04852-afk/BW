@@ -74,6 +74,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize All Charts
     initializeCharts();
+    
+    // Initialize Dataset Synchronization
+    initializeDatasetSync();
 });
 
 // ============================================
@@ -913,3 +916,91 @@ console.log('✓ Profile dropdown menu');
 console.log('✓ Interactive Chart.js visualizations');
 console.log('✓ LocalStorage sidebar state persistence');
 console.log('✓ Professional enterprise design');
+
+// ============================================
+// DATASET SYNCHRONIZATION
+// ============================================
+
+function initializeDatasetSync() {
+    // Get the current dataset from URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentDataset = urlParams.get('dataset');
+    
+    // If there's a dataset in the URL, save it to localStorage
+    if (currentDataset && currentDataset !== 'all') {
+        localStorage.setItem('selectedDataset', currentDataset);
+        console.log('Dataset selected:', currentDataset);
+    } else if (currentDataset === 'all' || !currentDataset) {
+        // If explicitly viewing all data, clear the selection
+        // localStorage.removeItem('selectedDataset');
+    }
+    
+    // Add dataset parameter to all navigation links
+    addDatasetToLinksV2();
+    
+    // Listen for clicks on dataset cards to save selection
+    const datasetCards = document.querySelectorAll('.dataset-card-dash');
+    datasetCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+            const href = this.getAttribute('href');
+            if (href) {
+                const cardUrlParams = new URLSearchParams(new URL(href, window.location.origin).search);
+                const datasetFromCard = cardUrlParams.get('dataset') || 'all';
+                if (datasetFromCard === 'all') {
+                    localStorage.removeItem('selectedDataset');
+                } else {
+                    localStorage.setItem('selectedDataset', datasetFromCard);
+                }
+                console.log('Saved dataset selection:', datasetFromCard);
+            }
+        });
+    });
+    
+    // Show current dataset in console for debugging
+    const savedDS = localStorage.getItem('selectedDataset');
+    console.log('Current saved dataset:', savedDS || 'none (viewing all)');
+}
+
+function addDatasetToLinksV2() {
+    const savedDataset = localStorage.getItem('selectedDataset');
+    
+    // If no saved dataset or all data, don't modify links
+    if (!savedDataset || savedDataset === 'all') {
+        return;
+    }
+    
+    // Find all navigation links that should include the dataset parameter
+    // More comprehensive selector for all menu links and sidebar items
+    const navLinks = document.querySelectorAll('a.menu-link, .sidebar a[href*=".php"], a[href$=".php"]');
+    
+    navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (!href) return;
+        
+        // Skip links that are already fully qualified or external
+        if (href.startsWith('http') || href.startsWith('//')) return;
+        
+        // Skip logout and other non-dataset pages
+        const skipPages = ['logout.php', 'profile.php', 'settings.php', 'signup.php', 'login.php', 'verify', 'check', 'test'];
+        if (skipPages.some(page => href.includes(page))) return;
+        
+        // Skip if already has dataset parameter with correct value
+        if (href.includes('dataset=' + encodeURIComponent(savedDataset))) return;
+        
+        // Add or replace the dataset parameter
+        if (href.includes('?')) {
+            // Has query string already
+            if (href.includes('dataset=')) {
+                // Replace existing dataset param
+                const newHref = href.replace(/dataset=[^&]*/i, 'dataset=' + encodeURIComponent(savedDataset));
+                link.setAttribute('href', newHref);
+            } else {
+                // Append dataset param
+                link.setAttribute('href', href + '&dataset=' + encodeURIComponent(savedDataset));
+            }
+        } else {
+            // No query string
+            link.setAttribute('href', href + '?dataset=' + encodeURIComponent(savedDataset));
+        }
+    });
+}

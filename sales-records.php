@@ -8,6 +8,16 @@ if (empty($_SESSION['user_id'])) {
 // Include database configuration
 require_once 'db_config.php';
 
+// Get selected dataset from URL parameter
+$selected_dataset = isset($_GET['dataset']) ? trim($_GET['dataset']) : 'all';
+
+// Build dataset filter clause for queries
+$dataset_filter = "";
+if ($selected_dataset !== 'all' && $selected_dataset !== '') {
+    $safe_dataset = $conn->real_escape_string($selected_dataset);
+    $dataset_filter = " AND dataset_name = '$safe_dataset'";
+}
+
 // Get current year
 $currentYear = date('Y');
 
@@ -24,7 +34,7 @@ $yearExpr = $isMysql
 
 // Get available years from data (ordered by record count DESC, then year DESC)
 $availableYears = [];
-$yearCountResult = $conn->query("SELECT ({$yearExpr}) as year, COUNT(*) as cnt FROM delivery_records WHERE ({$yearExpr}) > 0 GROUP BY ({$yearExpr}) ORDER BY cnt DESC, year DESC");
+$yearCountResult = $conn->query("SELECT ({$yearExpr}) as year, COUNT(*) as cnt FROM delivery_records WHERE ({$yearExpr}) > 0$dataset_filter GROUP BY ({$yearExpr}) ORDER BY cnt DESC, year DESC");
 if ($yearCountResult) {
     $firstYear = null;
     while ($row = $yearCountResult->fetch_assoc()) {
@@ -1261,6 +1271,18 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Dataset Indicator Banner -->
+            <div style="background: linear-gradient(90deg, #2a3f5f 0%, #1e2a38 100%); border-left: 4px solid #f4d03f; padding: 12px 16px; margin-bottom: 20px; border-radius: 6px; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-database" style="color: #f4d03f; font-size: 14px;"></i>
+                <span style="color: #8a9ab5; font-size: 12px;">Current Dataset:</span>
+                <strong style="color: #fff; font-size: 13px;"><?php echo $selected_dataset === 'all' ? 'ALL DATA' : htmlspecialchars(strtoupper($selected_dataset)); ?></strong>
+                <?php if ($selected_dataset !== 'all'): ?>
+                <a href="sales-records.php" style="margin-left: auto; color: #f4d03f; font-size: 12px; text-decoration: none; opacity: 0.8; transition: opacity .2s;" title="View all datasets">
+                    <i class="fas fa-times-circle"></i> Clear
+                </a>
+                <?php endif; ?>
             </div>
 
             <!-- Summary Cards -->
