@@ -1319,16 +1319,18 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
                 <!-- Monthly Units Chart -->
                 <div class="chart-card">
                     <h3><i class="fas fa-chart-bar"></i> Units Delivered per Month</h3>
-                    <div class="chart-container">
+                    <div class="chart-container chart-expandable" onclick="openChartPreview('monthlyUnitsChart','Units Delivered per Month')" style="position:relative;">
                         <canvas id="monthlyUnitsChart"></canvas>
+                        <span class="chart-expand-hint"><i class="fas fa-expand-alt"></i></span>
                     </div>
                 </div>
 
                 <!-- Monthly Orders Chart -->
                 <div class="chart-card">
                     <h3><i class="fas fa-chart-line"></i> Orders per Month</h3>
-                    <div class="chart-container">
+                    <div class="chart-container chart-expandable" onclick="openChartPreview('monthlyOrdersChart','Orders per Month')" style="position:relative;">
                         <canvas id="monthlyOrdersChart"></canvas>
+                        <span class="chart-expand-hint"><i class="fas fa-expand-alt"></i></span>
                     </div>
                 </div>
             </div>
@@ -1395,8 +1397,9 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
                 <!-- Yearly Chart -->
                 <div class="chart-card">
                     <h3><i class="fas fa-chart-bar"></i> Yearly Comparison</h3>
-                    <div class="chart-container">
+                    <div class="chart-container chart-expandable" onclick="openChartPreview('yearlyChart','Yearly Comparison')" style="position:relative;">
                         <canvas id="yearlyChart"></canvas>
+                        <span class="chart-expand-hint"><i class="fas fa-expand-alt"></i></span>
                     </div>
                 </div>
 
@@ -1714,6 +1717,62 @@ $yearOrders = json_encode(array_column($yearlySales, 'orders'));
             monthlyUnitsChart.resize();
             monthlyOrdersChart.resize();
         });
+    </script>
+
+    <!-- ===== CHART PREVIEW MODAL ===== -->
+    <div id="chartPreviewOverlay" onclick="closeChartPreview(event)" style="display:none;position:fixed;inset:0;z-index:9999;backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:16px;box-sizing:border-box;">
+        <div id="chartPreviewBox" style="border-radius:16px;width:min(1200px,97vw);height:90vh;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(0,0,0,0.6);overflow:hidden;">
+            <div id="chartPreviewHeader" style="display:flex;align-items:center;justify-content:space-between;padding:18px 26px;flex-shrink:0;">
+                <h3 id="chartPreviewTitle" style="margin:0;font-size:18px;font-weight:700;"></h3>
+                <button id="chartPreviewCloseBtn" onclick="closeChartPreviewBtn()" style="width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;border:none;transition:background 0.2s;"><i class="fas fa-times"></i></button>
+            </div>
+            <div style="padding:10px 26px 26px;flex:1;min-height:0;position:relative;">
+                <canvas id="chartPreviewCanvas" style="width:100% !important;height:100% !important;"></canvas>
+            </div>
+        </div>
+    </div>
+    <style>
+    .chart-expandable{cursor:pointer;}
+    .chart-expand-hint{position:absolute;top:8px;right:8px;background:rgba(244,208,63,0.15);border:1px solid rgba(244,208,63,0.3);color:#f4d03f;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;opacity:0;transition:opacity 0.2s;pointer-events:none;}
+    .chart-expandable:hover .chart-expand-hint{opacity:1;}
+    .chart-expandable:hover canvas{opacity:0.88;}
+    #chartPreviewOverlay.cp-dark{background:rgba(4,8,18,0.92);}
+    #chartPreviewBox.cp-dark{background:#131c2b;border:1px solid #2a3c55;}
+    #chartPreviewHeader.cp-dark{border-bottom:1px solid #2a3c55;}
+    #chartPreviewTitle.cp-dark{color:#e2ecf8;}
+    #chartPreviewCloseBtn.cp-dark{background:rgba(255,255,255,0.07);color:#a0b4c8;}
+    #chartPreviewOverlay.cp-light{background:rgba(180,195,215,0.72);}
+    #chartPreviewBox.cp-light{background:#ffffff;border:1px solid #d0daea;}
+    #chartPreviewHeader.cp-light{border-bottom:1px solid #e0eaf4;}
+    #chartPreviewTitle.cp-light{color:#1a2a3a;}
+    #chartPreviewCloseBtn.cp-light{background:#f0f4fa;color:#3a4a5a;}
+    </style>
+    <script>
+    function openChartPreview(canvasId,title){
+        const src=document.getElementById(canvasId);if(!src)return;
+        const sc=(typeof Chart!=='undefined')&&Chart.getChart?Chart.getChart(src):null;if(!sc)return;
+        const isLight=document.body.classList.contains('light-mode');
+        const tc=isLight?'cp-light':'cp-dark';
+        const tickC=isLight?'#4a5a6a':'#8a9ab5',gridC=isLight?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.06)',legC=isLight?'#2a3a4a':'#c0d0e0';
+        ['chartPreviewOverlay','chartPreviewBox','chartPreviewHeader','chartPreviewTitle','chartPreviewCloseBtn'].forEach(function(id){const el=document.getElementById(id);el.classList.remove('cp-dark','cp-light');el.classList.add(tc);});
+        document.getElementById('chartPreviewTitle').textContent=title;
+        const ov=document.getElementById('chartPreviewOverlay');ov.style.display='flex';document.body.style.overflow='hidden';
+        const pc=document.getElementById('chartPreviewCanvas');const ex=Chart.getChart(pc);if(ex)ex.destroy();
+        try{
+            const cfg={type:sc.config.type,data:JSON.parse(JSON.stringify(sc.config.data)),options:JSON.parse(JSON.stringify(sc.config.options||{}))};
+            cfg.options.responsive=true;cfg.options.maintainAspectRatio=false;cfg.options.animation={duration:400};
+            cfg.options.plugins=cfg.options.plugins||{};
+            cfg.options.plugins.legend=cfg.options.plugins.legend||{};
+            cfg.options.plugins.legend.labels=cfg.options.plugins.legend.labels||{};
+            cfg.options.plugins.legend.labels.color=legC;cfg.options.plugins.legend.labels.font={size:14};
+            if(cfg.options.plugins.title)cfg.options.plugins.title.color=legC;
+            if(cfg.options.scales){Object.values(cfg.options.scales).forEach(function(s){s.ticks=s.ticks||{};s.ticks.color=tickC;s.ticks.font={size:13};s.grid=s.grid||{};s.grid.color=gridC;});}
+            new Chart(pc,cfg);
+        }catch(e){console.error('Chart preview error:',e);}
+    }
+    function closeChartPreviewBtn(){document.getElementById('chartPreviewOverlay').style.display='none';document.body.style.overflow='';const c=Chart.getChart(document.getElementById('chartPreviewCanvas'));if(c)c.destroy();}
+    function closeChartPreview(e){if(e&&e.target!==document.getElementById('chartPreviewOverlay'))return;closeChartPreviewBtn();}
+    document.addEventListener('keydown',function(e){if(e.key==='Escape')closeChartPreviewBtn();});
     </script>
 </body>
 </html>

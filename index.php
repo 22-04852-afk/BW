@@ -868,8 +868,9 @@ if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
                     <span class="card-icon"><i class="fas fa-check-circle"></i></span>
                 </div>
                 <div class="card-content">
-                    <div class="chart-container">
+                    <div class="chart-container chart-expandable" onclick="openChartPreview('deliveredChart','Total Delivered')" data-preview-chart="deliveredChart">
                         <canvas id="deliveredChart"></canvas>
+                        <span class="chart-expand-hint"><i class="fas fa-expand-alt"></i></span>
                     </div>
                     <div class="chart-insights">
                         <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
@@ -887,8 +888,9 @@ if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
                     <span class="card-icon"><i class="fas fa-peso-sign"></i></span>
                 </div>
                 <div class="card-content">
-                    <div class="chart-container">
+                    <div class="chart-container chart-expandable" onclick="openChartPreview('soldChart','Total Sold')" data-preview-chart="soldChart">
                         <canvas id="soldChart"></canvas>
+                        <span class="chart-expand-hint"><i class="fas fa-expand-alt"></i></span>
                     </div>
                     <div class="chart-insights">
                         <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
@@ -906,8 +908,9 @@ if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
                     <span class="card-icon"><i class="fas fa-balance-scale"></i></span>
                 </div>
                 <div class="card-content">
-                    <div class="chart-container">
+                    <div class="chart-container chart-expandable" onclick="openChartPreview('monthlyComparisonChart','Monthly Comparison')" data-preview-chart="monthlyComparisonChart">
                         <canvas id="monthlyComparisonChart"></canvas>
+                        <span class="chart-expand-hint"><i class="fas fa-expand-alt"></i></span>
                     </div>
                     <div class="chart-insights">
                         <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
@@ -930,7 +933,10 @@ if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
                     </button>
                 </div>
                 <div class="panel-content">
-                    <canvas id="clientsChart"></canvas>
+                    <div class="chart-expandable" onclick="openChartPreview('clientsChart','Top 15 Client Companies')" style="position:relative;">
+                        <canvas id="clientsChart"></canvas>
+                        <span class="chart-expand-hint"><i class="fas fa-expand-alt"></i></span>
+                    </div>
                     <div class="chart-insights">
                         <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
                         <?php foreach($client_insights as $insight): ?>
@@ -949,7 +955,10 @@ if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
                     </button>
                 </div>
                 <div class="panel-content">
-                    <canvas id="trendChart"></canvas>
+                    <div class="chart-expandable" onclick="openChartPreview('trendChart','Monthly Sales Trend')" style="position:relative;">
+                        <canvas id="trendChart"></canvas>
+                        <span class="chart-expand-hint"><i class="fas fa-expand-alt"></i></span>
+                    </div>
                     <div class="chart-insights">
                         <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
                         <?php foreach($trend_insights as $insight): ?>
@@ -971,7 +980,10 @@ if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
                     </button>
                 </div>
                 <div class="panel-content">
-                    <canvas id="groupAChart"></canvas>
+                    <div class="chart-expandable" onclick="openChartPreview('groupAChart','Quantity per Model (Group A)')" style="position:relative;">
+                        <canvas id="groupAChart"></canvas>
+                        <span class="chart-expand-hint"><i class="fas fa-expand-alt"></i></span>
+                    </div>
                     <div class="chart-insights">
                         <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
                         <?php foreach($groupA_insights as $insight): ?>
@@ -990,7 +1002,10 @@ if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
                     </button>
                 </div>
                 <div class="panel-content">
-                    <canvas id="groupBChart"></canvas>
+                    <div class="chart-expandable" onclick="openChartPreview('groupBChart','Quantity per Model (Group B)')" style="position:relative;">
+                        <canvas id="groupBChart"></canvas>
+                        <span class="chart-expand-hint"><i class="fas fa-expand-alt"></i></span>
+                    </div>
                     <div class="chart-insights">
                         <div class="insight-header"><i class="fas fa-lightbulb"></i> Insights</div>
                         <?php foreach($groupB_insights as $insight): ?>
@@ -1079,5 +1094,111 @@ if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
         }, 4000);
     </script>
     <script src="js/app.js" defer></script>
+
+    <!-- ===== CHART PREVIEW MODAL ===== -->
+    <div id="chartPreviewOverlay" onclick="closeChartPreview(event)" style="display:none; position:fixed; inset:0; z-index:9999; backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:16px; box-sizing:border-box;">
+        <div id="chartPreviewBox" style="border-radius:16px; width:min(1200px,97vw); height:90vh; display:flex; flex-direction:column; box-shadow:0 32px 80px rgba(0,0,0,0.6); overflow:hidden; transition:background 0.2s, border-color 0.2s;">
+            <div id="chartPreviewHeader" style="display:flex; align-items:center; justify-content:space-between; padding:18px 26px; flex-shrink:0;">
+                <h3 id="chartPreviewTitle" style="margin:0; font-size:18px; font-weight:700; letter-spacing:0.3px;"></h3>
+                <button id="chartPreviewCloseBtn" onclick="closeChartPreviewBtn()" style="width:34px; height:34px; border-radius:9px; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; transition:background 0.2s; border:none;"><i class="fas fa-times"></i></button>
+            </div>
+            <div style="padding:10px 26px 26px; flex:1; min-height:0; position:relative;">
+                <canvas id="chartPreviewCanvas" style="width:100% !important; height:100% !important;"></canvas>
+            </div>
+        </div>
+    </div>
+    <style>
+    .chart-expandable { cursor: pointer; }
+    .chart-expand-hint {
+        position: absolute; top: 8px; right: 8px;
+        background: rgba(244,208,63,0.15); border: 1px solid rgba(244,208,63,0.3);
+        color: #f4d03f; width: 28px; height: 28px; border-radius: 6px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 11px; opacity: 0; transition: opacity 0.2s;
+        pointer-events: none;
+    }
+    .chart-expandable:hover .chart-expand-hint { opacity: 1; }
+    .chart-expandable:hover canvas { opacity: 0.88; }
+    /* dark mode modal */
+    #chartPreviewOverlay.cp-dark  { background: rgba(4,8,18,0.92); }
+    #chartPreviewBox.cp-dark      { background: #131c2b; border: 1px solid #2a3c55; }
+    #chartPreviewHeader.cp-dark   { border-bottom: 1px solid #2a3c55; }
+    #chartPreviewTitle.cp-dark    { color: #e2ecf8; }
+    #chartPreviewCloseBtn.cp-dark { background: rgba(255,255,255,0.07); color: #a0b4c8; }
+    #chartPreviewCloseBtn.cp-dark:hover { background: rgba(255,80,80,0.22) !important; }
+    /* light mode modal */
+    #chartPreviewOverlay.cp-light  { background: rgba(180,195,215,0.72); }
+    #chartPreviewBox.cp-light      { background: #ffffff; border: 1px solid #d0daea; }
+    #chartPreviewHeader.cp-light   { border-bottom: 1px solid #e0eaf4; }
+    #chartPreviewTitle.cp-light    { color: #1a2a3a; }
+    #chartPreviewCloseBtn.cp-light { background: #f0f4fa; color: #3a4a5a; }
+    #chartPreviewCloseBtn.cp-light:hover { background: rgba(220,50,50,0.12) !important; }
+    </style>
+    <script>
+    function openChartPreview(canvasId, title) {
+        const sourceCanvas = document.getElementById(canvasId);
+        if (!sourceCanvas) return;
+        const sourceChart = (typeof Chart !== 'undefined') && Chart.getChart ? Chart.getChart(sourceCanvas) : null;
+        if (!sourceChart) return;
+
+        const isLight = document.body.classList.contains('light-mode');
+        const themeClass = isLight ? 'cp-light' : 'cp-dark';
+        const otherClass = isLight ? 'cp-dark' : 'cp-light';
+        const tickColor   = isLight ? '#4a5a6a' : '#8a9ab5';
+        const gridColor   = isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)';
+        const legendColor = isLight ? '#2a3a4a' : '#c0d0e0';
+
+        ['chartPreviewOverlay','chartPreviewBox','chartPreviewHeader','chartPreviewTitle','chartPreviewCloseBtn'].forEach(function(id) {
+            const el = document.getElementById(id);
+            el.classList.remove('cp-dark','cp-light');
+            el.classList.add(themeClass);
+        });
+
+        document.getElementById('chartPreviewTitle').textContent = title;
+        const overlay = document.getElementById('chartPreviewOverlay');
+        overlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+
+        const previewCanvas = document.getElementById('chartPreviewCanvas');
+        const existing = Chart.getChart(previewCanvas);
+        if (existing) existing.destroy();
+        try {
+            const cfg = {
+                type: sourceChart.config.type,
+                data: JSON.parse(JSON.stringify(sourceChart.config.data)),
+                options: JSON.parse(JSON.stringify(sourceChart.config.options || {}))
+            };
+            cfg.options.responsive = true;
+            cfg.options.maintainAspectRatio = false;
+            cfg.options.animation = { duration: 400 };
+            cfg.options.plugins = cfg.options.plugins || {};
+            cfg.options.plugins.legend = cfg.options.plugins.legend || {};
+            cfg.options.plugins.legend.labels = cfg.options.plugins.legend.labels || {};
+            cfg.options.plugins.legend.labels.color = legendColor;
+            cfg.options.plugins.legend.labels.font = { size: 14 };
+            if (cfg.options.plugins.title) cfg.options.plugins.title.color = legendColor;
+            if (cfg.options.scales) {
+                Object.values(cfg.options.scales).forEach(function(s) {
+                    s.ticks = s.ticks || {}; s.ticks.color = tickColor; s.ticks.font = { size: 13 };
+                    s.grid  = s.grid  || {}; s.grid.color  = gridColor;
+                });
+            }
+            new Chart(previewCanvas, cfg);
+        } catch(e) { console.error('Chart preview error:', e); }
+    }
+    function closeChartPreviewBtn() {
+        document.getElementById('chartPreviewOverlay').style.display = 'none';
+        document.body.style.overflow = '';
+        const c = Chart.getChart(document.getElementById('chartPreviewCanvas'));
+        if (c) c.destroy();
+    }
+    function closeChartPreview(e) {
+        if (e && e.target !== document.getElementById('chartPreviewOverlay')) return;
+        closeChartPreviewBtn();
+    }
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeChartPreviewBtn();
+    });
+    </script>
 </body>
 </html>
