@@ -965,7 +965,7 @@ if ($conn) {
                     <h3>Drag Excel files here</h3>
                     <p>or click to select from your computer</p>
                     <div class="upload-formats">
-                        Supported formats: <strong>.xlsx, .xls, .csv</strong> (Max 10MB per file) | <strong>Import one file at a time</strong>
+                        Supported formats: <strong>.xlsx, .xls, .csv</strong> (Max 20MB per file) | <strong>Import one file at a time</strong>
                     </div>
                     <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple />
                 </div>
@@ -1162,7 +1162,7 @@ if ($conn) {
         function handleFiles(files) {
             if (files.length === 0) return;
 
-            const maxSize = 10 * 1024 * 1024; // 10MB
+            const maxSize = 20 * 1024 * 1024; // 20MB
             let validFiles = [];
             let errors = [];
 
@@ -1176,7 +1176,7 @@ if ($conn) {
                 }
 
                 if (file.size > maxSize) {
-                    errors.push(`${file.name}: File too large (max 10MB)`);
+                    errors.push(`${file.name}: File too large (max 20MB)`);
                     continue;
                 }
 

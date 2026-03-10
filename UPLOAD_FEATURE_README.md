@@ -9,7 +9,7 @@ The Excel Data Upload feature allows administrators to bulk import delivery reco
 ✅ Real-time data preview before import
 ✅ Automatic data validation
 ✅ Error reporting for invalid records
-✅ File size limit: 10MB
+✅ File size limit: 20MB
 ✅ Template download for correct format
 
 ## Access
@@ -98,7 +98,7 @@ Click "Download Template" button on the upload page to get a pre-formatted Excel
 - ✓ All required fields must be present
 - ✓ Delivery_Day must be between 1-31
 - ✓ Quantity must be non-negative
-- ✓ File size must not exceed 10MB
+- ✓ File size must not exceed 20MB
 - ✓ Supported formats: .xlsx, .xls, .csv
 - ✓ Duplicate entries will be updated (unique key: month + day + item_code + company_name)
 
@@ -108,7 +108,7 @@ Click "Download Template" button on the upload page to get a pre-formatted Excel
 | Error | Cause | Solution |
 |-------|-------|----------|
 | "Invalid file format" | Wrong file type | Use Excel (.xlsx, .xls) or CSV |
-| "File is too large" | Exceeds 10MB | Split file into smaller parts |
+| "File is too large" | Exceeds 20MB | Split file into smaller parts |
 | "Missing required field" | Column not found | Download template and use correct column names |
 | "Invalid delivery day" | Day < 1 or > 31 | Correct the day value |
 | "Database connection failed" | API config incorrect | Update db credentials in api/import-data.php |
@@ -167,7 +167,7 @@ Click "Download Template" button on the upload page to get a pre-formatted Excel
 
 - **Batch Processing** - Process data in batches for large files
 - **Indexing** - Database has indexes on frequently queried columns
-- **File Size Limit** - Limited to 10MB to prevent server overload
+- **File Size Limit** - Limited to 20MB to prevent server overload
 - **Preview Limit** - Shows only first 10 rows in preview
 
 ## Security Notes
@@ -175,7 +175,7 @@ Click "Download Template" button on the upload page to get a pre-formatted Excel
 ⚠️ **Important Security Considerations:**
 - Validate all user input (currently implemented)
 - Use prepared statements for SQL (implemented with mysqli->prepare)
-- Limit file upload size (10MB limit implemented)
+- Limit file upload size (20MB limit implemented)
 - Restrict access to admin users only (todo: implement authentication)
 - Add CSRF token validation (todo: implement)
 - Sanitize file names (store in database, not file system)

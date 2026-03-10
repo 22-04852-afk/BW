@@ -87,7 +87,7 @@ In browser: `http://localhost/BW%20Gas%20Detector%20Project/`
 ✓ Template download
 ✓ Error reporting
 ✓ Duplicate detection & update
-✓ Max file size: 10MB
+✓ Max file size: 20MB
 
 ---
 

@@ -7,48 +7,47 @@ if (empty($_SESSION['user_id'])) {
 
 require_once 'db_config.php';
 
-// Get all deliveries to "to Andison Manila"
+// Get all deliveries to "to Andison Manila" with full details
 $companyName = 'to Andison Manila';
+$delivery_records = [];
+$totalQuantity = 0;
+
 $result = $conn->query("
     SELECT 
+        id,
+        invoice_no,
+        delivery_date,
+        delivery_month,
+        delivery_day,
+        delivery_year,
         item_code,
         item_name,
         quantity,
-        delivery_year,
-        delivery_month,
-        delivery_day,
-        status,
-        notes,
-        created_at
+        uom,
+        serial_no,
+        company_name,
+        sold_to_month,
+        sold_to_day,
+        notes as remarks,
+        groupings,
+        status
     FROM delivery_records
     WHERE company_name = '{$companyName}'
-    AND company_name != 'Stock Addition'
     ORDER BY delivery_year DESC, delivery_month DESC, delivery_day DESC
 ");
 
-$deliveries = [];
-$totalQuantity = 0;
-$itemTypes = [];
-
 if ($result) {
     while ($row = $result->fetch_assoc()) {
-        $deliveries[] = $row;
-        $totalQuantity += intval($row['quantity']);
-        
-        if (!isset($itemTypes[$row['item_code']])) {
-            $itemTypes[$row['item_code']] = [
-                'name' => $row['item_name'],
-                'total' => 0,
-                'deliveries' => 0
-            ];
-        }
-        $itemTypes[$row['item_code']]['total'] += intval($row['quantity']);
-        $itemTypes[$row['item_code']]['deliveries']++;
+        $delivery_records[] = $row;
+        $totalQuantity += intval($row['quantity'] ?? 0);
     }
 }
 
-$totalDeliveries = count($deliveries);
-$totalItems = count($itemTypes);
+$totalDeliveries = count($delivery_records);
+
+// Count distinct item codes
+$itemCodes = array_unique(array_column($delivery_records, 'item_code'));
+$totalItemTypes = count($itemCodes);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -66,7 +65,7 @@ $totalItems = count($itemTypes);
     <link rel="stylesheet" href="css/style.css">
     <style>
         .andison-container {
-            max-width: 1200px;
+            width: 100%;
             margin: 0 auto;
             padding: 20px;
         }
@@ -83,14 +82,14 @@ $totalItems = count($itemTypes);
         .page-title {
             font-size: 28px;
             font-weight: 700;
-            color: #fff;
+            color: #333333;
             display: flex;
             align-items: center;
             gap: 15px;
         }
 
         .page-title i {
-            color: #f4d03f;
+            color: #0066cc;
             font-size: 32px;
         }
 
@@ -112,7 +111,7 @@ $totalItems = count($itemTypes);
         .stat-value {
             font-size: 32px;
             font-weight: 700;
-            color: #f4d03f;
+            color: #0066cc;
             margin: 10px 0;
         }
 
@@ -126,77 +125,99 @@ $totalItems = count($itemTypes);
         .section-title {
             font-size: 20px;
             font-weight: 600;
-            color: #fff;
+            color: #333333;
             margin: 30px 0 20px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #f4d03f;
+            border-bottom: 2px solid #0066cc;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
         .section-title i {
-            color: #f4d03f;
+            color: #0066cc;
         }
 
         .table-responsive {
-            overflow-x: auto;
+            background: #ffffff;
+            padding: 25px;
             border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow-x: auto;
+            width: 100%;
         }
 
         table {
             width: 100%;
+            min-width: 1800px;
             border-collapse: collapse;
-            background: linear-gradient(135deg, #1e2a38 0%, #2a3f5f 100%);
+            background: #ffffff;
         }
 
         thead {
-            background: rgba(244, 208, 63, 0.1);
-            border-bottom: 2px solid #f4d03f;
+            background: #eeeeee;
+            border-bottom: 2px solid #ffffff;
         }
 
         th {
-            padding: 15px;
+            padding: 16px;
             text-align: left;
-            color: #f4d03f;
-            font-weight: 600;
+            color: #333333;
+            font-weight: 700;
             font-size: 13px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.6px;
         }
 
         td {
-            padding: 15px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            color: #e0e0e0;
+            padding: 16px;
+            border-bottom: 1px solid #ffffff;
+            color: #333333;
             font-size: 14px;
         }
 
         tbody tr:hover {
-            background: rgba(244, 208, 63, 0.05);
+            background: #f9f9f9;
         }
 
+        /* Column-specific widths */
+        th:nth-child(1), td:nth-child(1) { min-width: 110px; } /* Invoice No */
+        th:nth-child(2), td:nth-child(2) { min-width: 90px; }  /* Date */
+        th:nth-child(3), td:nth-child(3) { min-width: 110px; } /* Delivery Month */
+        th:nth-child(4), td:nth-child(4) { min-width: 100px; } /* Delivery Day */
+        th:nth-child(5), td:nth-child(5) { min-width: 60px; }  /* Year */
+        th:nth-child(6), td:nth-child(6) { min-width: 90px; }  /* Item */
+        th:nth-child(7), td:nth-child(7) { min-width: 180px; } /* Description */
+        th:nth-child(8), td:nth-child(8) { min-width: 70px; }  /* Qty */
+        th:nth-child(9), td:nth-child(9) { min-width: 70px; }  /* UOM */
+        th:nth-child(10), td:nth-child(10) { min-width: 100px; } /* Serial No */
+        th:nth-child(11), td:nth-child(11) { min-width: 100px; } /* Sold To */
+        th:nth-child(12), td:nth-child(12) { min-width: 100px; } /* Date Delivered */
+        th:nth-child(13), td:nth-child(13) { min-width: 90px; } /* Sold To Month */
+        th:nth-child(14), td:nth-child(14) { min-width: 90px; } /* Sold To Day */
+        th:nth-child(15), td:nth-child(15) { min-width: 120px; } /* Remarks */
+        th:nth-child(16), td:nth-child(16) { min-width: 100px; } /* Groupings */
+        th:nth-child(17), td:nth-child(17) { min-width: 80px; text-align: center; } /* Action */
+
         .item-code {
-            color: #00d9ff;
+            color: #0066cc;
             font-weight: 600;
             font-family: 'Courier New', monospace;
         }
 
         .quantity {
-            color: #2ecc71;
+            color: #27ae60;
             font-weight: 600;
             font-size: 16px;
         }
 
         .date-cell {
-            color: #999;
+            color: #666666;
             font-size: 13px;
         }
 
         .status-delivered {
-            background: rgba(46, 204, 113, 0.2);
-            color: #2ecc71;
+            background: rgba(39, 174, 96, 0.2);
+            color: #27ae60;
             padding: 4px 8px;
             border-radius: 4px;
             font-size: 11px;
@@ -207,7 +228,7 @@ $totalItems = count($itemTypes);
         .no-data {
             text-align: center;
             padding: 40px 20px;
-            color: #999;
+            color: #666666;
         }
 
         .no-data i {
@@ -217,9 +238,77 @@ $totalItems = count($itemTypes);
             opacity: 0.5;
         }
 
+        .view-btn {
+            padding: 6px 12px;
+            background: rgba(0, 102, 204, 0.1);
+            border: 1px solid rgba(0, 102, 204, 0.3);
+            border-radius: 4px;
+            color: #0066cc;
+            text-decoration: none;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 600;
+        }
+
+        .view-btn:hover {
+            background: rgba(0, 102, 204, 0.2);
+            border-color: rgba(0, 102, 204, 0.5);
+        }
+
+        .edit-btn {
+            padding: 6px 10px;
+            background: rgba(230, 126, 34, 0.1);
+            border: none;
+            border-radius: 4px;
+            color: #e67e22;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .edit-btn:hover {
+            background: rgba(230, 126, 34, 0.2);
+        }
+
+        .delete-btn {
+            padding: 6px 10px;
+            background: rgba(231, 76, 60, 0.1);
+            border: none;
+            border-radius: 4px;
+            color: #e74c3c;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .delete-btn:hover {
+            background: rgba(231, 76, 60, 0.2);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+        }
+
         .back-btn {
             padding: 10px 20px;
-            background: #666;
+            background: #0066cc;
             border: none;
             border-radius: 8px;
             color: #fff;
@@ -233,7 +322,7 @@ $totalItems = count($itemTypes);
         }
 
         .back-btn:hover {
-            background: #777;
+            background: #004999;
             transform: translateY(-2px);
         }
 
@@ -405,72 +494,77 @@ $totalItems = count($itemTypes);
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">Item Types</div>
-                        <div class="stat-value"><?php echo $totalItems; ?></div>
+                        <div class="stat-value"><?php echo $totalItemTypes; ?></div>
                     </div>
                 </div>
 
                 <!-- Items Summary -->
                 <div class="section-title">
-                    <i class="fas fa-boxes"></i> Items Delivered (Summary)
-                </div>
-                <?php if ($totalItems > 0): ?>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Item Code</th>
-                                <th>Item Name</th>
-                                <th>Total Units</th>
-                                <th>Deliveries</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($itemTypes as $code => $item): ?>
-                            <tr>
-                                <td><span class="item-code"><?php echo htmlspecialchars($code); ?></span></td>
-                                <td><?php echo htmlspecialchars($item['name']); ?></td>
-                                <td><span class="quantity"><?php echo number_format($item['total']); ?></span></td>
-                                <td><?php echo $item['deliveries']; ?></td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-                <?php else: ?>
-                <div class="no-data">
-                    <i class="fas fa-inbox"></i>
-                    <p>No deliveries found</p>
-                </div>
-                <?php endif; ?>
-
-                <!-- Delivery History -->
-                <div class="section-title">
-                    <i class="fas fa-history"></i> Delivery History
+                    <i class="fas fa-list"></i> Delivery Records
                 </div>
                 <?php if ($totalDeliveries > 0): ?>
                 <div class="table-responsive">
                     <table>
                         <thead>
                             <tr>
+                                <th>Invoice No.</th>
                                 <th>Date</th>
-                                <th>Item Code</th>
-                                <th>Item Name</th>
-                                <th>Quantity</th>
-                                <th>Status</th>
-                                <th>Notes</th>
+                                <th>Delivery Month to Andison</th>
+                                <th>Delivery Day to Andison</th>
+                                <th>Year</th>
+                                <th>Item</th>
+                                <th>Description</th>
+                                <th>Qty.</th>
+                                <th>UOM</th>
+                                <th>Serial No.</th>
+                                <th>Sold To</th>
+                                <th>Date Delivered</th>
+                                <th>Sold To Month</th>
+                                <th>Sold To Day</th>
+                                <th>Remarks</th>
+                                <th>Groupings</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($deliveries as $delivery): 
-                                $dateFormatted = "{$delivery['delivery_month']} {$delivery['delivery_day']}, {$delivery['delivery_year']}";
+                            <?php foreach ($delivery_records as $record):
+                                $delivery_date = '';
+                                if (!empty($record['delivery_date'])) {
+                                    $delivery_date = date('M j, Y', strtotime($record['delivery_date']));
+                                }
+                                
+                                $date_col = '';
+                                if (!empty($record['delivery_date'])) {
+                                    $date_col = date('m/d/Y', strtotime($record['delivery_date']));
+                                }
+                                
+                                $sold_to_month = !empty($record['sold_to_month']) ? $record['sold_to_month'] : '';
+                                $sold_to_day = !empty($record['sold_to_day']) ? $record['sold_to_day'] : '';
                             ?>
                             <tr>
-                                <td><span class="date-cell"><?php echo htmlspecialchars($dateFormatted); ?></span></td>
-                                <td><span class="item-code"><?php echo htmlspecialchars($delivery['item_code']); ?></span></td>
-                                <td><?php echo htmlspecialchars(substr($delivery['item_name'], 0, 40)); ?></td>
-                                <td><span class="quantity"><?php echo number_format($delivery['quantity']); ?></span></td>
-                                <td><span class="status-delivered"><?php echo htmlspecialchars($delivery['status']); ?></span></td>
-                                <td><?php echo htmlspecialchars($delivery['notes'] ?? '-'); ?></td>
+                                <td><?php echo htmlspecialchars($record['invoice_no'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($date_col); ?></td>
+                                <td><?php echo htmlspecialchars($record['delivery_month'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($record['delivery_day'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($record['delivery_year'] ?? ''); ?></td>
+                                <td><span class="item-code"><?php echo htmlspecialchars($record['item_code'] ?? ''); ?></span></td>
+                                <td><?php echo htmlspecialchars($record['item_name'] ?? ''); ?></td>
+                                <td><span class="quantity"><?php echo (!empty($record['quantity']) && $record['quantity'] > 0) ? htmlspecialchars($record['quantity']) : ''; ?></span></td>
+                                <td><?php echo htmlspecialchars($record['uom'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($record['serial_no'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($record['company_name'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($delivery_date); ?></td>
+                                <td><?php echo htmlspecialchars($sold_to_month); ?></td>
+                                <td><?php echo htmlspecialchars($sold_to_day); ?></td>
+                                <td><?php echo htmlspecialchars($record['remarks'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($record['groupings'] ?? ''); ?></td>
+                                <td style="text-align: center;">
+                                    <div class="action-buttons">
+                                        <a href="#" class="view-btn" onclick="openModal(event, <?php echo intval($record['id'] ?? 0); ?>)" title="View Record">View</a>
+                                        <a href="#" class="edit-btn" onclick="openEditModal(event, <?php echo intval($record['id'] ?? 0); ?>)" title="Edit Record"><i class="fas fa-edit"></i></a>
+                                        <a href="#" class="delete-btn" onclick="deleteRecord(event, <?php echo intval($record['id'] ?? 0); ?>, '<?php echo htmlspecialchars($record['serial_no'] ?? ''); ?>')" title="Delete Record"><i class="fas fa-trash-alt"></i></a>
+                                    </div>
+                                </td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -479,7 +573,7 @@ $totalItems = count($itemTypes);
                 <?php else: ?>
                 <div class="no-data">
                     <i class="fas fa-inbox"></i>
-                    <p>No delivery history found</p>
+                    <p>No delivery records found for Andison Manila</p>
                 </div>
                 <?php endif; ?>
             </div>
@@ -523,6 +617,50 @@ $totalItems = count($itemTypes);
                 html.classList.remove('light-mode');
                 document.body.classList.remove('light-mode');
                 localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Open view modal for record details
+        function openModal(event, recordId) {
+            event.preventDefault();
+            // Redirect to delivery-records.php with the record ID
+            window.location.href = 'delivery-records.php?view=' + recordId;
+        }
+
+        // Open edit modal for editing record
+        function openEditModal(event, recordId) {
+            event.preventDefault();
+            // Redirect to delivery-records.php with the record ID for editing
+            window.location.href = 'delivery-records.php?edit=' + recordId;
+        }
+
+        // Delete record
+        function deleteRecord(event, recordId, serialNo) {
+            event.preventDefault();
+            if (confirm('Are you sure you want to delete this record? (Serial: ' + serialNo + ')')) {
+                // Send delete request
+                fetch('api/delete-record.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: recordId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Record deleted successfully');
+                        location.reload();
+                    } else {
+                        alert('Error deleting record: ' + (data.message || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error deleting record');
+                });
             }
         }
     </script>
