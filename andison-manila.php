@@ -26,6 +26,7 @@ $result = $conn->query("
         uom,
         serial_no,
         company_name,
+        transferred_to,
         sold_to,
         sold_to_month,
         sold_to_day,
@@ -33,7 +34,7 @@ $result = $conn->query("
         groupings,
         status
     FROM delivery_records
-    WHERE company_name = '{$companyName}'
+    WHERE company_name = '{$companyName}' OR transferred_to = '{$companyName}'
     ORDER BY delivery_year DESC, delivery_month DESC, delivery_day DESC
 ");
 
@@ -49,6 +50,14 @@ $totalDeliveries = count($delivery_records);
 // Count distinct item codes
 $itemCodes = array_unique(array_column($delivery_records, 'item_code'));
 $totalItemTypes = count($itemCodes);
+
+// Count records with a sold_to value
+$totalSold = count(array_filter($delivery_records, function($r) {
+    $soldTo = !empty($r['transferred_to']) && $r['transferred_to'] === 'to Andison Manila'
+        ? ($r['company_name'] ?? '')
+        : ($r['sold_to'] ?? '');
+    return $soldTo !== '';
+}));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -326,6 +335,73 @@ $totalItemTypes = count($itemCodes);
             background: #004999;
             transform: translateY(-2px);
         }
+
+        /* Search bar */
+        .search-container {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 18px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .search-box {
+            flex: 1;
+            min-width: 280px;
+            position: relative;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 11px 42px 11px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(0,0,0,0.12);
+            background: #fff;
+            color: #222;
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: #0066cc;
+        }
+        .search-box i {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+            pointer-events: none;
+        }
+        .search-count {
+            font-size: 13px;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        /* Filter tabs */
+        .filter-tab {
+            padding: 8px 20px;
+            border: 1px solid rgba(0,0,0,0.12);
+            border-radius: 8px;
+            background: #f5f5f5;
+            color: #555;
+            font-family: 'Poppins', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-tab:hover { background: #e8e8e8; }
+        .filter-tab.active {
+            background: #0066cc;
+            color: #fff;
+            border-color: #0066cc;
+        }
+        html.light-mode .filter-tab, body.light-mode .filter-tab { background: #f0f0f0; color: #333; border-color: #ccc; }
+        html.light-mode .filter-tab.active, body.light-mode .filter-tab.active { background: #0066cc; color: #fff; border-color: #0066cc; }
+        html.light-mode .search-box input,
+        body.light-mode .search-box input { background: #fff; color: #222; border-color: #ccc; }
 
         .btn-add-record {
             padding: 10px 20px;
@@ -654,7 +730,7 @@ $totalItemTypes = count($itemCodes);
                 <!-- Stats -->
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-label">Total Deliveries</div>
+                        <div class="stat-label">Total Transferred</div>
                         <div class="stat-value"><?php echo $totalDeliveries; ?></div>
                     </div>
                     <div class="stat-card">
@@ -665,6 +741,10 @@ $totalItemTypes = count($itemCodes);
                         <div class="stat-label">Item Types</div>
                         <div class="stat-value"><?php echo $totalItemTypes; ?></div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total Sold</div>
+                        <div class="stat-value" style="color:#2ecc71;"><?php echo $totalSold; ?></div>
+                    </div>
                 </div>
 
                 <!-- Items Summary -->
@@ -672,6 +752,22 @@ $totalItemTypes = count($itemCodes);
                     <i class="fas fa-list"></i> Delivery Records
                 </div>
                 <?php if ($totalDeliveries > 0): ?>
+
+                <!-- Filter Tabs -->
+                <div class="filter-tabs" style="display:flex;gap:8px;margin-bottom:14px;">
+                    <button class="filter-tab active" id="tabAll" onclick="setFilter('all')">All Records</button>
+                    <button class="filter-tab" id="tabSales" onclick="setFilter('sales')"><i class="fas fa-tag" style="margin-right:5px;"></i>Sales</button>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="search-container">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Search by invoice, serial no, item, company..." oninput="searchTable()">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <span class="search-count" id="searchCount">Showing <?php echo $totalDeliveries; ?> records</span>
+                </div>
+
                 <div class="table-responsive">
                     <table>
                         <thead>
@@ -710,8 +806,15 @@ $totalItemTypes = count($itemCodes);
                                 
                                 $sold_to_month = !empty($record['sold_to_month']) ? $record['sold_to_month'] : '';
                                 $sold_to_day = !empty($record['sold_to_day']) ? $record['sold_to_day'] : '';
+
+                                // Determine the actual sold-to value for filtering
+                                if (!empty($record['transferred_to']) && $record['transferred_to'] === 'to Andison Manila') {
+                                    $row_sold_to = $record['company_name'] ?? '';
+                                } else {
+                                    $row_sold_to = $record['sold_to'] ?? '';
+                                }
                             ?>
-                            <tr>
+                            <tr data-soldto="<?php echo !empty($row_sold_to) ? '1' : '0'; ?>">
                                 <td><?php echo htmlspecialchars($record['invoice_no'] ?? ''); ?></td>
                                 <td><?php echo htmlspecialchars($date_col); ?></td>
                                 <td><?php echo htmlspecialchars($record['delivery_month'] ?? ''); ?></td>
@@ -722,8 +825,21 @@ $totalItemTypes = count($itemCodes);
                                 <td><span class="quantity"><?php echo (!empty($record['quantity']) && $record['quantity'] > 0) ? htmlspecialchars($record['quantity']) : ''; ?></span></td>
                                 <td><?php echo htmlspecialchars($record['uom'] ?? ''); ?></td>
                                 <td><?php echo htmlspecialchars($record['serial_no'] ?? ''); ?></td>
-                                <td><?php echo htmlspecialchars($record['company_name'] ?? ''); ?></td>
-                                <td><?php echo htmlspecialchars($record['sold_to'] ?? ''); ?></td>
+                                <td><?php
+                                    // "Transferred" = always "to Andison Manila" indicator
+                                    $transferred_display = (!empty($record['transferred_to'])) ? $record['transferred_to'] : ($record['company_name'] ?? '');
+                                    echo htmlspecialchars($transferred_display);
+                                ?></td>
+                                <td><?php
+                                    // "Sold To" = actual end customer
+                                    // New-style: transferred_to='to Andison Manila', customer in company_name
+                                    // Old-style / normalized: company_name='to Andison Manila', customer in sold_to
+                                    if (!empty($record['transferred_to']) && $record['transferred_to'] === 'to Andison Manila') {
+                                        echo htmlspecialchars($record['company_name'] ?? '');
+                                    } else {
+                                        echo htmlspecialchars($record['sold_to'] ?? '');
+                                    }
+                                ?></td>
                                 <td><?php echo htmlspecialchars($delivery_date); ?></td>
                                 <td><?php echo htmlspecialchars($sold_to_month); ?></td>
                                 <td><?php echo htmlspecialchars($sold_to_day); ?></td>
@@ -1289,8 +1405,13 @@ $totalItemTypes = count($itemCodes);
             document.getElementById('edit_serial_no').value     = record.serial_no || '';
             document.getElementById('edit_item_code').value     = record.item_code || '';
             document.getElementById('edit_item_name').value     = record.item_name || '';
-            document.getElementById('edit_company_name').value  = record.company_name || '';
-            document.getElementById('edit_sold_to').value       = record.sold_to || '';
+            // Always show "to Andison Manila" in the Transferred field
+            document.getElementById('edit_company_name').value  = 'to Andison Manila';
+            // Resolve actual customer: new-style records store it in company_name, old-style in sold_to
+            const actualSoldTo = (record.transferred_to === 'to Andison Manila')
+                ? (record.company_name || '')
+                : (record.sold_to || '');
+            document.getElementById('edit_sold_to').value       = actualSoldTo;
             document.getElementById('edit_quantity').value      = record.quantity || '';
             document.getElementById('edit_uom').value           = record.uom || '';
             document.getElementById('edit_notes').value         = record.remarks || '';
@@ -1327,8 +1448,8 @@ $totalItemTypes = count($itemCodes);
                 invoice_no:     document.getElementById('edit_invoice_no').value,
                 item_code:      document.getElementById('edit_item_code').value,
                 item_name:      document.getElementById('edit_item_name').value,
-                company_name:   document.getElementById('edit_company_name').value,
-                transferred_to: document.getElementById('edit_transferred_to').value,
+                company_name:   'to Andison Manila',
+                transferred_to: '',
                 sold_to:        document.getElementById('edit_sold_to').value,
                 quantity:       parseInt(document.getElementById('edit_quantity').value) || 0,
                 uom:            document.getElementById('edit_uom').value,
@@ -1371,6 +1492,40 @@ $totalItemTypes = count($itemCodes);
         window.addEventListener('click', e => {
             if (e.target === document.getElementById('editRecordModal')) closeEditModal();
         });
+
+        // ===== FILTER TABS =====
+        let activeFilter = 'all';
+
+        function setFilter(filter) {
+            activeFilter = filter;
+            document.getElementById('tabAll').classList.toggle('active', filter === 'all');
+            document.getElementById('tabSales').classList.toggle('active', filter === 'sales');
+            searchTable();
+        }
+
+        // ===== SEARCH =====
+        function searchTable() {
+            const filter = document.getElementById('searchInput').value.toLowerCase().trim();
+            const rows = document.querySelectorAll('table tbody tr');
+            let count = 0;
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const textMatch = filter === '' || text.includes(filter);
+                const salesMatch = activeFilter !== 'sales' || row.dataset.soldto === '1';
+                const match = textMatch && salesMatch;
+                row.style.display = match ? '' : 'none';
+                if (match) count++;
+            });
+            const total = <?php echo $totalDeliveries; ?>;
+            const countEl = document.getElementById('searchCount');
+            if (countEl) {
+                const label = activeFilter === 'sales' ? 'sales records' : 'records';
+                countEl.textContent = (filter || activeFilter === 'sales')
+                    ? `Showing ${count} of ${total} ${label}`
+                    : `Showing ${total} records`;
+                countEl.style.color = (filter || activeFilter === 'sales') ? '#0066cc' : '#666';
+            }
+        }
 
         // ===== TOAST =====
         function showToast(message, type = 'success') {

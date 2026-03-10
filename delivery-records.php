@@ -1101,7 +1101,6 @@ try {
             <button class="filter-btn">In Transit</button>
             <button class="filter-btn">Pending</button>
             <button class="filter-btn">Cancelled</button>
-            <button class="filter-btn" style="background: linear-gradient(135deg, rgba(255, 214, 10, 0.3), rgba(255, 214, 10, 0.1)); border-color: #ffd60a;">Andison Manila Sales</button>
         </div>
 
         <!-- Delivery Table -->
@@ -1119,7 +1118,6 @@ try {
                         <th>Qty.</th>
                         <th>UOM</th>
                         <th>Serial No.</th>
-                        <th>Transferred</th>
                         <th id="soldToHeader">Sold To</th>
                         <th>Date Delivered</th>
                         <th id="soldToMonthHeader">Sold To Month</th>
@@ -1132,7 +1130,7 @@ try {
                 <tbody>
                     <?php if (empty($delivery_records)): ?>
                     <tr>
-                        <td colspan="17" style="text-align: center; padding: 40px; color: #a0a0a0;">
+                        <td colspan="16" style="text-align: center; padding: 40px; color: #a0a0a0;">
                             <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
                             No delivery records found. <a href="upload-data.php" style="color: #f4d03f;">Upload data</a> to get started.
                         </td>
@@ -1157,10 +1155,27 @@ try {
                         // Hide rows beyond initial limit (30)
                         $hidden_class = ($row_index >= 30) ? 'hidden-row' : '';
                         
-                        // Check if this is Andison Manila
-                        $andison_class = (isset($record['company_name']) && $record['company_name'] === 'to Andison Manila') ? 'andison-manila-row' : '';
+                        // Check if this is Andison Manila (old records: company_name; new records: transferred_to)
+                        $is_andison = (isset($record['company_name']) && $record['company_name'] === 'to Andison Manila')
+                                   || (isset($record['transferred_to']) && $record['transferred_to'] === 'to Andison Manila');
+                        $andison_class = $is_andison ? 'andison-manila-row' : '';
+                        // Resolve actual end customer for Andison rows:
+                        // - sold_to: old-style / normalized (company_name='to Andison Manila', sold_to=customer)
+                        // - transferred_to='to Andison Manila': new-style, customer stored in company_name
+                        // - transferred_to=customer (not 'to Andison Manila'): added from delivery-records.php
+                        if (!empty($record['sold_to'])) {
+                            $andison_sold_to = $record['sold_to'];
+                        } elseif (!empty($record['transferred_to']) && $record['transferred_to'] === 'to Andison Manila'
+                                  && !empty($record['company_name']) && $record['company_name'] !== 'to Andison Manila') {
+                            // New-style: transferred_to='to Andison Manila', customer in company_name
+                            $andison_sold_to = $record['company_name'];
+                        } elseif (!empty($record['transferred_to']) && $record['transferred_to'] !== 'to Andison Manila') {
+                            $andison_sold_to = $record['transferred_to'];
+                        } else {
+                            $andison_sold_to = '';
+                        }
                     ?>
-                    <tr data-record-id="<?php echo htmlspecialchars($record['id'] ?? ''); ?>" data-row-index="<?php echo $row_index; ?>" data-dataset="<?php echo htmlspecialchars($record['dataset_name'] ?? '', ENT_QUOTES); ?>" data-sold-to="<?php echo htmlspecialchars(isset($record['sold_to']) ? $record['sold_to'] : '', ENT_QUOTES); ?>" class="<?php echo $hidden_class . ' ' . $andison_class; ?>">
+                    <tr data-record-id="<?php echo htmlspecialchars($record['id'] ?? ''); ?>" data-row-index="<?php echo $row_index; ?>" data-dataset="<?php echo htmlspecialchars($record['dataset_name'] ?? '', ENT_QUOTES); ?>" data-sold-to="<?php echo htmlspecialchars($is_andison ? $andison_sold_to : (isset($record['sold_to']) ? $record['sold_to'] : ''), ENT_QUOTES); ?>" class="<?php echo $hidden_class . ' ' . $andison_class; ?>">
                         <td><?php echo htmlspecialchars($record['invoice_no'] ?? ''); ?></td>
                         <td><?php echo htmlspecialchars($date_col); ?></td>
                         <td><?php echo htmlspecialchars($record['delivery_month'] ?? ''); ?></td>
@@ -1171,8 +1186,13 @@ try {
                         <td><?php echo (!empty($record['quantity']) && $record['quantity'] > 0) ? htmlspecialchars($record['quantity']) : ''; ?></td>
                         <td><?php echo htmlspecialchars($record['uom'] ?? ''); ?></td>
                         <td><?php echo htmlspecialchars($record['serial_no'] ?? ''); ?></td>
-                        <td><?php echo htmlspecialchars($record['company_name'] ?? ''); ?></td>
-                        <td><?php echo htmlspecialchars($record['sold_to'] ?? ''); ?></td>
+                        <td><?php
+                            if ($is_andison) {
+                                echo htmlspecialchars($andison_sold_to);
+                            } else {
+                                echo htmlspecialchars(!empty($record['sold_to']) ? $record['sold_to'] : ($record['company_name'] ?? ''));
+                            }
+                        ?></td>
                         <td><?php echo htmlspecialchars($delivery_date); ?></td>
                         <td><?php echo htmlspecialchars($sold_to_month); ?></td>
                         <td><?php echo htmlspecialchars($sold_to_day); ?></td>
@@ -1280,6 +1300,11 @@ try {
                         <label for="add_company_name">Sold To</label>
                         <input type="text" id="add_company_name" name="company_name" placeholder="e.g., to Andison Manila">
                         <small class="input-hint">Original delivery recipient (e.g., to Andison Manila)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="add_transferred_to">Transferred</label>
+                        <input type="text" id="add_transferred_to" name="transferred_to" placeholder="e.g., Company Name">
+                        <small class="input-hint">Company the item was transferred to from Andison Manila</small>
                     </div>
                     <div class="form-group">
                         <label for="add_delivery_date">Date Delivered</label>
@@ -1515,6 +1540,11 @@ try {
                         <small class="input-hint">Original delivery recipient (e.g., to Andison Manila)</small>
                     </div>
                     <div class="form-group">
+                        <label for="edit_transferred_to">Transferred</label>
+                        <input type="text" id="edit_transferred_to" name="transferred_to" placeholder="e.g., Company Name">
+                        <small class="input-hint">Company the item was transferred to from Andison Manila</small>
+                    </div>
+                    <div class="form-group">
                         <label for="edit_delivery_date">Date Delivered</label>
                         <input type="date" id="edit_delivery_date" name="delivery_date">
                         <small class="input-hint">Actual delivery date to client</small>
@@ -1736,6 +1766,7 @@ try {
                 uom: document.getElementById('add_uom').value,
                 serial_no: document.getElementById('add_serial_no').value,
                 company_name: document.getElementById('add_company_name').value,
+                transferred_to: document.getElementById('add_transferred_to').value,
                 delivery_date: document.getElementById('add_delivery_date').value,
                 sold_to_month: document.getElementById('add_sold_to_month').value,
                 sold_to_day: parseInt(document.getElementById('add_sold_to_day').value) || 0,
@@ -1812,6 +1843,7 @@ try {
             document.getElementById('edit_item_code').value = record.item_code || '';
             document.getElementById('edit_item_name').value = record.item_name || '';
             document.getElementById('edit_company_name').value = record.company_name || '';
+            document.getElementById('edit_transferred_to').value = record.transferred_to || '';
             document.getElementById('edit_quantity').value = record.quantity || '';
             document.getElementById('edit_uom').value = record.uom || '';
             document.getElementById('edit_notes').value = record.notes || '';
@@ -1864,6 +1896,7 @@ try {
                 item_code: document.getElementById('edit_item_code').value,
                 item_name: document.getElementById('edit_item_name').value,
                 company_name: document.getElementById('edit_company_name').value,
+                transferred_to: document.getElementById('edit_transferred_to').value,
                 quantity: parseInt(document.getElementById('edit_quantity').value) || 0,
                 uom: document.getElementById('edit_uom').value,
                 date: document.getElementById('edit_date').value,
@@ -1916,6 +1949,11 @@ try {
             }
         });
 
+        // Hide Andison Manila rows on initial load ("All" is the default filter)
+        document.querySelectorAll('table tbody tr.andison-manila-row').forEach(row => {
+            row.style.display = 'none';
+        });
+
         // Filter functionality
         const filterBtns = document.querySelectorAll('.filter-btn');
 
@@ -1934,26 +1972,12 @@ try {
                 const itemHeader = document.getElementById('itemHeader');
 
                 // Show/hide rows based on filter
-                // Since Status column was removed, "All" shows everything
-                // Other filters are kept for backwards compatibility but show nothing without status
                 tableRows.forEach(row => {
                     // Skip rows with colspan (empty state)
                     if (row.querySelector('td[colspan]')) return;
                     
                     if (filterValue === 'all') {
-                        row.style.display = '';
-                    } else if (filterValue === 'andison manila sales') {
-                        // Filter for Andison Manila sales (rows with andison-manila-row class AND has sold_to value)
-                        if (row.classList.contains('andison-manila-row')) {
-                            const soldTo = row.getAttribute('data-sold-to') || '';
-                            if (soldTo.trim() !== '') {
-                                row.style.display = '';
-                            } else {
-                                row.style.display = 'none';
-                            }
-                        } else {
-                            row.style.display = 'none';
-                        }
+                        row.style.display = row.classList.contains('hidden-row') ? 'none' : '';
                     } else {
                         // Check for badge if it exists
                         const badge = row.querySelector('.badge');
@@ -1972,15 +1996,9 @@ try {
                 });
                 
                 // Update header text based on filter
-                if (filterValue === 'andison manila sales') {
-                    if (itemHeader) itemHeader.textContent = 'Item Code';
-                    if (soldToMonthHeader) soldToMonthHeader.textContent = 'Transferred Month';
-                    if (soldToDayHeader) soldToDayHeader.textContent = 'Transferred Day';
-                } else {
-                    if (itemHeader) itemHeader.textContent = 'Item';
-                    if (soldToMonthHeader) soldToMonthHeader.textContent = 'Sold To Month';
-                    if (soldToDayHeader) soldToDayHeader.textContent = 'Sold To Day';
-                }
+                if (itemHeader) itemHeader.textContent = 'Item';
+                if (soldToMonthHeader) soldToMonthHeader.textContent = 'Sold To Month';
+                if (soldToDayHeader) soldToDayHeader.textContent = 'Sold To Day';
                 
                 // Clear search box when filter changes
                 document.getElementById('searchInput').value = '';
