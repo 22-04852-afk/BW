@@ -190,10 +190,10 @@ $totalItemTypes = count($itemCodes);
         th:nth-child(8), td:nth-child(8) { min-width: 70px; }  /* Qty */
         th:nth-child(9), td:nth-child(9) { min-width: 70px; }  /* UOM */
         th:nth-child(10), td:nth-child(10) { min-width: 100px; } /* Serial No */
-        th:nth-child(11), td:nth-child(11) { min-width: 100px; } /* Sold To */
+        th:nth-child(11), td:nth-child(11) { min-width: 100px; } /* Transferred */
         th:nth-child(12), td:nth-child(12) { min-width: 100px; } /* Date Delivered */
-        th:nth-child(13), td:nth-child(13) { min-width: 90px; } /* Sold To Month */
-        th:nth-child(14), td:nth-child(14) { min-width: 90px; } /* Sold To Day */
+        th:nth-child(13), td:nth-child(13) { min-width: 90px; } /* Transferred Month */
+        th:nth-child(14), td:nth-child(14) { min-width: 90px; } /* Transferred Day */
         th:nth-child(15), td:nth-child(15) { min-width: 120px; } /* Remarks */
         th:nth-child(16), td:nth-child(16) { min-width: 100px; } /* Groupings */
         th:nth-child(17), td:nth-child(17) { min-width: 80px; text-align: center; } /* Action */
@@ -326,6 +326,28 @@ $totalItemTypes = count($itemCodes);
             transform: translateY(-2px);
         }
 
+        .btn-add-record {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-add-record:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(39, 174, 96, 0.35);
+        }
+
         @media (max-width: 768px) {
             .page-header {
                 flex-direction: column;
@@ -344,6 +366,147 @@ $totalItemTypes = count($itemCodes);
                 padding: 10px;
             }
         }
+
+        /* ===== MODAL STYLES ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        .modal.show {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 20px;
+        }
+        body.modal-open { overflow: hidden; }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1e2a38 0%, #2a3f5f 100%);
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.06);
+            width: 90%;
+            max-width: 560px;
+            color: #e0e0e0;
+            margin-top: 20px;
+        }
+        .modal-content.modal-large {
+            max-width: 750px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            box-sizing: border-box;
+            margin: 20px 0;
+        }
+        .modal-content.modal-large::-webkit-scrollbar { width: 6px; }
+        .modal-content.modal-large::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 3px; }
+        .modal-content.modal-large::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 15px;
+        }
+        .modal-header h2 { color: #fff; margin: 0; font-size: 18px; }
+        .close-btn { background: none; border: none; color: #a0a0a0; font-size: 28px; cursor: pointer; transition: color 0.3s; }
+        .close-btn:hover { color: #fff; }
+
+        .modal-body { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .modal-row { display: flex; flex-direction: column; }
+        .modal-label { font-size: 11px; color: #a0a0a0; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; }
+        .modal-value { font-size: 14px; color: #fff; font-weight: 600; }
+        .modal-row.full-width { grid-column: 1 / -1; }
+
+        /* Delete Modal */
+        .delete-modal {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .delete-modal.show { display: flex; }
+        .delete-modal-content {
+            background: linear-gradient(145deg, #1e2a38, #16202c);
+            border-radius: 16px;
+            padding: 35px 40px;
+            max-width: 450px; width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .delete-modal-icon { font-size: 60px; color: #e74c3c; margin-bottom: 20px; }
+        .delete-modal-title { font-size: 22px; font-weight: 600; color: #fff; margin-bottom: 12px; }
+        .delete-modal-message { font-size: 15px; color: #a0a0a0; margin-bottom: 30px; line-height: 1.5; }
+        .delete-modal-message strong { color: #f4d03f; }
+        .delete-modal-actions { display: flex; gap: 15px; justify-content: center; }
+        .delete-modal-btn { padding: 14px 30px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .btn-confirm-delete { background: linear-gradient(135deg, #e74c3c, #c0392b); color: #fff; }
+        .btn-confirm-delete:hover { background: linear-gradient(135deg, #ff6b5b, #e74c3c); transform: translateY(-2px); }
+        .btn-cancel-delete { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+        .btn-cancel-delete:hover { background: rgba(255,255,255,0.15); }
+
+        /* Form styles for Edit modal */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; width: 100%; box-sizing: border-box; }
+        .form-group { display: flex; flex-direction: column; min-width: 0; }
+        .form-group.full-width { grid-column: 1 / -1; }
+        .form-group label { font-size: 11px; color: #a0a0a0; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s;
+            width: 100%; box-sizing: border-box;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus { outline: none; border-color: #2f5fa7; background: rgba(255,255,255,0.12); }
+        .form-group select option { background: #1e2a38; color: #fff; }
+        .form-group textarea { resize: vertical; min-height: 60px; }
+        .input-hint { display: block; font-size: 11px; color: #8899a8; margin-top: 4px; font-style: italic; }
+        .form-actions { display: flex; gap: 15px; margin-top: 20px; justify-content: flex-end; }
+        .btn-submit { background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: #fff; border: none; padding: 12px 28px; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(46,204,113,0.35); }
+        .btn-cancel-form { background: rgba(255,255,255,0.1); color: #a0a0a0; border: none; padding: 12px 28px; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .btn-cancel-form:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+        /* Light mode overrides */
+        html.light-mode .modal-content, body.light-mode .modal-content { background: #ffffff; color: #333; border: 1px solid #e0e0e0; }
+        html.light-mode .modal-header h2, body.light-mode .modal-header h2 { color: #1a3a5c; }
+        html.light-mode .modal-header, body.light-mode .modal-header { border-bottom-color: #e0e0e0; }
+        html.light-mode .modal-label, body.light-mode .modal-label { color: #666; }
+        html.light-mode .modal-value, body.light-mode .modal-value { color: #222; }
+        html.light-mode .close-btn, body.light-mode .close-btn { color: #666; }
+        html.light-mode .close-btn:hover, body.light-mode .close-btn:hover { color: #222; }
+        html.light-mode .delete-modal-content, body.light-mode .delete-modal-content { background: #fff; border: 1px solid rgba(0,0,0,0.1); }
+        html.light-mode .delete-modal-title, body.light-mode .delete-modal-title { color: #1a3a5c; }
+        html.light-mode .delete-modal-message, body.light-mode .delete-modal-message { color: #5a6a7a; }
+        html.light-mode .delete-modal-message strong, body.light-mode .delete-modal-message strong { color: #1e88e5; }
+        html.light-mode .btn-cancel-delete, body.light-mode .btn-cancel-delete { background: #e8f4fc; color: #1a3a5c; border: 1px solid #c5ddf0; }
+        html.light-mode .form-group input,
+        html.light-mode .form-group select,
+        html.light-mode .form-group textarea,
+        body.light-mode .form-group input,
+        body.light-mode .form-group select,
+        body.light-mode .form-group textarea { background: #f5f7fa; color: #222; border-color: #ccc; }
+        html.light-mode .form-group label, body.light-mode .form-group label { color: #555; }
+        html.light-mode .btn-cancel-form, body.light-mode .btn-cancel-form { background: #e8e8e8; color: #444; }
     </style>
 </head>
 <body>
@@ -477,9 +640,14 @@ $totalItemTypes = count($itemCodes);
                         <i class="fas fa-truck-fast"></i>
                         Andison Manila Deliveries
                     </div>
-                    <a href="javascript:history.back()" class="back-btn">
-                        <i class="fas fa-arrow-left"></i> Back
-                    </a>
+                    <div style="display:flex;gap:12px;align-items:center;">
+                        <button class="btn-add-record" onclick="openAddModal()">
+                            <i class="fas fa-plus"></i> Add Record
+                        </button>
+                        <a href="javascript:history.back()" class="back-btn">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Stats -->
@@ -517,10 +685,10 @@ $totalItemTypes = count($itemCodes);
                                 <th>Qty.</th>
                                 <th>UOM</th>
                                 <th>Serial No.</th>
-                                <th>Sold To</th>
+                                <th>Transferred</th>
                                 <th>Date Delivered</th>
-                                <th>Sold To Month</th>
-                                <th>Sold To Day</th>
+                                <th>Transferred Month</th>
+                                <th>Transferred Day</th>
                                 <th>Remarks</th>
                                 <th>Groupings</th>
                                 <th>Action</th>
@@ -580,8 +748,325 @@ $totalItemTypes = count($itemCodes);
         </main>
     </div>
 
+    <!-- Add Record Modal -->
+    <div id="addRecordModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header" style="margin-bottom:18px;padding-bottom:12px;">
+                <h2><i class="fas fa-plus-circle" style="color:#2ecc71;margin-right:10px;"></i>Add New Delivery Record</h2>
+                <button class="close-btn" onclick="closeAddModal()">&times;</button>
+            </div>
+            <form id="addRecordForm" onsubmit="submitAddRecord(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="add_invoice_no">Invoice No.</label>
+                        <input type="text" id="add_invoice_no" name="invoice_no" placeholder="e.g., 5268850284">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_date">Date</label>
+                        <input type="date" id="add_date" name="date">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_delivery_month">Delivery Month to Andison</label>
+                        <select id="add_delivery_month" name="delivery_month">
+                            <option value="">Select Month...</option>
+                            <option value="January">January</option><option value="February">February</option>
+                            <option value="March">March</option><option value="April">April</option>
+                            <option value="May">May</option><option value="June">June</option>
+                            <option value="July">July</option><option value="August">August</option>
+                            <option value="September">September</option><option value="October">October</option>
+                            <option value="November">November</option><option value="December">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="add_delivery_day">Delivery Day to Andison</label>
+                        <input type="number" id="add_delivery_day" name="delivery_day" placeholder="e.g., 7" min="1" max="31">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_year">Year</label>
+                        <input type="number" id="add_year" name="year" placeholder="e.g., 2025" min="2000" max="2100">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_item_code">Item Code</label>
+                        <input type="text" id="add_item_code" name="item_code" placeholder="e.g., XT-XWHM-Y-NA">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="add_item_name">Description</label>
+                        <input type="text" id="add_item_name" name="item_name" placeholder="e.g., GasAlertMax XT O2/LEL/H2S/CO">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_quantity">Qty.</label>
+                        <input type="number" id="add_quantity" name="quantity" placeholder="e.g., 40" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_uom">UOM</label>
+                        <input type="text" id="add_uom" name="uom" placeholder="e.g., units, pcs">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_serial_no">Serial No.</label>
+                        <input type="text" id="add_serial_no" name="serial_no" placeholder="e.g., MA225-000613">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_company_name">Transferred</label>
+                        <input type="text" id="add_company_name" name="company_name" placeholder="e.g., to Andison Manila" value="to Andison Manila">
+                        <small class="input-hint">Panatilihing "to Andison Manila" para lumabas dito. Palitan para mapunta sa Delivery Records.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="add_delivery_date">Date Delivered</label>
+                        <input type="date" id="add_delivery_date" name="delivery_date">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_sold_to_month">Transferred Month</label>
+                        <select id="add_sold_to_month" name="sold_to_month">
+                            <option value="">Select Month...</option>
+                            <option value="January">January</option><option value="February">February</option>
+                            <option value="March">March</option><option value="April">April</option>
+                            <option value="May">May</option><option value="June">June</option>
+                            <option value="July">July</option><option value="August">August</option>
+                            <option value="September">September</option><option value="October">October</option>
+                            <option value="November">November</option><option value="December">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="add_sold_to_day">Transferred Day</label>
+                        <input type="number" id="add_sold_to_day" name="sold_to_day" placeholder="e.g., 15" min="1" max="31">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_groupings">Groupings</label>
+                        <input type="text" id="add_groupings" name="groupings" placeholder="e.g., A, B, C">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_status">Status</label>
+                        <select id="add_status" name="status">
+                            <option value="Delivered">Delivered</option>
+                            <option value="Pending">Pending</option>
+                            <option value="In Transit">In Transit</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="add_notes">Remarks</label>
+                        <textarea id="add_notes" name="notes" rows="3" placeholder="Additional remarks..."></textarea>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel-form" onclick="closeAddModal()">Cancel</button>
+                    <button type="submit" class="btn-submit"><i class="fas fa-save"></i> Save Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Detail View Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTrackingId">Delivery Details</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-row">
+                    <span class="modal-label">Invoice No.</span>
+                    <span class="modal-value" id="modalInvoiceNo"></span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Date</span>
+                    <span class="modal-value" id="modalDate"></span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Delivery Month</span>
+                    <span class="modal-value" id="modalDeliveryMonth"></span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Delivery Day</span>
+                    <span class="modal-value" id="modalDeliveryDay"></span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Year</span>
+                    <span class="modal-value" id="modalYear"></span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Item</span>
+                    <span class="modal-value" id="modalItem"></span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Description</span>
+                    <span class="modal-value" id="modalDescription"></span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Qty.</span>
+                    <span class="modal-value" id="modalQty"></span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">UOM</span>
+                    <span class="modal-value" id="modalUom"></span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Serial No.</span>
+                    <span class="modal-value" id="modalSerialNo"></span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Transferred</span>
+                    <span class="modal-value" id="modalSoldTo"></span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Date Delivered</span>
+                    <span class="modal-value" id="modalDeliveryDate"></span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Transferred Month</span>
+                    <span class="modal-value" id="modalSoldToMonth"></span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Transferred Day</span>
+                    <span class="modal-value" id="modalSoldToDay"></span>
+                </div>
+                <div class="modal-row full-width">
+                    <span class="modal-label">Remarks</span>
+                    <span class="modal-value" id="modalRemarks"></span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Groupings</span>
+                    <span class="modal-value" id="modalGroupings"></span>
+                </div>
+                <div class="modal-row">
+                    <span class="modal-label">Status</span>
+                    <span class="modal-value" id="modalStatus"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteConfirmModal" class="delete-modal">
+        <div class="delete-modal-content">
+            <div class="delete-modal-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <h3 class="delete-modal-title">Delete Record?</h3>
+            <p class="delete-modal-message">
+                Are you sure you want to delete <strong id="deleteItemName">this record</strong>?<br>
+                This action cannot be undone.
+            </p>
+            <div class="delete-modal-actions">
+                <button type="button" class="delete-modal-btn btn-cancel-delete" onclick="closeDeleteModal()">Cancel</button>
+                <button type="button" class="delete-modal-btn btn-confirm-delete" id="confirmDeleteBtn" onclick="confirmDelete()">
+                    <i class="fas fa-trash-alt"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Record Modal -->
+    <div id="editRecordModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header" style="margin-bottom:18px;padding-bottom:12px;">
+                <h2><i class="fas fa-edit" style="color:#f39c12;margin-right:10px;"></i>Edit Delivery Record</h2>
+                <button class="close-btn" onclick="closeEditModal()">&times;</button>
+            </div>
+            <form id="editRecordForm" onsubmit="submitEditRecord(event)">
+                <input type="hidden" id="edit_id" name="id">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="edit_invoice_no">Invoice No.</label>
+                        <input type="text" id="edit_invoice_no" name="invoice_no" placeholder="e.g., 5268850284">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_date">Date</label>
+                        <input type="date" id="edit_date" name="date">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_delivery_month">Delivery Month to Andison</label>
+                        <select id="edit_delivery_month" name="delivery_month">
+                            <option value="">Select Month...</option>
+                            <option value="January">January</option><option value="February">February</option>
+                            <option value="March">March</option><option value="April">April</option>
+                            <option value="May">May</option><option value="June">June</option>
+                            <option value="July">July</option><option value="August">August</option>
+                            <option value="September">September</option><option value="October">October</option>
+                            <option value="November">November</option><option value="December">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_delivery_day">Delivery Day to Andison</label>
+                        <input type="number" id="edit_delivery_day" name="delivery_day" placeholder="e.g., 7" min="1" max="31">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_year">Year</label>
+                        <input type="number" id="edit_year" name="year" placeholder="e.g., 2025" min="2000" max="2100">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_item_code">Item Code</label>
+                        <input type="text" id="edit_item_code" name="item_code" placeholder="e.g., XT-XWHM-Y-NA">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="edit_item_name">Description</label>
+                        <input type="text" id="edit_item_name" name="item_name" placeholder="e.g., GasAlertMax XT O2/LEL/H2S/CO">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_quantity">Qty.</label>
+                        <input type="number" id="edit_quantity" name="quantity" placeholder="e.g., 40" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_uom">UOM</label>
+                        <input type="text" id="edit_uom" name="uom" placeholder="e.g., units, pcs">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_serial_no">Serial No.</label>
+                        <input type="text" id="edit_serial_no" name="serial_no" placeholder="e.g., MA225-000613">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_company_name">Transferred</label>
+                        <input type="text" id="edit_company_name" name="company_name" placeholder="e.g., Anden Construction">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_delivery_date">Date Delivered</label>
+                        <input type="date" id="edit_delivery_date" name="delivery_date">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_sold_to_month">Transferred Month</label>
+                        <select id="edit_sold_to_month" name="sold_to_month">
+                            <option value="">Select Month...</option>
+                            <option value="January">January</option><option value="February">February</option>
+                            <option value="March">March</option><option value="April">April</option>
+                            <option value="May">May</option><option value="June">June</option>
+                            <option value="July">July</option><option value="August">August</option>
+                            <option value="September">September</option><option value="October">October</option>
+                            <option value="November">November</option><option value="December">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_sold_to_day">Transferred Day</label>
+                        <input type="number" id="edit_sold_to_day" name="sold_to_day" placeholder="e.g., 15" min="1" max="31">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_groupings">Groupings</label>
+                        <input type="text" id="edit_groupings" name="groupings" placeholder="e.g., A, B, C">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_status">Status</label>
+                        <select id="edit_status" name="status">
+                            <option value="Delivered">Delivered</option>
+                            <option value="Pending">Pending</option>
+                            <option value="In Transit">In Transit</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="edit_notes">Remarks</label>
+                        <textarea id="edit_notes" name="notes" rows="3" placeholder="Additional remarks..."></textarea>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel-form" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="btn-submit" style="background:linear-gradient(135deg,#f39c12,#d68910);"><i class="fas fa-save"></i> Update Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="js/app.js" defer></script>
     <script>
+        // Records data from PHP for modals
+        const recordsData = <?php echo json_encode($delivery_records); ?>;
+
         // Toggle sidebar on mobile
         document.getElementById('hamburgerBtn').addEventListener('click', function() {
             const sidebar = document.getElementById('sidebar');
@@ -598,70 +1083,306 @@ $totalItemTypes = count($itemCodes);
 
         // Close dropdown when clicking outside
         document.addEventListener('click', function(event) {
-            const profileBtn = document.getElementById('profileBtn');
-            const profileMenu = document.getElementById('profileMenu');
             if (!event.target.closest('.profile-dropdown')) {
-                profileMenu.style.display = 'none';
+                document.getElementById('profileMenu').style.display = 'none';
             }
         });
 
-        // Theme toggle
-        function toggleTheme() {
-            const html = document.documentElement;
-            const isDark = !html.classList.contains('light-mode');
-            if (isDark) {
-                html.classList.add('light-mode');
-                document.body.classList.add('light-mode');
-                localStorage.setItem('theme', 'light');
-            } else {
-                html.classList.remove('light-mode');
-                document.body.classList.remove('light-mode');
-                localStorage.setItem('theme', 'dark');
-            }
+        // ===== ADD RECORD MODAL =====
+        function openAddModal() {
+            document.getElementById('addRecordModal').classList.add('show');
+            document.body.classList.add('modal-open');
+            document.getElementById('add_delivery_date').value = new Date().toISOString().split('T')[0];
         }
 
-        // Open view modal for record details
+        function closeAddModal() {
+            document.getElementById('addRecordModal').classList.remove('show');
+            document.body.classList.remove('modal-open');
+            document.getElementById('addRecordForm').reset();
+        }
+
+        function submitAddRecord(event) {
+            event.preventDefault();
+            const submitBtn = event.target.querySelector('.btn-submit');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            submitBtn.disabled = true;
+
+            const formData = {
+                invoice_no:     document.getElementById('add_invoice_no').value,
+                date:           document.getElementById('add_date').value,
+                delivery_month: document.getElementById('add_delivery_month').value,
+                delivery_day:   parseInt(document.getElementById('add_delivery_day').value) || 0,
+                year:           parseInt(document.getElementById('add_year').value) || 0,
+                item_code:      document.getElementById('add_item_code').value,
+                item_name:      document.getElementById('add_item_name').value,
+                quantity:       parseInt(document.getElementById('add_quantity').value) || 0,
+                uom:            document.getElementById('add_uom').value,
+                serial_no:      document.getElementById('add_serial_no').value,
+                company_name:   document.getElementById('add_company_name').value,
+                delivery_date:  document.getElementById('add_delivery_date').value,
+                sold_to_month:  document.getElementById('add_sold_to_month').value,
+                sold_to_day:    parseInt(document.getElementById('add_sold_to_day').value) || 0,
+                groupings:      document.getElementById('add_groupings').value,
+                notes:          document.getElementById('add_notes').value,
+                status:         document.getElementById('add_status').value
+            };
+
+            fetch('api/add-record.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(result => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                if (result.success) {
+                    showToast('Record added successfully!', 'success');
+                    closeAddModal();
+                    setTimeout(() => window.location.reload(), 1200);
+                } else {
+                    showToast('Error: ' + (result.message || 'Failed to add record'), 'error');
+                }
+            })
+            .catch(err => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                showToast('Error adding record. Please try again.', 'error');
+            });
+        }
+
+        window.addEventListener('click', e => {
+            if (e.target === document.getElementById('addRecordModal')) closeAddModal();
+        });
+
+        // ===== VIEW MODAL =====
         function openModal(event, recordId) {
             event.preventDefault();
-            // Redirect to delivery-records.php with the record ID
-            window.location.href = 'delivery-records.php?view=' + recordId;
+            const record = recordsData.find(r => parseInt(r.id) === parseInt(recordId));
+            if (!record) { showToast('Record not found', 'error'); return; }
+
+            let dateCol = '';
+            let deliveryDate = '';
+            if (record.delivery_date) {
+                const d = new Date(record.delivery_date);
+                dateCol = d.toLocaleDateString('en-US');
+                deliveryDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+
+            document.getElementById('modalTrackingId').textContent = record.serial_no ? record.serial_no + ' Details' : 'Delivery Details';
+            document.getElementById('modalInvoiceNo').textContent  = record.invoice_no || '';
+            document.getElementById('modalDate').textContent        = dateCol;
+            document.getElementById('modalDeliveryMonth').textContent = record.delivery_month || '';
+            document.getElementById('modalDeliveryDay').textContent   = record.delivery_day || '';
+            document.getElementById('modalYear').textContent          = record.delivery_year || '';
+            document.getElementById('modalItem').textContent          = record.item_code || '';
+            document.getElementById('modalDescription').textContent   = record.item_name || '';
+            document.getElementById('modalQty').textContent           = record.quantity || '';
+            document.getElementById('modalUom').textContent           = record.uom || '';
+            document.getElementById('modalSerialNo').textContent      = record.serial_no || '';
+            document.getElementById('modalSoldTo').textContent        = record.company_name || '';
+            document.getElementById('modalDeliveryDate').textContent  = deliveryDate;
+            document.getElementById('modalSoldToMonth').textContent   = record.sold_to_month || '';
+            document.getElementById('modalSoldToDay').textContent     = record.sold_to_day || '';
+            document.getElementById('modalRemarks').textContent       = record.remarks || '';
+            document.getElementById('modalGroupings').textContent     = record.groupings || '';
+            document.getElementById('modalStatus').textContent        = record.status || '';
+
+            document.getElementById('detailModal').classList.add('show');
+            document.body.classList.add('modal-open');
         }
 
-        // Open edit modal for editing record
-        function openEditModal(event, recordId) {
-            event.preventDefault();
-            // Redirect to delivery-records.php with the record ID for editing
-            window.location.href = 'delivery-records.php?edit=' + recordId;
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('show');
+            document.body.classList.remove('modal-open');
         }
 
-        // Delete record
+        window.addEventListener('click', e => {
+            if (e.target === document.getElementById('detailModal')) closeModal();
+        });
+
+        // ===== DELETE MODAL =====
+        let deleteRecordId = null;
+        let deleteRecordRow = null;
+
         function deleteRecord(event, recordId, serialNo) {
             event.preventDefault();
-            if (confirm('Are you sure you want to delete this record? (Serial: ' + serialNo + ')')) {
-                // Send delete request
-                fetch('api/delete-record.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        id: recordId
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Record deleted successfully');
-                        location.reload();
-                    } else {
-                        alert('Error deleting record: ' + (data.message || 'Unknown error'));
+            deleteRecordId = recordId;
+            deleteRecordRow = event.target.closest('tr');
+            document.getElementById('deleteItemName').textContent = serialNo || 'this record';
+            document.getElementById('deleteConfirmModal').classList.add('show');
+            document.body.classList.add('modal-open');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteConfirmModal').classList.remove('show');
+            document.body.classList.remove('modal-open');
+            deleteRecordId = null;
+            deleteRecordRow = null;
+        }
+
+        function confirmDelete() {
+            if (!deleteRecordId) return;
+            const confirmBtn = document.getElementById('confirmDeleteBtn');
+            const originalText = confirmBtn.innerHTML;
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+            confirmBtn.disabled = true;
+
+            fetch('api/delete-record.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: deleteRecordId })
+            })
+            .then(r => r.json())
+            .then(result => {
+                confirmBtn.innerHTML = originalText;
+                confirmBtn.disabled = false;
+                if (result.success) {
+                    showToast('Record deleted!', 'success');
+                    if (deleteRecordRow) {
+                        deleteRecordRow.style.transition = 'all 0.3s ease';
+                        deleteRecordRow.style.opacity = '0';
+                        deleteRecordRow.style.transform = 'translateX(-20px)';
+                        setTimeout(() => deleteRecordRow.remove(), 300);
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error deleting record');
-                });
+                    closeDeleteModal();
+                } else {
+                    showToast('Error: ' + (result.message || 'Failed to delete record'), 'error');
+                }
+            })
+            .catch(err => {
+                confirmBtn.innerHTML = originalText;
+                confirmBtn.disabled = false;
+                showToast('Error deleting record. Please try again.', 'error');
+            });
+        }
+
+        document.getElementById('deleteConfirmModal').addEventListener('click', function(e) {
+            if (e.target === this) closeDeleteModal();
+        });
+
+        // ===== EDIT MODAL =====
+        function openEditModal(event, recordId) {
+            event.preventDefault();
+            const record = recordsData.find(r => parseInt(r.id) === parseInt(recordId));
+            if (!record) { showToast('Record not found', 'error'); return; }
+
+            document.getElementById('edit_id').value            = record.id;
+            document.getElementById('edit_invoice_no').value    = record.invoice_no || '';
+            document.getElementById('edit_serial_no').value     = record.serial_no || '';
+            document.getElementById('edit_item_code').value     = record.item_code || '';
+            document.getElementById('edit_item_name').value     = record.item_name || '';
+            document.getElementById('edit_company_name').value  = record.company_name || '';
+            document.getElementById('edit_quantity').value      = record.quantity || '';
+            document.getElementById('edit_uom').value           = record.uom || '';
+            document.getElementById('edit_notes').value         = record.remarks || '';
+            document.getElementById('edit_groupings').value     = record.groupings || '';
+            document.getElementById('edit_status').value        = record.status || 'Delivered';
+            document.getElementById('edit_date').value          = record.delivery_date || '';
+            document.getElementById('edit_delivery_date').value = record.delivery_date || '';
+            document.getElementById('edit_delivery_month').value = record.delivery_month || '';
+            document.getElementById('edit_delivery_day').value  = record.delivery_day || '';
+            document.getElementById('edit_year').value          = record.delivery_year || '';
+            document.getElementById('edit_sold_to_month').value = record.sold_to_month || '';
+            document.getElementById('edit_sold_to_day').value   = record.sold_to_day || '';
+
+            document.getElementById('editRecordModal').classList.add('show');
+            document.body.classList.add('modal-open');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editRecordModal').classList.remove('show');
+            document.body.classList.remove('modal-open');
+            document.getElementById('editRecordForm').reset();
+        }
+
+        function submitEditRecord(event) {
+            event.preventDefault();
+            const submitBtn = event.target.querySelector('.btn-submit');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+            submitBtn.disabled = true;
+
+            const formData = {
+                id:             document.getElementById('edit_id').value,
+                serial_no:      document.getElementById('edit_serial_no').value,
+                invoice_no:     document.getElementById('edit_invoice_no').value,
+                item_code:      document.getElementById('edit_item_code').value,
+                item_name:      document.getElementById('edit_item_name').value,
+                company_name:   document.getElementById('edit_company_name').value,
+                quantity:       parseInt(document.getElementById('edit_quantity').value) || 0,
+                uom:            document.getElementById('edit_uom').value,
+                date:           document.getElementById('edit_date').value,
+                delivery_date:  document.getElementById('edit_delivery_date').value,
+                delivery_month: document.getElementById('edit_delivery_month').value,
+                delivery_day:   document.getElementById('edit_delivery_day').value,
+                year:           document.getElementById('edit_year').value,
+                sold_to_month:  document.getElementById('edit_sold_to_month').value,
+                sold_to_day:    document.getElementById('edit_sold_to_day').value,
+                groupings:      document.getElementById('edit_groupings').value,
+                notes:          document.getElementById('edit_notes').value,
+                status:         document.getElementById('edit_status').value
+            };
+
+            fetch('api/update-record.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+            .then(r => r.json())
+            .then(result => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                if (result.success) {
+                    showToast('Record updated successfully!', 'success');
+                    closeEditModal();
+                    setTimeout(() => window.location.reload(), 1200);
+                } else {
+                    showToast('Error: ' + (result.message || 'Failed to update record'), 'error');
+                }
+            })
+            .catch(err => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                showToast('Error updating record. Please try again.', 'error');
+            });
+        }
+
+        window.addEventListener('click', e => {
+            if (e.target === document.getElementById('editRecordModal')) closeEditModal();
+        });
+
+        // ===== TOAST =====
+        function showToast(message, type = 'success') {
+            const existing = document.getElementById('toastNotif');
+            if (existing) existing.remove();
+            const icons  = { success: '&#10003;', error: '&#10007;', warning: '&#9888;' };
+            const colors = {
+                success: 'linear-gradient(135deg,#1abc9c,#16a085)',
+                error:   'linear-gradient(135deg,#e74c3c,#c0392b)',
+                warning: 'linear-gradient(135deg,#f39c12,#d68910)'
+            };
+            const toast = document.createElement('div');
+            toast.id = 'toastNotif';
+            toast.innerHTML = `<span style="font-size:20px;flex-shrink:0;">${icons[type]||icons.success}</span><span style="flex:1;line-height:1.4;">${message}</span><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0;line-height:1;opacity:.8;flex-shrink:0;">&times;</button>`;
+            Object.assign(toast.style, {
+                position:'fixed', top:'24px', right:'24px', zIndex:'99999',
+                display:'flex', alignItems:'center', gap:'12px',
+                minWidth:'280px', maxWidth:'400px', padding:'16px 20px',
+                borderRadius:'12px', background: colors[type]||colors.success,
+                color:'#fff', fontFamily:'inherit', fontSize:'14px', fontWeight:'500',
+                boxShadow:'0 8px 32px rgba(0,0,0,0.35)', cursor:'default'
+            });
+            if (!document.getElementById('toastStyle')) {
+                const s = document.createElement('style');
+                s.id = 'toastStyle';
+                s.textContent = '@keyframes toastSlideIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}';
+                document.head.appendChild(s);
             }
+            toast.style.animation = 'toastSlideIn .3s ease';
+            document.body.appendChild(toast);
+            setTimeout(() => { if (toast.parentElement) toast.remove(); }, 4000);
         }
     </script>
 </body>
