@@ -1101,6 +1101,7 @@ try {
             <button class="filter-btn">In Transit</button>
             <button class="filter-btn">Pending</button>
             <button class="filter-btn">Cancelled</button>
+            <button class="filter-btn" style="background: linear-gradient(135deg, rgba(255, 214, 10, 0.3), rgba(255, 214, 10, 0.1)); border-color: #ffd60a;">Andison Manila Sales</button>
         </div>
 
         <!-- Delivery Table -->
@@ -1113,17 +1114,18 @@ try {
                         <th>Delivery Month to Andison</th>
                         <th>Delivery Day to Andison</th>
                         <th>Year</th>
-                        <th>Item</th>
+                        <th id="itemHeader">Item</th>
                         <th>Description</th>
                         <th>Qty.</th>
                         <th>UOM</th>
                         <th>Serial No.</th>
-                        <th>Sold To</th>
+                        <th>Transferred</th>
+                        <th id="soldToHeader">Sold To</th>
                         <th>Date Delivered</th>
-                        <th>Sold To Month</th>
-                        <th>Sold To Day</th>
-                        <th>Remarks</th>
+                        <th id="soldToMonthHeader">Sold To Month</th>
+                        <th id="soldToDayHeader">Sold To Day</th>
                         <th>Groupings</th>
+                        <th>Remarks</th>
                         <th style="min-width: 160px;">Action</th>
                     </tr>
                 </thead>
@@ -1158,7 +1160,7 @@ try {
                         // Check if this is Andison Manila
                         $andison_class = (isset($record['company_name']) && $record['company_name'] === 'to Andison Manila') ? 'andison-manila-row' : '';
                     ?>
-                    <tr data-record-id="<?php echo htmlspecialchars($record['id'] ?? ''); ?>" data-row-index="<?php echo $row_index; ?>" data-dataset="<?php echo htmlspecialchars($record['dataset_name'] ?? '', ENT_QUOTES); ?>" class="<?php echo $hidden_class . ' ' . $andison_class; ?>">
+                    <tr data-record-id="<?php echo htmlspecialchars($record['id'] ?? ''); ?>" data-row-index="<?php echo $row_index; ?>" data-dataset="<?php echo htmlspecialchars($record['dataset_name'] ?? '', ENT_QUOTES); ?>" data-sold-to="<?php echo htmlspecialchars(isset($record['sold_to']) ? $record['sold_to'] : '', ENT_QUOTES); ?>" class="<?php echo $hidden_class . ' ' . $andison_class; ?>">
                         <td><?php echo htmlspecialchars($record['invoice_no'] ?? ''); ?></td>
                         <td><?php echo htmlspecialchars($date_col); ?></td>
                         <td><?php echo htmlspecialchars($record['delivery_month'] ?? ''); ?></td>
@@ -1170,11 +1172,12 @@ try {
                         <td><?php echo htmlspecialchars($record['uom'] ?? ''); ?></td>
                         <td><?php echo htmlspecialchars($record['serial_no'] ?? ''); ?></td>
                         <td><?php echo htmlspecialchars($record['company_name'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($record['sold_to'] ?? ''); ?></td>
                         <td><?php echo htmlspecialchars($delivery_date); ?></td>
                         <td><?php echo htmlspecialchars($sold_to_month); ?></td>
                         <td><?php echo htmlspecialchars($sold_to_day); ?></td>
-                        <td><?php echo htmlspecialchars($record['notes'] ?? ''); ?></td>
                         <td><?php echo htmlspecialchars($record['groupings'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($record['notes'] ?? ''); ?></td>
                         <td class="action-buttons">
                             <a href="#" class="view-btn" onclick="openModal(event, <?php echo intval($record['id'] ?? 0); ?>)">View</a>
                             <a href="#" class="edit-btn" onclick="openEditModal(event, <?php echo intval($record['id'] ?? 0); ?>)" title="Edit Record"><i class="fas fa-edit"></i></a>
@@ -1275,8 +1278,8 @@ try {
                     </div>
                     <div class="form-group">
                         <label for="add_company_name">Sold To</label>
-                        <input type="text" id="add_company_name" name="company_name" placeholder="e.g., Anden Construction">
-                        <small class="input-hint">Client/company who purchased the item</small>
+                        <input type="text" id="add_company_name" name="company_name" placeholder="e.g., to Andison Manila">
+                        <small class="input-hint">Original delivery recipient (e.g., to Andison Manila)</small>
                     </div>
                     <div class="form-group">
                         <label for="add_delivery_date">Date Delivered</label>
@@ -1508,8 +1511,8 @@ try {
                     </div>
                     <div class="form-group">
                         <label for="edit_company_name">Sold To</label>
-                        <input type="text" id="edit_company_name" name="company_name" placeholder="e.g., Anden Construction">
-                        <small class="input-hint">Client/company who purchased the item</small>
+                        <input type="text" id="edit_company_name" name="company_name" placeholder="e.g., to Andison Manila">
+                        <small class="input-hint">Original delivery recipient (e.g., to Andison Manila)</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_delivery_date">Date Delivered</label>
@@ -1925,6 +1928,10 @@ try {
 
                 const filterValue = this.textContent.trim().toLowerCase();
                 const tableRows = document.querySelectorAll('table tbody tr');
+                const soldToHeader = document.getElementById('soldToHeader');
+                const soldToMonthHeader = document.getElementById('soldToMonthHeader');
+                const soldToDayHeader = document.getElementById('soldToDayHeader');
+                const itemHeader = document.getElementById('itemHeader');
 
                 // Show/hide rows based on filter
                 // Since Status column was removed, "All" shows everything
@@ -1935,6 +1942,18 @@ try {
                     
                     if (filterValue === 'all') {
                         row.style.display = '';
+                    } else if (filterValue === 'andison manila sales') {
+                        // Filter for Andison Manila sales (rows with andison-manila-row class AND has sold_to value)
+                        if (row.classList.contains('andison-manila-row')) {
+                            const soldTo = row.getAttribute('data-sold-to') || '';
+                            if (soldTo.trim() !== '') {
+                                row.style.display = '';
+                            } else {
+                                row.style.display = 'none';
+                            }
+                        } else {
+                            row.style.display = 'none';
+                        }
                     } else {
                         // Check for badge if it exists
                         const badge = row.querySelector('.badge');
@@ -1951,6 +1970,17 @@ try {
                         }
                     }
                 });
+                
+                // Update header text based on filter
+                if (filterValue === 'andison manila sales') {
+                    if (itemHeader) itemHeader.textContent = 'Item Code';
+                    if (soldToMonthHeader) soldToMonthHeader.textContent = 'Transferred Month';
+                    if (soldToDayHeader) soldToDayHeader.textContent = 'Transferred Day';
+                } else {
+                    if (itemHeader) itemHeader.textContent = 'Item';
+                    if (soldToMonthHeader) soldToMonthHeader.textContent = 'Sold To Month';
+                    if (soldToDayHeader) soldToDayHeader.textContent = 'Sold To Day';
+                }
                 
                 // Clear search box when filter changes
                 document.getElementById('searchInput').value = '';

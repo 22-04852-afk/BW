@@ -26,6 +26,7 @@ $result = $conn->query("
         uom,
         serial_no,
         company_name,
+        sold_to,
         sold_to_month,
         sold_to_day,
         notes as remarks,
@@ -686,6 +687,7 @@ $totalItemTypes = count($itemCodes);
                                 <th>UOM</th>
                                 <th>Serial No.</th>
                                 <th>Transferred</th>
+                                <th>Sold To</th>
                                 <th>Date Delivered</th>
                                 <th>Transferred Month</th>
                                 <th>Transferred Day</th>
@@ -721,6 +723,7 @@ $totalItemTypes = count($itemCodes);
                                 <td><?php echo htmlspecialchars($record['uom'] ?? ''); ?></td>
                                 <td><?php echo htmlspecialchars($record['serial_no'] ?? ''); ?></td>
                                 <td><?php echo htmlspecialchars($record['company_name'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($record['sold_to'] ?? ''); ?></td>
                                 <td><?php echo htmlspecialchars($delivery_date); ?></td>
                                 <td><?php echo htmlspecialchars($sold_to_month); ?></td>
                                 <td><?php echo htmlspecialchars($sold_to_day); ?></td>
@@ -808,7 +811,12 @@ $totalItemTypes = count($itemCodes);
                     <div class="form-group">
                         <label for="add_company_name">Transferred</label>
                         <input type="text" id="add_company_name" name="company_name" placeholder="e.g., to Andison Manila" value="to Andison Manila">
-                        <small class="input-hint">Panatilihing "to Andison Manila" para lumabas dito. Palitan para mapunta sa Delivery Records.</small>
+                        <input type="hidden" id="add_transferred_to" name="transferred_to" value="to Andison Manila">
+                    </div>
+                    <div class="form-group">
+                        <label for="add_sold_to">Sold To</label>
+                        <input type="text" id="add_sold_to" name="sold_to" placeholder="e.g., ABC Company Ltd">
+                        <small class="input-hint">Customer/company buying from Andison Manila</small>
                     </div>
                     <div class="form-group">
                         <label for="add_delivery_date">Date Delivered</label>
@@ -1015,6 +1023,12 @@ $totalItemTypes = count($itemCodes);
                     <div class="form-group">
                         <label for="edit_company_name">Transferred</label>
                         <input type="text" id="edit_company_name" name="company_name" placeholder="e.g., Anden Construction">
+                        <input type="hidden" id="edit_transferred_to" name="transferred_to" value="to Andison Manila">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_sold_to">Sold To</label>
+                        <input type="text" id="edit_sold_to" name="sold_to" placeholder="e.g., ABC Company Ltd">
+                        <small class="input-hint">Customer/company buying from Andison Manila</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_delivery_date">Date Delivered</label>
@@ -1120,6 +1134,8 @@ $totalItemTypes = count($itemCodes);
                 uom:            document.getElementById('add_uom').value,
                 serial_no:      document.getElementById('add_serial_no').value,
                 company_name:   document.getElementById('add_company_name').value,
+                transferred_to: document.getElementById('add_transferred_to').value,
+                sold_to:        document.getElementById('add_sold_to').value,
                 delivery_date:  document.getElementById('add_delivery_date').value,
                 sold_to_month:  document.getElementById('add_sold_to_month').value,
                 sold_to_day:    parseInt(document.getElementById('add_sold_to_day').value) || 0,
@@ -1274,6 +1290,7 @@ $totalItemTypes = count($itemCodes);
             document.getElementById('edit_item_code').value     = record.item_code || '';
             document.getElementById('edit_item_name').value     = record.item_name || '';
             document.getElementById('edit_company_name').value  = record.company_name || '';
+            document.getElementById('edit_sold_to').value       = record.sold_to || '';
             document.getElementById('edit_quantity').value      = record.quantity || '';
             document.getElementById('edit_uom').value           = record.uom || '';
             document.getElementById('edit_notes').value         = record.remarks || '';
@@ -1311,6 +1328,8 @@ $totalItemTypes = count($itemCodes);
                 item_code:      document.getElementById('edit_item_code').value,
                 item_name:      document.getElementById('edit_item_name').value,
                 company_name:   document.getElementById('edit_company_name').value,
+                transferred_to: document.getElementById('edit_transferred_to').value,
+                sold_to:        document.getElementById('edit_sold_to').value,
                 quantity:       parseInt(document.getElementById('edit_quantity').value) || 0,
                 uom:            document.getElementById('edit_uom').value,
                 date:           document.getElementById('edit_date').value,

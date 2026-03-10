@@ -23,7 +23,9 @@ try {
     $quantity = isset($data['quantity']) ? intval($data['quantity']) : 0;
     $uom = trim($data['uom'] ?? '');
     $serial_no = trim($data['serial_no'] ?? '');
+    $transferred_to = trim($data['transferred_to'] ?? '');
     $company_name = trim($data['company_name'] ?? '');
+    $sold_to = trim($data['sold_to'] ?? '');
     $delivery_date = !empty($data['delivery_date']) ? $data['delivery_date'] : null;
     $sold_to_month = trim($data['sold_to_month'] ?? '');
     $sold_to_day = !empty($data['sold_to_day']) ? intval($data['sold_to_day']) : null;
@@ -73,6 +75,8 @@ try {
             item_code = ?, 
             item_name = ?, 
             company_name = ?, 
+            transferred_to = ?, 
+            sold_to = ?,
             quantity = ?, 
             status = ?, 
             notes = ?, 
@@ -89,7 +93,7 @@ try {
     }
 
     $stmt->bind_param(
-        'sssiissssississi',
+        'ssissssssssissssi',
         $invoice_no,
         $serial_no,
         $delivery_month,
@@ -99,6 +103,8 @@ try {
         $item_code,
         $item_name,
         $company_name,
+        $transferred_to,
+        $sold_to,
         $quantity,
         $status,
         $notes,
