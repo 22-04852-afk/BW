@@ -140,6 +140,42 @@ class SqliteConn {
         return substr($quoted, 1, -1);
     }
 
+    public function begin_transaction(): bool {
+        try {
+            // Make sure auto-commit is off
+            $this->pdo->setAttribute(PDO::ATTR_AUTOCOMMIT, false);
+            $this->pdo->beginTransaction();
+            return true;
+        } catch (Throwable $e) {
+            $this->error = $e->getMessage();
+            return false;
+        }
+    }
+
+    public function commit(): bool {
+        try {
+            $this->pdo->commit();
+            // Re-enable auto-commit
+            $this->pdo->setAttribute(PDO::ATTR_AUTOCOMMIT, true);
+            return true;
+        } catch (Throwable $e) {
+            $this->error = $e->getMessage();
+            return false;
+        }
+    }
+
+    public function rollback(): bool {
+        try {
+            $this->pdo->rollBack();
+            // Re-enable auto-commit
+            $this->pdo->setAttribute(PDO::ATTR_AUTOCOMMIT, true);
+            return true;
+        } catch (Throwable $e) {
+            $this->error = $e->getMessage();
+            return false;
+        }
+    }
+
     public function close(): void {}
 }
 ?>

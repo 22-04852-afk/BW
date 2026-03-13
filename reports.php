@@ -45,8 +45,8 @@ if ($result && $row = $result->fetch_assoc()) {
     $activeClients = intval($row['company_count']);
 }
 
-// Get recent deliveries for export
-$result = $conn->query("SELECT * FROM delivery_records WHERE 1=1$dataset_filter ORDER BY id DESC LIMIT 100");
+// Get ALL deliveries for export (complete dataset)
+$result = $conn->query("SELECT * FROM delivery_records WHERE 1=1$dataset_filter ORDER BY id DESC");
 if ($result) {
     while ($row = $result->fetch_assoc()) {
         $recentDeliveries[] = $row;
@@ -992,6 +992,34 @@ if ($result) {
                         </tbody>
                     </table>
                     <?php endif; ?>
+
+                    <h3>Complete Delivery Records (<?php echo count($recentDeliveries); ?> total)</h3>
+                    <?php if (empty($recentDeliveries)): ?>
+                    <p style="color:#a0a0a0;">No delivery records available.</p>
+                    <?php else: ?>
+                    <table class="report-table" style="font-size: 11px;">
+                        <thead><tr><th>Invoice</th><th>Item Code</th><th>Description</th><th>Qty</th><th>Company</th><th>Serial No.</th><th>Delivery Date</th><th>Status</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($recentDeliveries as $rec): 
+                            $delivery_date = '';
+                            if (!empty($rec['delivery_date'])) {
+                                $delivery_date = date('M j, Y', strtotime($rec['delivery_date']));
+                            }
+                        ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($rec['invoice_no'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['item_code'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['item_name'] ?? ''); ?></td>
+                                <td style="text-align:center;"><?php echo intval($rec['quantity'] ?? 0); ?></td>
+                                <td><?php echo htmlspecialchars($rec['company_name'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['serial_no'] ?? ''); ?></td>
+                                <td><?php echo $delivery_date; ?></td>
+                                <td><?php echo htmlspecialchars($rec['status'] ?? ''); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <?php endif; ?>
                 `
             },
             'Client Analytics Report': {
@@ -1010,6 +1038,34 @@ if ($result) {
                         <tbody>
                         <?php foreach ($topClients as $c): ?>
                             <tr><td><?php echo htmlspecialchars($c['company_name']); ?></td><td><?php echo number_format($c['order_count']); ?></td><td><?php echo number_format($c['total_qty']); ?></td></tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <?php endif; ?>
+
+                    <h3>Complete Delivery Records (<?php echo count($recentDeliveries); ?> total)</h3>
+                    <?php if (empty($recentDeliveries)): ?>
+                    <p style="color:#a0a0a0;">No delivery records available.</p>
+                    <?php else: ?>
+                    <table class="report-table" style="font-size: 11px;">
+                        <thead><tr><th>Invoice</th><th>Item Code</th><th>Description</th><th>Qty</th><th>Company</th><th>Serial No.</th><th>Delivery Date</th><th>Status</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($recentDeliveries as $rec): 
+                            $delivery_date = '';
+                            if (!empty($rec['delivery_date'])) {
+                                $delivery_date = date('M j, Y', strtotime($rec['delivery_date']));
+                            }
+                        ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($rec['invoice_no'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['item_code'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['item_name'] ?? ''); ?></td>
+                                <td style="text-align:center;"><?php echo intval($rec['quantity'] ?? 0); ?></td>
+                                <td><?php echo htmlspecialchars($rec['company_name'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['serial_no'] ?? ''); ?></td>
+                                <td><?php echo $delivery_date; ?></td>
+                                <td><?php echo htmlspecialchars($rec['status'] ?? ''); ?></td>
+                            </tr>
                         <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -1034,6 +1090,34 @@ if ($result) {
                         <tbody>
                         <?php foreach ($topProducts as $p): ?>
                             <tr><td><?php echo htmlspecialchars($p['item_code']); ?></td><td><?php echo htmlspecialchars($p['item_name'] ?: '-'); ?></td><td><?php echo number_format($p['total_qty']); ?></td></tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <?php endif; ?>
+
+                    <h3>Complete Delivery Records (<?php echo count($recentDeliveries); ?> total)</h3>
+                    <?php if (empty($recentDeliveries)): ?>
+                    <p style="color:#a0a0a0;">No delivery records available.</p>
+                    <?php else: ?>
+                    <table class="report-table" style="font-size: 11px;">
+                        <thead><tr><th>Invoice</th><th>Item Code</th><th>Description</th><th>Qty</th><th>Company</th><th>Serial No.</th><th>Delivery Date</th><th>Status</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($recentDeliveries as $rec): 
+                            $delivery_date = '';
+                            if (!empty($rec['delivery_date'])) {
+                                $delivery_date = date('M j, Y', strtotime($rec['delivery_date']));
+                            }
+                        ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($rec['invoice_no'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['item_code'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['item_name'] ?? ''); ?></td>
+                                <td style="text-align:center;"><?php echo intval($rec['quantity'] ?? 0); ?></td>
+                                <td><?php echo htmlspecialchars($rec['company_name'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['serial_no'] ?? ''); ?></td>
+                                <td><?php echo $delivery_date; ?></td>
+                                <td><?php echo htmlspecialchars($rec['status'] ?? ''); ?></td>
+                            </tr>
                         <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -1080,6 +1164,34 @@ if ($result) {
                         </tbody>
                     </table>
                     <?php endif; ?>
+
+                    <h3>Complete Delivery Records (<?php echo count($recentDeliveries); ?> total)</h3>
+                    <?php if (empty($recentDeliveries)): ?>
+                    <p style="color:#a0a0a0;">No delivery records available.</p>
+                    <?php else: ?>
+                    <table class="report-table" style="font-size: 11px;">
+                        <thead><tr><th>Invoice</th><th>Item Code</th><th>Description</th><th>Qty</th><th>Company</th><th>Serial No.</th><th>Delivery Date</th><th>Status</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($recentDeliveries as $rec): 
+                            $delivery_date = '';
+                            if (!empty($rec['delivery_date'])) {
+                                $delivery_date = date('M j, Y', strtotime($rec['delivery_date']));
+                            }
+                        ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($rec['invoice_no'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['item_code'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['item_name'] ?? ''); ?></td>
+                                <td style="text-align:center;"><?php echo intval($rec['quantity'] ?? 0); ?></td>
+                                <td><?php echo htmlspecialchars($rec['company_name'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['serial_no'] ?? ''); ?></td>
+                                <td><?php echo $delivery_date; ?></td>
+                                <td><?php echo htmlspecialchars($rec['status'] ?? ''); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <?php endif; ?>
                 `
             },
             'Delivery Summary Report': {
@@ -1105,6 +1217,34 @@ if ($result) {
                         </tbody>
                     </table>
                     <?php endif; ?>
+
+                    <h3>Complete Delivery Records (<?php echo count($recentDeliveries); ?> total)</h3>
+                    <?php if (empty($recentDeliveries)): ?>
+                    <p style="color:#a0a0a0;">No delivery records available.</p>
+                    <?php else: ?>
+                    <table class="report-table" style="font-size: 11px;">
+                        <thead><tr><th>Invoice</th><th>Item Code</th><th>Description</th><th>Qty</th><th>Company</th><th>Serial No.</th><th>Delivery Date</th><th>Status</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($recentDeliveries as $rec): 
+                            $delivery_date = '';
+                            if (!empty($rec['delivery_date'])) {
+                                $delivery_date = date('M j, Y', strtotime($rec['delivery_date']));
+                            }
+                        ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($rec['invoice_no'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['item_code'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['item_name'] ?? ''); ?></td>
+                                <td style="text-align:center;"><?php echo intval($rec['quantity'] ?? 0); ?></td>
+                                <td><?php echo htmlspecialchars($rec['company_name'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['serial_no'] ?? ''); ?></td>
+                                <td><?php echo $delivery_date; ?></td>
+                                <td><?php echo htmlspecialchars($rec['status'] ?? ''); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <?php endif; ?>
                 `
             },
             'Product Model Report': {
@@ -1120,6 +1260,34 @@ if ($result) {
                         <tbody>
                         <?php foreach ($topProducts as $p): ?>
                             <tr><td><?php echo htmlspecialchars($p['item_code']); ?></td><td><?php echo htmlspecialchars($p['item_name'] ?: '-'); ?></td><td><?php echo number_format($p['order_count']); ?></td><td><?php echo number_format($p['total_qty']); ?></td></tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <?php endif; ?>
+
+                    <h3>Complete Delivery Records (<?php echo count($recentDeliveries); ?> total)</h3>
+                    <?php if (empty($recentDeliveries)): ?>
+                    <p style="color:#a0a0a0;">No delivery records available.</p>
+                    <?php else: ?>
+                    <table class="report-table" style="font-size: 11px;">
+                        <thead><tr><th>Invoice</th><th>Item Code</th><th>Description</th><th>Qty</th><th>Company</th><th>Serial No.</th><th>Delivery Date</th><th>Status</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($recentDeliveries as $rec): 
+                            $delivery_date = '';
+                            if (!empty($rec['delivery_date'])) {
+                                $delivery_date = date('M j, Y', strtotime($rec['delivery_date']));
+                            }
+                        ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($rec['invoice_no'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['item_code'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['item_name'] ?? ''); ?></td>
+                                <td style="text-align:center;"><?php echo intval($rec['quantity'] ?? 0); ?></td>
+                                <td><?php echo htmlspecialchars($rec['company_name'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($rec['serial_no'] ?? ''); ?></td>
+                                <td><?php echo $delivery_date; ?></td>
+                                <td><?php echo htmlspecialchars($rec['status'] ?? ''); ?></td>
+                            </tr>
                         <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -1401,15 +1569,12 @@ if ($result) {
             const format = action.match(/CSV|XLSX|PDF/)[0];
             const filename = `BW_Gas_Detector_Export_${new Date().toISOString().split('T')[0]}`;
             
-            // Get export data from PHP
+            // Get export data from PHP - includes ALL complete delivery records
             const exportData = {
                 totalUnits: <?php echo $totalUnits; ?>,
                 totalOrders: <?php echo $totalOrders; ?>,
                 activeClients: <?php echo $activeClients; ?>,
-                topClients: <?php echo json_encode($topClients); ?>,
-                topProducts: <?php echo json_encode($topProducts); ?>,
-                monthlyBreakdown: <?php echo json_encode($monthlyBreakdown); ?>,
-                statusBreakdown: <?php echo json_encode($statusBreakdown); ?>
+                allDeliveries: <?php echo json_encode($recentDeliveries); ?>
             };
             
             if (format === 'PDF') {
@@ -1417,56 +1582,79 @@ if ($result) {
                     <h3>Year-to-Date Summary</h3>
                     <table>
                         <tr><th>Metric</th><th>Value</th></tr>
+                        <tr><td>Total Records</td><td>${exportData.allDeliveries.length.toLocaleString()}</td></tr>
                         <tr><td>Units Delivered</td><td>${exportData.totalUnits.toLocaleString()}</td></tr>
                         <tr><td>Total Orders</td><td>${exportData.totalOrders.toLocaleString()}</td></tr>
                         <tr><td>Active Clients</td><td>${exportData.activeClients}</td></tr>
                     </table>
-                    <h3>Top Clients</h3>
-                    <table>
-                        <tr><th>Client</th><th>Orders</th><th>Units</th></tr>
-                        ${exportData.topClients.length ? exportData.topClients.map(c => `<tr><td>${c.company_name}</td><td>${parseInt(c.order_count).toLocaleString()}</td><td>${parseInt(c.total_qty).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="3">No client data.</td></tr>'}
-                    </table>
-                    <h3>Top Products</h3>
-                    <table>
-                        <tr><th>Item Code</th><th>Description</th><th>Orders</th><th>Units</th></tr>
-                        ${exportData.topProducts.length ? exportData.topProducts.map(p => `<tr><td>${p.item_code}</td><td>${p.item_name || '-'}</td><td>${parseInt(p.order_count).toLocaleString()}</td><td>${parseInt(p.total_qty).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="4">No product data.</td></tr>'}
-                    </table>
-                    <h3>Monthly Breakdown</h3>
-                    <table>
-                        <tr><th>Month</th><th>Orders</th><th>Units</th></tr>
-                        ${exportData.monthlyBreakdown.length ? exportData.monthlyBreakdown.map(m => `<tr><td>${m.delivery_month}</td><td>${parseInt(m.order_count).toLocaleString()}</td><td>${parseInt(m.total_qty).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="3">No monthly data.</td></tr>'}
+                    <h3>Complete Delivery Records (${exportData.allDeliveries.length} total)</h3>
+                    <table style="font-size: 11px;">
+                        <tr><th>Invoice</th><th>Item Code</th><th>Description</th><th>Qty</th><th>Company</th><th>Serial No.</th><th>Delivery Date</th><th>Status</th></tr>
+                        ${exportData.allDeliveries.length ? exportData.allDeliveries.map(rec => {
+                            const deliveryDate = rec.delivery_date ? new Date(rec.delivery_date).toLocaleDateString() : '';
+                            return `<tr><td>${rec.invoice_no || ''}</td><td>${rec.item_code || ''}</td><td>${rec.item_name || ''}</td><td style="text-align:center;">${rec.quantity || 0}</td><td>${rec.company_name || ''}</td><td>${rec.serial_no || ''}</td><td>${deliveryDate}</td><td>${rec.status || ''}</td></tr>`;
+                        }).join('') : '<tr><td colspan="8">No delivery records available.</td></tr>'}
                     </table>
                 `;
                 openPrintWindow('BW Gas Detector - Complete Data Export', exportHTML);
-                showNotification(`Opening complete data export for PDF...`, 'success');
+                showNotification(`✅ Opening complete data export for PDF (${exportData.allDeliveries.length} records)...`, 'success');
             } else if (format === 'CSV') {
-                // Generate Excel XML for CSV (with styled headers)
+                // Generate Excel XML with ALL complete delivery records
                 let xmlRows = '';
-                xmlRows += '<Row ss:Height="30"><Cell ss:StyleID="title" ss:MergeAcross="3"><Data ss:Type="String">BW Gas Detector - Complete Data Export</Data></Cell></Row>';
-                xmlRows += `<Row><Cell><Data ss:Type="String">Generated: ${new Date().toLocaleString()}</Data></Cell></Row>`;
+                xmlRows += '<Row ss:Height="30"><Cell ss:StyleID="title" ss:MergeAcross="15"><Data ss:Type="String">BW Gas Detector - Complete Delivery Records Export</Data></Cell></Row>';
+                xmlRows += `<Row><Cell ss:MergeAcross="15"><Data ss:Type="String">Generated: ${new Date().toLocaleString()}</Data></Cell></Row>`;
                 xmlRows += '<Row></Row>';
                 
                 // Summary section
-                xmlRows += '<Row><Cell ss:StyleID="section" ss:MergeAcross="1"><Data ss:Type="String">SUMMARY</Data></Cell></Row>';
-                xmlRows += '<Row><Cell ss:StyleID="header"><Data ss:Type="String">Metric</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Value</Data></Cell></Row>';
-                xmlRows += `<Row><Cell ss:StyleID="cell"><Data ss:Type="String">Units Delivered</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${exportData.totalUnits}</Data></Cell></Row>`;
+                xmlRows += '<Row><Cell ss:StyleID="section" ss:MergeAcross="1"><Data ss:Type="String">EXPORT SUMMARY</Data></Cell></Row>';
+                xmlRows += '<Row><Cell ss:StyleID="header"><Data ss:Type="String">Total Records</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="Number">' + exportData.allDeliveries.length + '</Data></Cell></Row>';
+                xmlRows += `<Row><Cell ss:StyleID="cell"><Data ss:Type="String">Total Units</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${exportData.totalUnits}</Data></Cell></Row>`;
                 xmlRows += `<Row><Cell ss:StyleID="cell"><Data ss:Type="String">Total Orders</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${exportData.totalOrders}</Data></Cell></Row>`;
                 xmlRows += `<Row><Cell ss:StyleID="cell"><Data ss:Type="String">Active Clients</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${exportData.activeClients}</Data></Cell></Row>`;
                 xmlRows += '<Row></Row>';
                 
-                // Top Clients section
-                xmlRows += '<Row><Cell ss:StyleID="section" ss:MergeAcross="2"><Data ss:Type="String">TOP CLIENTS</Data></Cell></Row>';
-                xmlRows += '<Row><Cell ss:StyleID="header"><Data ss:Type="String">Client</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Orders</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Units</Data></Cell></Row>';
-                exportData.topClients.forEach(c => {
-                    xmlRows += `<Row><Cell ss:StyleID="cell"><Data ss:Type="String">${c.company_name}</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${c.order_count}</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${c.total_qty}</Data></Cell></Row>`;
-                });
-                xmlRows += '<Row></Row>';
+                // All Delivery Records section
+                xmlRows += '<Row><Cell ss:StyleID="section" ss:MergeAcross="15"><Data ss:Type="String">ALL DELIVERY RECORDS (' + exportData.allDeliveries.length + ' total)</Data></Cell></Row>';
+                xmlRows += '<Row ss:Height="24">'
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Invoice No.</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Item Code</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Description</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Quantity</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">UOM</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Company</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Serial No.</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Delivery Date</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Delivery Month</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Delivery Day</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Year</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Sold To</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Sold To Month</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Sold To Day</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Remarks</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Groupings</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Status</Data></Cell>';
+                xmlRows += '</Row>';
                 
-                // Top Products section
-                xmlRows += '<Row><Cell ss:StyleID="section" ss:MergeAcross="3"><Data ss:Type="String">TOP PRODUCTS</Data></Cell></Row>';
-                xmlRows += '<Row><Cell ss:StyleID="header"><Data ss:Type="String">Item Code</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Description</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Orders</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Units</Data></Cell></Row>';
-                exportData.topProducts.forEach(p => {
-                    xmlRows += `<Row><Cell ss:StyleID="cell"><Data ss:Type="String">${p.item_code}</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="String">${p.item_name || '-'}</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${p.order_count}</Data></Cell><Cell ss:StyleID="cell"><Data ss:Type="Number">${p.total_qty}</Data></Cell></Row>`;
+                exportData.allDeliveries.forEach(rec => {
+                    xmlRows += '<Row>';
+                    xmlRows += `<Cell ss:StyleID="cell"><Data ss:Type="String">${rec.invoice_no || ''}</Data></Cell>`;
+                    xmlRows += `<Cell ss:StyleID="cell"><Data ss:Type="String">${rec.item_code || ''}</Data></Cell>`;
+                    xmlRows += `<Cell ss:StyleID="cell"><Data ss:Type="String">${rec.item_name || ''}</Data></Cell>`;
+                    xmlRows += `<Cell ss:StyleID="cell"><Data ss:Type="Number">${rec.quantity || 0}</Data></Cell>`;
+                    xmlRows += `<Cell ss:StyleID="cell"><Data ss:Type="String">${rec.uom || ''}</Data></Cell>`;
+                    xmlRows += `<Cell ss:StyleID="cell"><Data ss:Type="String">${rec.company_name || ''}</Data></Cell>`;
+                    xmlRows += `<Cell ss:StyleID="cell"><Data ss:Type="String">${rec.serial_no || ''}</Data></Cell>`;
+                    xmlRows += `<Cell ss:StyleID="cell"><Data ss:Type="String">${rec.delivery_date ? new Date(rec.delivery_date).toLocaleDateString() : ''}</Data></Cell>`;
+                    xmlRows += `<Cell ss:StyleID="cell"><Data ss:Type="String">${rec.delivery_month || ''}</Data></Cell>`;
+                    xmlRows += `<Cell ss:StyleID="cell"><Data ss:Type="String">${rec.delivery_day || ''}</Data></Cell>`;
+                    xmlRows += `<Cell ss:StyleID="cell"><Data ss:Type="Number">${rec.delivery_year || 0}</Data></Cell>`;
+                    xmlRows += `<Cell ss:StyleID="cell"><Data ss:Type="String">${rec.sold_to || ''}</Data></Cell>`;
+                    xmlRows += `<Cell ss:StyleID="cell"><Data ss:Type="String">${rec.sold_to_month || ''}</Data></Cell>`;
+                    xmlRows += `<Cell ss:StyleID="cell"><Data ss:Type="String">${rec.sold_to_day || ''}</Data></Cell>`;
+                    xmlRows += `<Cell ss:StyleID="cell"><Data ss:Type="String">${rec.notes || ''}</Data></Cell>`;
+                    xmlRows += `<Cell ss:StyleID="cell"><Data ss:Type="String">${rec.groupings || ''}</Data></Cell>`;
+                    xmlRows += `<Cell ss:StyleID="cell"><Data ss:Type="String">${rec.status || ''}</Data></Cell>`;
+                    xmlRows += '</Row>';
                 });
                 
                 const excelXml = `<` + `?xml version="1.0" encoding="UTF-8"?>
@@ -1476,15 +1664,11 @@ if ($result) {
     <Style ss:ID="Default"><Font ss:FontName="Calibri" ss:Size="11"/></Style>
     <Style ss:ID="title"><Font ss:FontName="Calibri" ss:Size="16" ss:Bold="1" ss:Color="#1a5490"/></Style>
     <Style ss:ID="section"><Font ss:FontName="Calibri" ss:Size="12" ss:Bold="1" ss:Color="#333333"/><Interior ss:Color="#f4d03f" ss:Pattern="Solid"/></Style>
-    <Style ss:ID="header"><Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2f5fa7" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/></Borders></Style>
-    <Style ss:ID="cell"><Font ss:FontName="Calibri" ss:Size="11"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E0E0E0"/></Borders></Style>
+    <Style ss:ID="header"><Font ss:FontName="Calibri" ss:Size="10" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2f5fa7" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/></Borders><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/></Style>
+    <Style ss:ID="cell"><Font ss:FontName="Calibri" ss:Size="10"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E0E0E0"/></Borders></Style>
 </Styles>
-<Worksheet ss:Name="Complete Export">
+<Worksheet ss:Name="All Records">
 <Table>
-<Column ss:Width="150"/>
-<Column ss:Width="150"/>
-<Column ss:Width="100"/>
-<Column ss:Width="100"/>
 ${xmlRows}</Table>
 </Worksheet>
 </Workbook>`;
@@ -1492,36 +1676,68 @@ ${xmlRows}</Table>
                 const blob = new Blob([excelXml], { type: 'application/vnd.ms-excel' });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                link.download = filename + '.xls';
+                link.download = filename + '.csv';
                 link.click();
                 URL.revokeObjectURL(link.href);
-                showNotification(`Exporting all data as Excel...`, 'success');
+                showNotification(`✅ Exporting ${exportData.allDeliveries.length} complete records to CSV...`, 'success');
             } else if (format === 'XLSX') {
                 let xmlRows = '';
                 
                 // Title
-                xmlRows += '<Row ss:Height="30"><Cell ss:StyleID="title"><Data ss:Type="String">BW Gas Detector - Complete Data Export</Data></Cell></Row>';
-                xmlRows += `<Row><Cell><Data ss:Type="String">Generated: ${new Date().toLocaleString()}</Data></Cell></Row>`;
+                xmlRows += '<Row ss:Height="30"><Cell ss:StyleID="title" ss:MergeAcross="15"><Data ss:Type="String">BW Gas Detector - Complete Delivery Records Export</Data></Cell></Row>';
+                xmlRows += `<Row><Cell ss:MergeAcross="15"><Data ss:Type="String">Generated: ${new Date().toLocaleString()}</Data></Cell></Row>`;
                 xmlRows += '<Row></Row>';
                 
                 // Summary
-                xmlRows += '<Row><Cell ss:StyleID="header"><Data ss:Type="String">Summary</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Value</Data></Cell></Row>';
-                xmlRows += `<Row><Cell><Data ss:Type="String">Units Delivered</Data></Cell><Cell><Data ss:Type="Number">${exportData.totalUnits}</Data></Cell></Row>`;
+                xmlRows += '<Row><Cell ss:StyleID="section" ss:MergeAcross="1"><Data ss:Type="String">EXPORT SUMMARY</Data></Cell></Row>';
+                xmlRows += '<Row><Cell ss:StyleID="header"><Data ss:Type="String">Total Records</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="Number">' + exportData.allDeliveries.length + '</Data></Cell></Row>';
+                xmlRows += `<Row><Cell><Data ss:Type="String">Total Units</Data></Cell><Cell><Data ss:Type="Number">${exportData.totalUnits}</Data></Cell></Row>`;
                 xmlRows += `<Row><Cell><Data ss:Type="String">Total Orders</Data></Cell><Cell><Data ss:Type="Number">${exportData.totalOrders}</Data></Cell></Row>`;
                 xmlRows += `<Row><Cell><Data ss:Type="String">Active Clients</Data></Cell><Cell><Data ss:Type="Number">${exportData.activeClients}</Data></Cell></Row>`;
                 xmlRows += '<Row></Row>';
                 
-                // Top Clients
-                xmlRows += '<Row><Cell ss:StyleID="header"><Data ss:Type="String">Client</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Orders</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Units</Data></Cell></Row>';
-                exportData.topClients.forEach(c => {
-                    xmlRows += `<Row><Cell><Data ss:Type="String">${c.company_name}</Data></Cell><Cell><Data ss:Type="Number">${c.order_count}</Data></Cell><Cell><Data ss:Type="Number">${c.total_qty}</Data></Cell></Row>`;
-                });
-                xmlRows += '<Row></Row>';
+                // All Delivery Records
+                xmlRows += '<Row><Cell ss:StyleID="section" ss:MergeAcross="15"><Data ss:Type="String">ALL DELIVERY RECORDS (' + exportData.allDeliveries.length + ' total)</Data></Cell></Row>';
+                xmlRows += '<Row ss:Height="24">'
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Invoice No.</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Item Code</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Description</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Quantity</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">UOM</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Company</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Serial No.</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Delivery Date</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Delivery Month</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Delivery Day</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Year</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Sold To</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Sold To Month</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Sold To Day</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Remarks</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Groupings</Data></Cell>';
+                xmlRows += '<Cell ss:StyleID="header"><Data ss:Type="String">Status</Data></Cell>';
+                xmlRows += '</Row>';
                 
-                // Top Products
-                xmlRows += '<Row><Cell ss:StyleID="header"><Data ss:Type="String">Item Code</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Description</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Orders</Data></Cell><Cell ss:StyleID="header"><Data ss:Type="String">Units</Data></Cell></Row>';
-                exportData.topProducts.forEach(p => {
-                    xmlRows += `<Row><Cell><Data ss:Type="String">${p.item_code}</Data></Cell><Cell><Data ss:Type="String">${p.item_name || '-'}</Data></Cell><Cell><Data ss:Type="Number">${p.order_count}</Data></Cell><Cell><Data ss:Type="Number">${p.total_qty}</Data></Cell></Row>`;
+                exportData.allDeliveries.forEach(rec => {
+                    xmlRows += '<Row>';
+                    xmlRows += `<Cell><Data ss:Type="String">${rec.invoice_no || ''}</Data></Cell>`;
+                    xmlRows += `<Cell><Data ss:Type="String">${rec.item_code || ''}</Data></Cell>`;
+                    xmlRows += `<Cell><Data ss:Type="String">${rec.item_name || ''}</Data></Cell>`;
+                    xmlRows += `<Cell><Data ss:Type="Number">${rec.quantity || 0}</Data></Cell>`;
+                    xmlRows += `<Cell><Data ss:Type="String">${rec.uom || ''}</Data></Cell>`;
+                    xmlRows += `<Cell><Data ss:Type="String">${rec.company_name || ''}</Data></Cell>`;
+                    xmlRows += `<Cell><Data ss:Type="String">${rec.serial_no || ''}</Data></Cell>`;
+                    xmlRows += `<Cell><Data ss:Type="String">${rec.delivery_date ? new Date(rec.delivery_date).toLocaleDateString() : ''}</Data></Cell>`;
+                    xmlRows += `<Cell><Data ss:Type="String">${rec.delivery_month || ''}</Data></Cell>`;
+                    xmlRows += `<Cell><Data ss:Type="String">${rec.delivery_day || ''}</Data></Cell>`;
+                    xmlRows += `<Cell><Data ss:Type="Number">${rec.delivery_year || 0}</Data></Cell>`;
+                    xmlRows += `<Cell><Data ss:Type="String">${rec.sold_to || ''}</Data></Cell>`;
+                    xmlRows += `<Cell><Data ss:Type="String">${rec.sold_to_month || ''}</Data></Cell>`;
+                    xmlRows += `<Cell><Data ss:Type="String">${rec.sold_to_day || ''}</Data></Cell>`;
+                    xmlRows += `<Cell><Data ss:Type="String">${rec.notes || ''}</Data></Cell>`;
+                    xmlRows += `<Cell><Data ss:Type="String">${rec.groupings || ''}</Data></Cell>`;
+                    xmlRows += `<Cell><Data ss:Type="String">${rec.status || ''}</Data></Cell>`;
+                    xmlRows += '</Row>';
                 });
                 
                 const excelXml = `<` + `?xml version="1.0" encoding="UTF-8"?>
@@ -1530,9 +1746,10 @@ ${xmlRows}</Table>
 <Styles>
     <Style ss:ID="Default"><Font ss:FontName="Calibri" ss:Size="11"/></Style>
     <Style ss:ID="title"><Font ss:FontName="Calibri" ss:Size="16" ss:Bold="1" ss:Color="#1a5490"/></Style>
-    <Style ss:ID="header"><Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2f5fa7" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="section"><Font ss:FontName="Calibri" ss:Size="12" ss:Bold="1" ss:Color="#333333"/><Interior ss:Color="#f4d03f" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="header"><Font ss:FontName="Calibri" ss:Size="10" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2f5fa7" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/></Borders><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/></Style>
 </Styles>
-<Worksheet ss:Name="Complete Export">
+<Worksheet ss:Name="All Records">
 <Table>${xmlRows}</Table>
 </Worksheet>
 </Workbook>`;
@@ -1540,10 +1757,10 @@ ${xmlRows}</Table>
                 const blob = new Blob([excelXml], { type: 'application/vnd.ms-excel' });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                link.download = filename + '.xls';
+                link.download = filename + '.xlsx';
                 link.click();
                 URL.revokeObjectURL(link.href);
-                showNotification(`Exporting all data as Excel...`, 'success');
+                showNotification(`✅ Exporting ${exportData.allDeliveries.length} complete records to Excel...`, 'success');
             }
         }
         

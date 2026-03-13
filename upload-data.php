@@ -705,26 +705,125 @@ if ($conn) {
         .light-mode .dataset-name-input p {
             color: #666 !important;
         }
+
+        /* Delete Modal Animations */
+        @keyframes slideDown {
+            from {
+                transform: translateY(-40px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 0 rgba(255, 107, 107, 0));
+            }
+            50% {
+                transform: scale(1.05);
+                filter: drop-shadow(0 0 15px rgba(255, 107, 107, 0.5));
+            }
+        }
+
+        /* Styled scrollbar for modal */
+        #deleteModal > div {
+            scrollbar-width: thin;
+            scrollbar-color: #f4d03f transparent;
+        }
+
+        #deleteModal > div::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #deleteModal > div::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #deleteModal > div::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #f4d03f 0%, #d4a93f 100%);
+            border-radius: 4px;
+            border: 1px solid rgba(244, 208, 63, 0.3);
+            box-shadow: 0 0 6px rgba(244, 208, 63, 0.2);
+        }
+
+        #deleteModal > div::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #fff4c1 0%, #f4d03f 100%);
+            box-shadow: 0 0 10px rgba(244, 208, 63, 0.4);
+        }
+
+        /* Styled scrollbar for datasets list */
+        #deleteDatasetsList {
+            scrollbar-width: thin;
+            scrollbar-color: #f4d03f transparent;
+        }
+
+        #deleteDatasetsList::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #deleteDatasetsList::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #deleteDatasetsList::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #f4d03f 0%, #d4a93f 100%);
+            border-radius: 3px;
+            box-shadow: 0 0 4px rgba(244, 208, 63, 0.15);
+        }
+
+        #deleteDatasetsList::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #fff4c1 0%, #f4d03f 100%);
+            box-shadow: 0 0 8px rgba(244, 208, 63, 0.3);
+        }
     </style>
 </head>
 <body>
     <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" onclick="if(event.target===this)closeDeleteModal()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); justify-content:center; align-items:center; z-index:9999;">
-        <div style="background:linear-gradient(135deg,#1e2a38 0%,#2a3f5f 100%); border-radius:20px; padding:40px; text-align:center; max-width:420px; width:90%; border:1px solid rgba(255,255,255,0.1); box-shadow:0 20px 40px rgba(0,0,0,0.4);">
-            <div style="width:80px; height:80px; border-radius:50%; background:linear-gradient(135deg,#ff6b6b 0%,#ee5a24 100%); display:flex; justify-content:center; align-items:center; margin:0 auto 20px;">
-                <i class="fas fa-exclamation-triangle" style="font-size:36px; color:#fff;"></i>
+    <div id="deleteModal" onclick="if(event.target===this)closeDeleteModal()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(20, 30, 45, 0.7) 100%); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); justify-content:center; align-items:center; z-index:9999; padding: 20px;">
+        <div style="background: linear-gradient(145deg, #253547 0%, #1a2638 50%, #1a2638 100%); border-radius:20px; padding:45px; max-width:540px; width:100%; border: 2px solid #f4d03f; box-shadow: 0 30px 100px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 40px rgba(244, 208, 63, 0.15); position: relative; animation: slideDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);">
+            
+            <!-- Background accent -->
+            <div style="position: absolute; top: -50%; right: -50%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(244, 208, 63, 0.1) 0%, transparent 70%); border-radius: 50%; pointer-events: none; z-index: 0;"></div>
+            
+            <!-- Icon and Title -->
+            <div style="display:flex; align-items:center; gap:16px; margin-bottom:28px; position: relative; z-index: 1;">
+                <div style="width:60px; height:60px; border-radius:50%; background:linear-gradient(135deg, #ff6b6b 0%, #ff5252 50%, #ee5a52 100%); display:flex; justify-content:center; align-items:center; box-shadow: 0 8px 24px rgba(255, 107, 107, 0.3); animation: pulse 2s ease-in-out infinite;">
+                    <i class="fas fa-trash-alt" style="font-size:28px; color:#fff; font-weight: 700;"></i>
+                </div>
+                <h2 style="font-size:26px; font-weight:800; color:#ffffff !important; margin:0; text-shadow: 0 2px 4px rgba(0,0,0,0.3); letter-spacing:0.5px;">Delete Dataset(s)?</h2>
             </div>
-            <h2 style="font-size:22px; font-weight:700; color:#ff6b6b; margin-bottom:10px;">Delete All Data?</h2>
-            <p style="color:#a0a0a0; font-size:14px; margin-bottom:25px; line-height:1.6;">
-                You are about to permanently delete <strong id="deleteModalCount" style="color:#ff6b6b;">0</strong> records.<br>
-                <span style="color:#ff6b6b; font-weight:600;">This action cannot be undone.</span>
-            </p>
-            <div style="display:flex; gap:16px; justify-content:center;">
-                <button onclick="confirmDeleteAll()" style="background:linear-gradient(135deg,#ff6b6b 0%,#ee5a24 100%); color:#fff; padding:12px 25px; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:14px; font-family:'Poppins',sans-serif; min-width:140px;">
-                    <i class="fas fa-trash-alt"></i> Yes, Delete All
+            
+            <!-- Datasets list -->
+            <div id="deleteDatasetsList" style="margin-bottom:28px; background: linear-gradient(135deg, rgba(244, 208, 63, 0.12) 0%, rgba(244, 208, 63, 0.06) 100%); border: 1px solid rgba(244, 208, 63, 0.2); border-radius: 12px; padding: 18px; max-height: 250px; overflow-y: auto; position: relative; z-index: 1;">
+                <div style="text-align: center; color: #b8c5d6; font-size: 13px; font-weight: 500;" id="deleteDatasetsSummary">
+                    <i class='fas fa-spinner fa-spin' style='margin-right: 8px;'></i>Loading datasets...
+                </div>
+            </div>
+            
+            <!-- Warning message -->
+            <div style="background: linear-gradient(135deg, rgba(255, 107, 107, 0.15) 0%, rgba(255, 107, 107, 0.08) 100%); border: 1px solid rgba(255, 107, 107, 0.25); border-left: 3px solid #ff6b6b; border-radius: 12px; padding: 16px; margin-bottom: 28px; text-align: center; color: #ffaaaa; font-size: 13px; line-height: 1.6; position: relative; z-index: 1;">
+                <div style='font-weight: 700; margin-bottom: 8px;'>
+                    <i class='fas fa-triangle-exclamation' style='margin-right: 8px;'></i>This action cannot be undone
+                </div>
+                <div style='font-size: 12px; opacity: 0.9;'>All records in the selected dataset(s) will be permanently deleted from the system.</div>
+            </div>
+            
+            <!-- Buttons -->
+            <div style="display:flex; gap:14px; justify-content:center; position: relative; z-index: 1;">
+                <button onclick="closeDeleteModal()" style="flex: 1; background: linear-gradient(135deg, rgba(100, 120, 150, 0.4) 0%, rgba(80, 100, 130, 0.3) 100%); color:#e0e0e0; padding:14px 24px; border: 2px solid rgba(200, 210, 230, 0.3); border-radius:10px; cursor:pointer; font-weight:700; font-size:15px; font-family:'Poppins',sans-serif; transition:all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); letter-spacing: 0.5px;" onmouseover="this.style.background='linear-gradient(135deg, rgba(120, 140, 170, 0.5) 0%, rgba(100, 120, 150, 0.4) 100%)'; this.style.borderColor='rgba(220, 230, 250, 0.5)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0, 0, 0, 0.3)';" onmouseout="this.style.background='linear-gradient(135deg, rgba(100, 120, 150, 0.4) 0%, rgba(80, 100, 130, 0.3) 100%)'; this.style.borderColor='rgba(200, 210, 230, 0.3)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.2)';">
+                    <i class="fas fa-times" style="margin-right: 10px; font-weight: 700;"></i><span style="font-weight: 700;">Cancel</span>
                 </button>
-                <button onclick="closeDeleteModal()" style="background:rgba(255,255,255,0.1); color:#a0a0a0; padding:12px 25px; border:1px solid rgba(255,255,255,0.2); border-radius:8px; cursor:pointer; font-weight:600; font-size:14px; font-family:'Poppins',sans-serif; min-width:100px;">
-                    <i class="fas fa-times"></i> Cancel
+                <button id="confirmDeleteBtn" onclick="confirmDeleteSelected()" style="flex: 1; background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 50%, #ee5a52 100%); color:#fff; padding:14px 24px; border:none; border-radius:10px; cursor:pointer; font-weight:800; font-size:15px; font-family:'Poppins',sans-serif; transition:all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); text-shadow: 0 1px 2px rgba(0,0,0,0.2); letter-spacing: 0.5px; box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2); position: relative; overflow: hidden;" onmouseover="this.style.transform='translateY(-3px) scale(1.02)'; this.style.boxShadow='0 10px 30px rgba(255, 107, 107, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3)';" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 6px 20px rgba(255, 107, 107, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)';">
+                    <i class="fas fa-trash-alt" style="margin-right: 10px; font-weight: 700;"></i><span style="font-weight: 800;">Delete Permanently</span>
                 </button>
             </div>
         </div>
@@ -987,12 +1086,93 @@ if ($conn) {
                 </div>
             </div>
 
+            <!-- Inventory Upload Section -->
+            <div class="upload-section">
+                <h2 class="section-title">
+                    <i class="fas fa-boxes"></i>
+                    Import Inventory Datasets
+                </h2>
+                <p class="section-subtitle">
+                    <i class="fas fa-lightbulb" style="color: #f4d03f;"></i>
+                    Upload Excel files to bulk import or update inventory items
+                </p>
+
+                <!-- Template Info for Inventory -->
+                <div class="template-section">
+                    <div class="template-info">
+                        <div class="template-icon">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <div class="template-content">
+                            <h4>📦 Inventory File Format</h4>
+                            <p>Your Excel file should contain the following columns. The system will automatically detect and map them:</p>
+                            <div class="template-columns">
+                                <span><strong>BOX</strong> (Optional box code)</span>
+                                <span><strong>ITEMS</strong> (Required)</span>
+                                <span><strong>DESCRIPTION</strong> (Item name)</span>
+                                <span><strong>UOM</strong> (Unit of measure)</span>
+                                <span><strong>INVENTORY</strong> (Stock quantity)</span>
+                                <span><strong>STATUS</strong> (Optional)</span>
+                            </div>
+                            <p style="margin-top: 15px; font-style: italic;">
+                                <i class="fas fa-lightbulb" style="color: #f4d03f;"></i>
+                                The system automatically creates item codes from BOX and ITEMS or uses ITEMS alone if BOX is empty.
+                            </p>
+                            <button class="btn-download-template" onclick="downloadInventoryTemplate()">
+                                <i class="fas fa-download"></i> Download Inventory Template
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inventory Upload Zone -->
+                <div class="upload-zone" id="inventoryUploadZone" style="margin-top: 20px;">
+                    <div class="upload-icon">
+                        <i class="fas fa-file-excel"></i>
+                    </div>
+                    <h3>Drag inventory Excel file here</h3>
+                    <p>or click to select from your computer</p>
+                    <div class="upload-formats">
+                        Supported formats: <strong>.xlsx, .xls</strong> (Max 10MB) | Supports multiple items in one file
+                    </div>
+                    <input type="file" id="inventoryFileInput" accept=".xlsx,.xls" style="display: none;" onchange="handleInventoryFileSelect(event)" />
+                </div>
+
+                <!-- File Info Display -->
+                <div class="file-info" id="inventoryFileInfo" style="margin-top: 20px;">
+                    <div class="file-icon">
+                        <i class="fas fa-file-excel"></i>
+                    </div>
+                    <div class="file-details">
+                        <div class="file-name" id="inventoryFileName">Selected file</div>
+                        <div class="file-size" id="inventoryFileSize">0 bytes</div>
+                    </div>
+                    <button class="file-remove" onclick="resetInventoryFileInput()">
+                        <i class="fas fa-times"></i> Remove
+                    </button>
+                </div>
+
+                <!-- Status and Action Buttons -->
+                <div class="upload-actions" style="margin-top: 25px;">
+                    <button class="btn-upload" id="inventoryImportBtn" onclick="importInventoryFile()" style="display: none; flex: 1;">
+                        <i class="fas fa-cloud-upload-alt"></i> Import Inventory
+                    </button>
+                    <button class="btn-cancel" onclick="resetInventoryFileInput()" style="flex: 1;">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                </div>
+
+                <!-- Upload Status -->
+                <div id="inventoryUploadStatus" style="margin-top: 15px;"></div>
+            </div>
+
             <!-- Preview Section -->
             <div class="upload-section preview-section" id="previewSection">
                 <h2 class="section-title">
                     <i class="fas fa-eye"></i>
                     Data Preview
                 </h2>
+                <p class="section-subtitle">Review the data before importing</p>
                 <p class="section-subtitle">Review the data before importing</p>
 
                 <div class="preview-info" id="previewInfo">
@@ -1069,6 +1249,32 @@ if ($conn) {
                         <i class="fas fa-times"></i> Cancel
                     </button>
                 </div>
+
+                <!-- Merge Options Section -->
+                <div style="margin-top: 30px; padding: 20px; background: rgba(0, 217, 255, 0.1); border: 1px solid rgba(0, 217, 255, 0.3); border-radius: 10px; display: none;" id="mergeOptionsSection">
+                    <label style="display: flex; align-items: center; gap: 10px; color: #00d9ff; font-weight: 600; font-size: 14px; margin-bottom: 15px;">
+                        <i class="fas fa-code-branch"></i> Merge Options
+                    </label>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px; background: rgba(0, 217, 255, 0.05); border-radius: 8px; border: 1px solid rgba(0, 217, 255, 0.2); transition: all 0.3s ease;">
+                            <input type="radio" name="mergeChoice" value="separate" checked style="cursor: pointer; width: 18px; height: 18px;">
+                            <span style="flex: 1; color: #fff;">
+                                <strong>Keep Separate</strong>
+                                <div style="font-size: 12px; color: #8a9ab5; margin-top: 4px;">Store this as an independent dataset (e.g., "2018 TO NOW BW SALES RECORD")</div>
+                            </span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px; background: rgba(81, 207, 102, 0.05); border-radius: 8px; border: 1px solid rgba(81, 207, 102, 0.2); transition: all 0.3s ease;">
+                            <input type="radio" name="mergeChoice" value="merge" style="cursor: pointer; width: 18px; height: 18px;">
+                            <span style="flex: 1; color: #fff;">
+                                <strong>Merge to ALL DATA</strong>
+                                <div style="font-size: 12px; color: #8a9ab5; margin-top: 4px;">Combine with existing data - can be viewed together or separately as needed</div>
+                            </span>
+                        </label>
+                    </div>
+                    <p style="color: #7a8a9a; font-size: 12px; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0, 217, 255, 0.2); margin-bottom: 0;">
+                        <i class="fas fa-info-circle"></i> You can change your choice any time from the Dashboard
+                    </p>
+                </div>
             </div>
 
             <!-- Delete All Data Section -->
@@ -1077,7 +1283,7 @@ if ($conn) {
                     <i class="fas fa-trash-alt"></i>
                     Manage Uploaded Data
                 </h2>
-                <p class="section-subtitle">Clear all uploaded records to start fresh</p>
+                <p class="section-subtitle">Select and delete specific datasheets or datasets</p>
 
                 <div class="delete-section-inner" style="display: flex; align-items: center; gap: 20px; padding: 20px; border-radius: 12px;">
                     <div style="flex: 1;">
@@ -1085,10 +1291,10 @@ if ($conn) {
                             <i class="fas fa-database" style="color: #ff6b6b; margin-right: 8px;"></i>
                             Total Records: <span id="currentRecordCount" style="color: #ff6b6b; font-size: 20px;"><?php echo number_format($totalRecords); ?></span>
                         </p>
-                        <p class="delete-section-subtitle" style="font-size: 12px;">Delete all data to upload a new Excel file from scratch</p>
+                        <p class="delete-section-subtitle" style="font-size: 12px;">Choose which datasets to remove and start fresh</p>
                     </div>
                     <button id="deleteAllBtn" type="button" onclick="showDeleteModal()" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: #fff; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; font-family: 'Poppins', sans-serif; transition: all 0.3s ease; display: flex; align-items: center; gap: 10px; white-space: nowrap; position: relative; z-index: 10;">
-                        <i class="fas fa-trash-alt"></i> Delete All Data
+                        <i class="fas fa-trash-alt"></i> Manage Data
                     </button>
                     <style>
                         button[onclick="showDeleteModal()"]:hover {
@@ -1110,6 +1316,11 @@ if ($conn) {
     <!-- Chart.js for data visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <script>
+        // Error handler to catch any issues
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
+        });
+        
         // Debug: Check if XLSX loaded
         console.log('XLSX library loaded:', typeof XLSX !== 'undefined');
         
@@ -1977,6 +2188,7 @@ if ($conn) {
 
             previewSection.classList.add('show');
             importBtn.style.display = 'block';
+            document.getElementById('mergeOptionsSection').style.display = 'block';
             console.log('Preview shown. Import button visible:', importBtn.style.display);
 
             if (rows.length > 10) {
@@ -1994,13 +2206,28 @@ if ($conn) {
             importBtn.innerHTML = '<span class="spinner"></span> Importing...';
             importBtn.disabled = true;
 
-            // Always get next available dataset number from the server
+            // Get merge choice
+            const mergeChoice = document.querySelector('input[name="mergeChoice"]:checked');
+            const shouldMerge = mergeChoice && mergeChoice.value === 'merge';
+
+            console.log('Merge choice element:', mergeChoice);
+            console.log('Merge choice value:', mergeChoice ? mergeChoice.value : 'NONE');
+            console.log('Should merge:', shouldMerge);
+
+            // Determine dataset name based on merge choice
             let datasetName = 'data1';
-            try {
-                const dsRes = await fetch('api/get-datasets.php');
-                const dsData = await dsRes.json();
-                if (dsData.success) datasetName = dsData.next_name;
-            } catch (e) { /* use default data1 */ }
+            if (shouldMerge) {
+                datasetName = 'ALL_DATA';
+                console.log('USER CHOSE: Merge to ALL_DATA');
+            } else {
+                // Get next available dataset number from the server (for separate data)
+                try {
+                    const dsRes = await fetch('api/get-datasets.php');
+                    const dsData = await dsRes.json();
+                    if (dsData.success) datasetName = dsData.next_name;
+                    console.log('USER CHOSE: Keep Separate, assigned:', datasetName);
+                } catch (e) { /* use default data1 */ }
+            }
 
             // Prepare data for import
             const fileNames = selectedFiles.map(f => f.name).join(', ');
@@ -2008,10 +2235,14 @@ if ($conn) {
                 data: parsedData,
                 fileName: fileNames,
                 dataset_name: datasetName,
+                merge_choice: shouldMerge ? 'merge' : 'separate',
                 timestamp: new Date().toISOString()
             };
 
-            console.log('Sending import data with', parsedData.length, 'rows, dataset:', datasetName);
+            console.log('🔹 SENDING TO API:');
+            console.log('   - Rows:', parsedData.length);
+            console.log('   - Dataset Name:', datasetName);
+            console.log('   - Merge Choice:', importData.merge_choice);
 
             // Send to backend
             fetch('api/import-data.php', {
@@ -2026,13 +2257,22 @@ if ($conn) {
                 return response.json();
             })
             .then(result => {
-                console.log('Import result:', result);
+                console.log('🔹 RESPONSE FROM API:');
+                console.log('   - Success:', result.success);
+                console.log('   - Dataset Used:', result.dataset_name);
+                console.log('   - Records Imported:', result.imported);
+                console.log(result);
+                
                 importBtn.innerHTML = '<i class="fas fa-upload"></i> Import Data';
                 importBtn.disabled = false;
 
                 if (result.success) {
-                    // Show success popup modal
-                    showSuccessModal(result.imported, result.failed || 0, fileNames, datasetName);
+                    // Use the actual dataset name returned from server
+                    const actualDatasetName = result.dataset_name || datasetName;
+                    console.log('✅ Import successful! Final dataset:', actualDatasetName);
+                    
+                    // Show success popup modal with actual dataset name
+                    showSuccessModal(result.imported, result.failed || 0, fileNames, actualDatasetName);
                     // Don't auto-reset - let user click 'View Records' or 'Import More'
                 } else {
                     showAlert('error', result.message || 'Import failed. Please try again.');
@@ -2064,6 +2304,7 @@ if ($conn) {
             previewCharts = {};
             previewSection.classList.remove('show');
             document.getElementById('uploadBtn').style.display = 'none';
+            document.getElementById('mergeOptionsSection').style.display = 'none';
             importBtn.innerHTML = '<i class="fas fa-upload"></i> Import Data';
             importBtn.disabled = false;
             importBtn.style.display = 'none';
@@ -2110,10 +2351,11 @@ if ($conn) {
         function closeSuccessModal() {
             document.getElementById('successModal').classList.remove('show');
             resetUpload();
-            // Redirect back to index to show imported datasets
-            setTimeout(() => {
-                window.location.href = 'index.php';
-            }, 500);
+            // Scroll back to upload section
+            const uploadSection = document.querySelector('.upload-section');
+            if (uploadSection) {
+                uploadSection.scrollIntoView({ behavior: 'smooth' });
+            }
         }
 
         function goToDeliveryRecords(dataset) {
@@ -2162,8 +2404,80 @@ if ($conn) {
                 delete worksheet[cellAddress];
             }
             
+            // Insert title row at the top
+            const titleValue = `BW Gas Detector - Import Template (${new Date().toLocaleDateString()})`;
+            worksheet['A1'] = {
+                v: titleValue,
+                t: 's'
+            };
+            
+            // Shift all content down by 2 rows (for title and spacer)
+            const newWorksheet = {};
+            for (const key in worksheet) {
+                if (key.startsWith('!')) {
+                    newWorksheet[key] = worksheet[key];
+                } else {
+                    const match = key.match(/([A-Z]+)(\d+)/);
+                    if (match) {
+                        const col = match[1];
+                        const row = parseInt(match[2]) + 2;
+                        newWorksheet[col + row] = worksheet[key];
+                    }
+                }
+            }
+            
+            // Update range
+            const numCols = range.e.c + 1;
+            newWorksheet['!ref'] = `A1:${XLSX.utils.encode_col(range.e.c)}${range.e.r + 2}`;
+            
+            // Define title style
+            const titleStyle = {
+                fill: { fgColor: { rgb: 'FF1a3a5c' }, patternType: 'solid' },
+                font: { bold: true, color: { rgb: 'FFFFFFFF' }, sz: 14, name: 'Calibri' },
+                alignment: { horizontal: 'left', vertical: 'center' }
+            };
+            
+            // Apply title formatting
+            newWorksheet['A1'].fill = titleStyle.fill;
+            newWorksheet['A1'].font = titleStyle.font;
+            newWorksheet['A1'].alignment = titleStyle.alignment;
+            
+            // Merge title cells
+            newWorksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: numCols - 1 } }];
+            
+            // Define header style with professional blue color
+            const headerStyle = {
+                fill: { fgColor: { rgb: 'FF2f5fa7' }, patternType: 'solid' },
+                font: { bold: true, color: { rgb: 'FFFFFFFF' }, sz: 12 },
+                alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                border: {
+                    top: { style: 'thin', color: { rgb: 'FF1a3a5c' } },
+                    bottom: { style: 'thin', color: { rgb: 'FF1a3a5c' } },
+                    left: { style: 'thin', color: { rgb: 'FF1a3a5c' } },
+                    right: { style: 'thin', color: { rgb: 'FF1a3a5c' } }
+                }
+            };
+            
+            // Apply header formatting (now at row 3)
+            const headerRow = 2;
+            for (let col = range.s.c; col <= range.e.c; col++) {
+                const cellRef = XLSX.utils.encode_cell({ r: headerRow, c: col });
+                if (newWorksheet[cellRef]) {
+                    newWorksheet[cellRef].fill = headerStyle.fill;
+                    newWorksheet[cellRef].font = headerStyle.font;
+                    newWorksheet[cellRef].alignment = headerStyle.alignment;
+                    newWorksheet[cellRef].border = headerStyle.border;
+                }
+            }
+            
+            // Set row heights
+            newWorksheet['!rows'] = [
+                { hpx: 28 },   // Title row
+                { hpx: 15 }    // Spacer row
+            ];
+            
             // Set column widths
-            worksheet['!cols'] = [
+            newWorksheet['!cols'] = [
                 { wch: 15 },
                 { wch: 12 },
                 { wch: 18 },
@@ -2173,8 +2487,11 @@ if ($conn) {
                 { wch: 15 },
                 { wch: 20 }
             ];
+            
+            // Freeze header and title rows
+            newWorksheet['!freeze'] = { xSplit: 0, ySplit: 3 };
 
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+            XLSX.utils.book_append_sheet(workbook, newWorksheet, 'Template');
             XLSX.writeFile(workbook, 'BW_Gas_Detector_Import_Template.xlsx');
         }
 
@@ -2200,13 +2517,152 @@ if ($conn) {
             setInterval(loadRecordCount, 5000);
         });
 
-        // Show delete confirmation modal
+        // Show delete modal with dataset selection
         function showDeleteModal() {
-            const countElement = document.getElementById('currentRecordCount');
-            const count = countElement ? countElement.textContent.trim() : '0';
-            document.getElementById('deleteModalCount').textContent = count;
             const modal = document.getElementById('deleteModal');
             modal.style.display = 'flex';
+            loadDatasetsForDeletion();
+        }
+
+        // Load datasets for deletion
+        function loadDatasetsForDeletion() {
+            const listDiv = document.getElementById('deleteDatasetsList');
+            
+            fetch('api/get-datasets.php')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Datasets loaded:', data);
+                    
+                    if (!data.success || !data.datasets || data.datasets.length === 0) {
+                        listDiv.innerHTML = '<div style="text-align:center; color:#fff; padding:20px;">No datasets found</div>';
+                        document.getElementById('confirmDeleteBtn').disabled = true;
+                        return;
+                    }
+                    
+                    let html = '<div style="display:flex; flex-direction:column; gap:12px;">';
+                    
+                    data.datasets.forEach((dataset, index) => {
+                        const datasetId = 'dataset_' + index;
+                        const recordCount = dataset.count || dataset.record_count || 0;
+                        const isDefault = dataset.is_merged || dataset.is_default || dataset.name === 'ALL_DATA';
+                        
+                        html += `
+                            <label style="display:flex; align-items:center; gap:12px; padding:12px; border:1px solid rgba(255,255,255,0.1); border-radius:8px; cursor:pointer; transition:all 0.2s; background:rgba(255,255,255,0.02);" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+                                <input type="checkbox" id="${datasetId}" value="${dataset.name}" style="width:18px; height:18px; cursor:pointer;">
+                                <div style="flex:1; text-align:left;">
+                                    <div style="color:#fff; font-weight:600;">${dataset.name}</div>
+                                    <div style="color:#fff; font-size:12px; opacity:0.7;">${recordCount.toLocaleString()} records</div>
+                                </div>
+                                ${isDefault ? '<span style="color:#f4d03f; font-size:11px; background:rgba(244,208,63,0.2); padding:4px 8px; border-radius:4px;">Default</span>' : ''}
+                            </label>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    listDiv.innerHTML = html;
+                    document.getElementById('confirmDeleteBtn').disabled = false;
+                })
+                .catch(error => {
+                    console.error('Error loading datasets:', error);
+                    listDiv.innerHTML = '<div style="text-align:center; color:#ff6b6b; padding:20px;"><i class="fas fa-exclamation-circle"></i> Error loading datasets</div>';
+                    document.getElementById('confirmDeleteBtn').disabled = true;
+                });
+        }
+
+        // Confirm delete selected datasets
+        function confirmDeleteSelected() {
+            const checkboxes = document.querySelectorAll('#deleteDatasetsList input[type="checkbox"]:checked');
+            
+            if (checkboxes.length === 0) {
+                showAlert('error', 'Please select at least one dataset to delete');
+                return;
+            }
+            
+            const selectedDatasets = Array.from(checkboxes).map(cb => cb.value);
+            let totalRecords = 0;
+            
+            Array.from(checkboxes).forEach(cb => {
+                const label = cb.closest('label');
+                if (label) {
+                    const children = label.querySelectorAll('div');
+                    if (children.length >= 2) {
+                        const recordText = children[1].querySelector('div:nth-child(2)');
+                        if (recordText) {
+                            const match = recordText.textContent.match(/(\d+(?:,\d+)*) records/);
+                            if (match) {
+                                const count = parseInt(match[1].replace(/,/g, ''));
+                                totalRecords += count;
+                            }
+                        }
+                    }
+                }
+            });
+            
+            showDeleteConfirmModal(selectedDatasets.length, totalRecords, selectedDatasets);
+        }
+
+        // Delete selected datasets
+        function deleteSelectedDatasets(datasets) {
+            showAlert('info', `Deleting ${datasets.length} dataset(s)... Please wait.`);
+            
+            const deletePromises = datasets.map(datasetName => 
+                fetch('api/manage-dataset.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete', dataset_name: datasetName })
+                }).then(r => r.json())
+            );
+            
+            Promise.all(deletePromises)
+                .then(results => {
+                    const successful = results.filter(r => r.success);
+                    const failed = results.filter(r => !r.success);
+                    
+                    if (successful.length > 0) {
+                        const totalDeleted = successful.reduce((sum, r) => {
+                            const match = r.message.match(/(\d+) records/);
+                            return sum + (match ? parseInt(match[1]) : 0);
+                        }, 0);
+                        
+                        showAlert('success', `Successfully deleted ${successful.length} dataset(s) with ${totalDeleted.toLocaleString()} records! Reloading...`);
+                        setTimeout(() => location.reload(), 1500);
+                    } else if (failed.length > 0) {
+                        showAlert('error', `Error: ${failed[0].message}`);
+                    }
+                })
+                .catch(error => {
+                    showAlert('error', 'Error: ' + error.message);
+                    console.error('Deletion error:', error);
+                });
+        }
+
+        // Show delete confirmation modal
+        function showDeleteConfirmModal(datasetCount, recordCount, datasets) {
+            const modal = document.getElementById('deleteModal');
+            const summaryDiv = document.getElementById('deleteDatasetsSummary');
+            
+            // Show summary
+            summaryDiv.innerHTML = `
+                <div style="text-align: center;">
+                    <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #f4d03f;">
+                        <i class="fas fa-database" style="margin-right: 8px;"></i>${datasetCount} Dataset(s)
+                    </p>
+                    <p style="margin: 0; font-size: 13px; color: #b8c5d6;">
+                        Containing <strong style="color: #ff6b6b;">${recordCount.toLocaleString()}</strong> records
+                    </p>
+                </div>
+            `;
+            
+            // Store datasets for final deletion
+            window.pendingDatasetsForDeletion = datasets;
+            
+            modal.style.display = 'flex';
+            
+            // Update button handler
+            document.getElementById('confirmDeleteBtn').onclick = function() {
+                closeDeleteModal();
+                deleteSelectedDatasets(datasets);
+            };
         }
 
         // Close delete modal
@@ -2214,46 +2670,271 @@ if ($conn) {
             document.getElementById('deleteModal').style.display = 'none';
         }
 
-        // Confirm delete (called from modal button)
-        function confirmDeleteAll() {
-            closeDeleteModal();
-            const countElement = document.getElementById('currentRecordCount');
-            const count = countElement ? countElement.textContent.replace(/,/g, '').trim() : '0';
-            deleteAllData(count);
+        // Inventory Upload Functions
+        function handleInventoryFileSelect(event) {
+            const file = event.target.files[0];
+            const statusDiv = document.getElementById('inventoryUploadStatus');
+            const fileInfo = document.getElementById('inventoryFileInfo');
+            const importBtn = document.getElementById('inventoryImportBtn');
+            
+            if (!file) return;
+            
+            // Validate file format
+            const validExtensions = ['xlsx', 'xls'];
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            
+            if (!validExtensions.includes(fileExt)) {
+                statusDiv.innerHTML = `
+                    <div style="background: rgba(255, 107, 107, 0.15); border: 1px solid #ff6b6b; border-radius: 8px; padding: 12px; color: #ff6b6b; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>Please upload an Excel file (.xlsx or .xls)</span>
+                    </div>
+                `;
+                return;
+            }
+
+            // Validate file size (10MB max)
+            const maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+                statusDiv.innerHTML = `
+                    <div style="background: rgba(255, 107, 107, 0.15); border: 1px solid #ff6b6b; border-radius: 8px; padding: 12px; color: #ff6b6b; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>File size exceeds 10MB limit (File size: ${(file.size / 1024 / 1024).toFixed(2)}MB)</span>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Show loading status
+            statusDiv.innerHTML = `
+                <div style="background: rgba(244, 208, 63, 0.15); border: 1px solid #f4d03f; border-radius: 8px; padding: 12px; color: #f4d03f; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Reading file...</span>
+                </div>
+            `;
+
+            // Display file info
+            document.getElementById('inventoryFileName').textContent = file.name;
+            document.getElementById('inventoryFileSize').textContent = (file.size / 1024).toFixed(2) + ' KB';
+            fileInfo.classList.add('show');
+            
+            // Read and parse Excel file
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    // Using xlsx library
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    // Validate data
+                    if (jsonData.length === 0) {
+                        statusDiv.innerHTML = `
+                            <div style="background: rgba(255, 107, 107, 0.15); border: 1px solid #ff6b6b; border-radius: 8px; padding: 12px; color: #ff6b6b; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <span>File is empty or contains no data</span>
+                            </div>
+                        `;
+                        importBtn.style.display = 'none';
+                        return;
+                    }
+
+                    // Show preview and enable import
+                    statusDiv.innerHTML = `
+                        <div style="background: rgba(81, 207, 102, 0.15); border: 1px solid #2ecc71; border-radius: 8px; padding: 12px; color: #2ecc71; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-check-circle"></i>
+                            <span><strong>${jsonData.length}</strong> items detected in file. Ready to import.</span>
+                        </div>
+                    `;
+                    importBtn.style.display = 'block';
+                    
+                    // Store data for import
+                    window.pendingInventoryData = { data: jsonData, filename: file.name };
+                    
+                } catch (error) {
+                    statusDiv.innerHTML = `
+                        <div style="background: rgba(255, 107, 107, 0.15); border: 1px solid #ff6b6b; border-radius: 8px; padding: 12px; color: #ff6b6b; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span>Error reading file: ${error.message}</span>
+                        </div>
+                    `;
+                    importBtn.style.display = 'none';
+                }
+            };
+            reader.readAsArrayBuffer(file);
         }
 
-        // Delete all data function
-        function deleteAllData(count) {
-            console.log('deleteAllData called with count:', count);
-            showAlert('info', 'Deleting ' + count + ' records... Please wait.');
+        function importInventoryFile() {
+            if (!window.pendingInventoryData) {
+                alert('No file data available. Please select a file first.');
+                return;
+            }
+
+            const statusDiv = document.getElementById('inventoryUploadStatus');
+            const importBtn = document.getElementById('inventoryImportBtn');
             
-            // Make the API call
-            fetch('api/delete-all-records.php', {
+            // Disable button and show loading
+            importBtn.disabled = true;
+            importBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+            
+            statusDiv.innerHTML = `
+                <div style="background: rgba(244, 208, 63, 0.15); border: 1px solid #f4d03f; border-radius: 8px; padding: 12px; color: #f4d03f; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Importing inventory data...</span>
+                </div>
+            `;
+
+            console.log('Sending inventory data:', window.pendingInventoryData);
+
+            fetch('api/import-inventory.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({})
+                body: JSON.stringify(window.pendingInventoryData)
             })
             .then(response => {
-                console.log('Response received:', response.status);
-                return response.json();
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers.get('content-type'));
+                return response.text().then(text => {
+                    console.log('Raw response:', text);
+                    if (!text) {
+                        throw new Error('Empty response from server');
+                    }
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        console.error('JSON parse error:', e);
+                        throw new Error('Invalid JSON response: ' + text.substring(0, 100));
+                    }
+                });
             })
-            .then(data => {
-                console.log('Response data:', data);
-                if (data.success) {
-                    showAlert('success', 'Successfully deleted ' + data.deleted_count + ' records! Reloading...');
+            .then(result => {
+                console.log('Parsed result:', result);
+                importBtn.disabled = false;
+                importBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Import Inventory';
+
+                if (result.success) {
+                    statusDiv.innerHTML = `
+                        <div style="background: rgba(46, 204, 113, 0.15); border: 1px solid #2ecc71; border-radius: 8px; padding: 15px; color: #2ecc71; font-size: 13px;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                <i class="fas fa-check-circle"></i> 
+                                <strong>${result.imported} items imported successfully!</strong>
+                            </div>
+                            <div style="margin: 8px 0; font-size: 12px;">
+                                ✓ Verified in database: ${result.verified_total} items
+                            </div>
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(46, 204, 113, 0.3); display: flex; gap: 10px;">
+                                <a href="inventory.php" style="color: #2ecc71; text-decoration: underline; cursor: pointer; font-weight: 600;">
+                                    <i class="fas fa-boxes"></i> View Inventory →
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Reset after 3 seconds
                     setTimeout(() => {
-                        location.reload();
-                    }, 1500);
+                        resetInventoryFileInput();
+                        statusDiv.innerHTML = '';
+                    }, 3000);
                 } else {
-                    showAlert('error', 'Error: ' + data.message);
+                    let errorMsg = result.message || 'Unknown error';
+                    if (result.errors && result.errors.length > 0) {
+                        errorMsg += '<br/><br/><strong>Errors:</strong><ul style="margin: 10px 0; padding-left: 20px;">';
+                        result.errors.slice(0, 10).forEach(err => {
+                            errorMsg += '<li>' + err + '</li>';
+                        });
+                        if (result.errors.length > 10) {
+                            errorMsg += '<li>... and ' + (result.errors.length - 10) + ' more</li>';
+                        }
+                        errorMsg += '</ul>';
+                    }
+                    
+                    statusDiv.innerHTML = `
+                        <div style="background: rgba(255, 107, 107, 0.15); border: 1px solid #ff6b6b; border-radius: 8px; padding: 15px; color: #ff6b6b; font-size: 13px;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                <i class="fas fa-exclamation-circle"></i> 
+                                <strong>Import Failed</strong>
+                            </div>
+                            <div>${errorMsg}</div>
+                        </div>
+                    `;
                 }
             })
             .catch(error => {
                 console.error('Fetch error:', error);
-                showAlert('error', 'Error: ' + error.message);
+                importBtn.disabled = false;
+                importBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Import Inventory';
+                
+                statusDiv.innerHTML = `
+                    <div style="background: rgba(255, 107, 107, 0.15); border: 1px solid #ff6b6b; border-radius: 8px; padding: 12px; color: #ff6b6b; font-size: 13px;">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>${error.message}</span>
+                    </div>
+                `;
             });
+        }
+
+        function resetInventoryFileInput() {
+            document.getElementById('inventoryFileInput').value = '';
+            document.getElementById('inventoryFileInfo').classList.remove('show');
+            document.getElementById('inventoryUploadStatus').innerHTML = '';
+            document.getElementById('inventoryImportBtn').style.display = 'none';
+            window.pendingInventoryData = null;
+        }
+
+        // Drag and drop for inventory upload zone
+        const inventoryUploadZone = document.getElementById('inventoryUploadZone');
+        if (inventoryUploadZone) {
+            inventoryUploadZone.addEventListener('click', () => {
+                document.getElementById('inventoryFileInput').click();
+            });
+
+            inventoryUploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                inventoryUploadZone.classList.add('dragover');
+            });
+
+            inventoryUploadZone.addEventListener('dragleave', () => {
+                inventoryUploadZone.classList.remove('dragover');
+            });
+
+            inventoryUploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                inventoryUploadZone.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    document.getElementById('inventoryFileInput').files = files;
+                    handleInventoryFileSelect({ target: { files: files } });
+                }
+            });
+        }
+
+        function downloadInventoryTemplate() {
+            const ws = XLSX.utils.aoa_to_sheet([
+                ['BOX', 'ITEMS', 'DESCRIPTION', 'UOM', 'INVENTORY', 'NOTES'],
+                ['M1', 'M1-AF-K1', 'Motor - AC Type 1', 'UNITS', 15, 'In stock'],
+                ['M2', 'M2-AF-K2', 'Motor - AC Type 2', 'UNITS', 8, 'Low stock'],
+                ['M3', 'M3-AF-K3', 'Motor - AC Type 3', 'UNITS', 25, 'Adequate'],
+                ['M5', 'M5-AF-K2', 'Motor - AC Type 5', 'UNITS', 2, 'Critical'],
+            ]);
+            
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Inventory');
+            
+            // Format header row
+            ws['!cols'] = [
+                { wch: 12 },
+                { wch: 15 },
+                { wch: 30 },
+                { wch: 10 },
+                { wch: 12 },
+                { wch: 20 }
+            ];
+            
+            XLSX.writeFile(wb, 'Inventory_Template.xlsx');
         }
 
         // Profile dropdown

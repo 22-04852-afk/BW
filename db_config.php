@@ -63,6 +63,13 @@ try {
     @$conn->query("ALTER TABLE delivery_records ADD COLUMN serial_no VARCHAR(100)");
     @$conn->query("ALTER TABLE delivery_records ADD COLUMN delivery_year INTEGER NOT NULL DEFAULT 0");
     @$conn->query("ALTER TABLE delivery_records ADD COLUMN delivery_date DATE");
+    @$conn->query("ALTER TABLE delivery_records ADD COLUMN groupings VARCHAR(50)");
+    @$conn->query("ALTER TABLE delivery_records ADD COLUMN uom VARCHAR(50)");
+    @$conn->query("ALTER TABLE delivery_records ADD COLUMN sold_to_month VARCHAR(20)");
+    @$conn->query("ALTER TABLE delivery_records ADD COLUMN sold_to_day INTEGER");
+    @$conn->query("ALTER TABLE delivery_records ADD COLUMN box_code VARCHAR(50)");
+    @$conn->query("ALTER TABLE delivery_records ADD COLUMN model_no VARCHAR(100)");
+    @$conn->query("ALTER TABLE delivery_records ADD COLUMN description TEXT");
     
     // Add 2FA columns for users table
     @$conn->query("ALTER TABLE users ADD COLUMN two_factor_secret VARCHAR(32) DEFAULT NULL");

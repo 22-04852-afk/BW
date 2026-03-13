@@ -72,6 +72,7 @@ $totalSold = count(array_filter($delivery_records, function($r) {
     <noscript><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+    <script src="https://cdn.jsdelivr.net/npm/@dotlottie/web-component@latest/dist/dotlottie-wc.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <style>
         .andison-container {
@@ -1233,10 +1234,7 @@ $totalSold = count(array_filter($delivery_records, function($r) {
 
         function submitAddRecord(event) {
             event.preventDefault();
-            const submitBtn = event.target.querySelector('.btn-submit');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            submitBtn.disabled = true;
+            showLoadingOverlay(true, 'Saving');
 
             const formData = {
                 invoice_no:     document.getElementById('add_invoice_no').value,
@@ -1267,8 +1265,7 @@ $totalSold = count(array_filter($delivery_records, function($r) {
             })
             .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
             .then(result => {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
+                showLoadingOverlay(false);
                 if (result.success) {
                     showToast('Record added successfully!', 'success');
                     closeAddModal();
@@ -1278,8 +1275,7 @@ $totalSold = count(array_filter($delivery_records, function($r) {
                 }
             })
             .catch(err => {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
+                showLoadingOverlay(false);
                 showToast('Error adding record. Please try again.', 'error');
             });
         }
@@ -1356,10 +1352,7 @@ $totalSold = count(array_filter($delivery_records, function($r) {
 
         function confirmDelete() {
             if (!deleteRecordId) return;
-            const confirmBtn = document.getElementById('confirmDeleteBtn');
-            const originalText = confirmBtn.innerHTML;
-            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
-            confirmBtn.disabled = true;
+            showLoadingOverlay(true, 'Deleting');
 
             fetch('api/delete-record.php', {
                 method: 'POST',
@@ -1368,8 +1361,7 @@ $totalSold = count(array_filter($delivery_records, function($r) {
             })
             .then(r => r.json())
             .then(result => {
-                confirmBtn.innerHTML = originalText;
-                confirmBtn.disabled = false;
+                showLoadingOverlay(false);
                 if (result.success) {
                     showToast('Record deleted!', 'success');
                     if (deleteRecordRow) {
@@ -1384,8 +1376,7 @@ $totalSold = count(array_filter($delivery_records, function($r) {
                 }
             })
             .catch(err => {
-                confirmBtn.innerHTML = originalText;
-                confirmBtn.disabled = false;
+                showLoadingOverlay(false);
                 showToast('Error deleting record. Please try again.', 'error');
             });
         }
@@ -1437,10 +1428,7 @@ $totalSold = count(array_filter($delivery_records, function($r) {
 
         function submitEditRecord(event) {
             event.preventDefault();
-            const submitBtn = event.target.querySelector('.btn-submit');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
-            submitBtn.disabled = true;
+            showLoadingOverlay(true, 'Updating');
 
             const formData = {
                 id:             document.getElementById('edit_id').value,
@@ -1472,8 +1460,7 @@ $totalSold = count(array_filter($delivery_records, function($r) {
             })
             .then(r => r.json())
             .then(result => {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
+                showLoadingOverlay(false);
                 if (result.success) {
                     showToast('Record updated successfully!', 'success');
                     closeEditModal();
@@ -1483,8 +1470,7 @@ $totalSold = count(array_filter($delivery_records, function($r) {
                 }
             })
             .catch(err => {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
+                showLoadingOverlay(false);
                 showToast('Error updating record. Please try again.', 'error');
             });
         }
@@ -1558,6 +1544,97 @@ $totalSold = count(array_filter($delivery_records, function($r) {
             document.body.appendChild(toast);
             setTimeout(() => { if (toast.parentElement) toast.remove(); }, 4000);
         }
+
+        // ===== LOADING OVERLAY =====
+        let dotAnimationInterval;
+        function showLoadingOverlay(show = true, message = 'Saving') {
+            const container = document.getElementById('gearLoaderContainer');
+            const messageSpan = document.getElementById('loaderMessage');
+            
+            if (show) {
+                messageSpan.textContent = message;
+                container.classList.add('show');
+                
+                // Animate dots
+                const dots = document.getElementById('loaderDots');
+                let dotCount = 1;
+                if (dotAnimationInterval) clearInterval(dotAnimationInterval);
+                dotAnimationInterval = setInterval(() => {
+                    dotCount = (dotCount % 3) + 1;
+                    dots.textContent = '.'.repeat(dotCount);
+                }, 400);
+            } else {
+                if (dotAnimationInterval) clearInterval(dotAnimationInterval);
+                container.classList.remove('show');
+            }
+        }
     </script>
+
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.3/dist/dotlottie-wc.js" type="module"></script>
+    <!-- Lottie Delivery Loader -->
+    <div id="gearLoaderContainer" style="display: none;">
+        <div style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            gap: 20px;
+        ">
+            <dotlottie-wc src="https://lottie.host/553405d0-4407-4c03-a973-898c31ac845a/oOYaRfJe97.lottie" style="width: 440px; height: 200px" autoplay loop></dotlottie-wc>
+            <div style="
+                color: #6B21FF;
+                font-weight: 700;
+                font-size: 18px;
+                text-transform: uppercase;
+                letter-spacing: 3px;
+                text-shadow: 0 0 10px rgba(107, 33, 255, 0.5);
+            ">
+                <span id="loaderMessage">Saving</span>
+                <span id="loaderDots" style="margin-left: 8px;">.</span>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        /* Lottie Loader Styles */
+        dotlottie-wc {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        #gearLoaderContainer {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            display: none !important;
+            z-index: 99999 !important;
+        }
+        
+        #gearLoaderContainer.show {
+            display: flex !important;
+        }
+    </style>
 </body>
 </html>

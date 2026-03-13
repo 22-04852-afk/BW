@@ -7,41 +7,84 @@ if (empty($_SESSION['user_id'])) {
 
 require_once 'db_config.php';
 
-// Fetch all unique item_codes with their stats from delivery_records
-$models = [];
+// Fetch all unique item_codes with their stats from delivery_records (inventory)
+$allModels = [];
+$groupA = [];  // Single Gas Detectors
+$groupB = [];  // Multi Gas Detectors
+
+// List of month names to exclude from being treated as item codes
+$monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+               'July', 'August', 'September', 'October', 'November', 'December'];
+$monthRegex = implode('|', $monthNames);
+
 $result = $conn->query("
     SELECT 
         item_code,
         MAX(item_name) as item_name,
+        MAX(groupings) as groupings,
         SUM(quantity) as total_qty,
         COUNT(*) as order_count,
         MAX(delivery_year) as last_year,
-        MAX(delivery_month) as last_month
+        MAX(delivery_month) as last_month,
+        MAX(box_code) as box_code
     FROM delivery_records
-    WHERE item_code IS NOT NULL AND item_code != ''
+    WHERE company_name = 'Stock Addition'
+      AND item_code IS NOT NULL 
+      AND item_code != ''
+      AND (box_code IS NULL OR box_code = '')
     GROUP BY item_code
+    HAVING item_name IS NOT NULL AND item_name != ''
     ORDER BY total_qty DESC
 ");
+
 if ($result) {
     while ($row = $result->fetch_assoc()) {
-        $models[] = $row;
+        $code = trim($row['item_code']);
+        $name = trim($row['item_name']);
+        
+        // Skip if item_code is just a month name or empty
+        if (preg_match('/^(' . $monthRegex . ')$/i', $code) || empty($name)) {
+            continue;
+        }
+        
+        $allModels[] = $row;
+        
+        // Determine group based on groupings field
+        $grouping = strtolower(trim($row['groupings']));
+        
+        // If groupings field is empty, auto-detect from item name (same logic as inventory.php)
+        if (empty($grouping)) {
+            $lowerName = strtolower($name);
+            if (strpos($lowerName, 'multi') !== false || 
+                strpos($lowerName, 'quattro') !== false || 
+                strpos($lowerName, 'quad') !== false ||
+                strpos($lowerName, 'o2/lel/h2s/co') !== false ||
+                preg_match('/o2.*lel|lel.*o2/', $lowerName)) {
+                $grouping = 'group b - multi gas';
+            } else {
+                $grouping = 'group a - single gas';
+            }
+        }
+        
+        // Check if groupings field explicitly states the group
+        if (strpos($grouping, 'multi') !== false || strpos($grouping, 'group b') !== false) {
+            $groupB[] = $row;
+        } else {
+            // Default to Group A (Single Gas) for everything else
+            $groupA[] = $row;
+        }
     }
 }
 
-$groupACodes = array_map('strtoupper', [
-    'MCXL-XWHM-Y-NA','XT-XWHM-Y-NA','MCX3-XWHM-Y-NA','BWC2-H','BWC2R-X',
-    'BWS-BC1','M020-12111-111','BWS1-Z-Y','BWC3-H','BWC2-M',
-    'BWS1-HL-Y','M020-12311-111','HRR-G103009ABK-000','BWS1-XL-Y'
-]);
-$groupBCodes = array_map('strtoupper', [
-    'SR-X2V','CRT0500003DA58','MCXL-FC1','MCXL-BC1','MC2-FPCB1',
-    'SR-W-MP75C','SR-Q1-4R','CRT0500003DA34','XT-MPCB2','MCX3-MPCB',
-    'REG 0.5','MCXL-MPCB1','XT-RPUMP-K1','MCX3-FC1','MCX3-BC1',
-    'XT-BC1','CRT0200161DA34','REG-0.5','CRT0500003DA116','REG-1.0',
-    'M0931K','HU-PCB','XT-SC1','SR-M-MC','BWS-FC1','XT-BAT-K1','SR-H-MC'
-]);
-$modelsA = array_values(array_filter($models, fn($m) => in_array(strtoupper($m['item_code']), $groupACodes)));
-$modelsB = array_values(array_filter($models, fn($m) => in_array(strtoupper($m['item_code']), $groupBCodes)));
+// Calculate total stats
+$totalModels = count($allModels);
+$totalQty = array_sum(array_column($allModels, 'total_qty'));
+$totalOrders = array_sum(array_column($allModels, 'order_count'));
+
+$groupings = [
+    'Group A' => $groupA,
+    'Group B' => $groupB
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -60,10 +103,10 @@ $modelsB = array_values(array_filter($models, fn($m) => in_array(strtoupper($m['
     <style>
         /* ── Page title ── */
         .page-title {
-            font-size: 24px;
+            font-size: 26px;
             font-weight: 700;
             color: var(--color-text-light);
-            margin-bottom: 28px;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -73,16 +116,17 @@ $modelsB = array_values(array_filter($models, fn($m) => in_array(strtoupper($m['
         /* ── Summary strip ── */
         .models-summary {
             display: flex;
-            gap: 16px;
+            gap: 12px;
             flex-wrap: wrap;
-            margin-bottom: 32px;
+            margin-bottom: 24px;
         }
         .models-summary-item {
             background: var(--color-dark-secondary);
             border: 1px solid var(--color-border);
             border-radius: 10px;
-            padding: 16px 24px;
-            min-width: 140px;
+            padding: 12px 20px;
+            min-width: 130px;
+            flex: 0 1 calc(33.333% - 8px);
         }
         .models-summary-item .ms-label {
             font-size: 11px;
@@ -92,7 +136,7 @@ $modelsB = array_values(array_filter($models, fn($m) => in_array(strtoupper($m['
             margin-bottom: 6px;
         }
         .models-summary-item .ms-value {
-            font-size: 24px;
+            font-size: 28px;
             font-weight: 700;
             line-height: 1;
         }
@@ -103,9 +147,10 @@ $modelsB = array_values(array_filter($models, fn($m) => in_array(strtoupper($m['
         /* ── Group cards grid ── */
         .group-cards-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            max-width: 680px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+            width: 100%;
+            max-width: 100%;
         }
 
         /* ── Individual group card ── */
@@ -126,11 +171,11 @@ $modelsB = array_values(array_filter($models, fn($m) => in_array(strtoupper($m['
         .group-card.card-b:hover { border-color: #0891b2; }
 
         .group-card-banner {
-            padding: 32px 20px 28px;
+            padding: 28px 20px 24px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             position: relative;
             overflow: hidden;
         }
@@ -147,7 +192,7 @@ $modelsB = array_values(array_filter($models, fn($m) => in_array(strtoupper($m['
             background: radial-gradient(circle at 70% 30%, rgba(255,255,255,0.12) 0%, transparent 70%);
         }
         .group-letter {
-            font-size: 56px;
+            font-size: 64px;
             font-weight: 800;
             color: #fff;
             line-height: 1;
@@ -164,26 +209,26 @@ $modelsB = array_values(array_filter($models, fn($m) => in_array(strtoupper($m['
         }
 
         .group-card-body {
-            padding: 20px;
+            padding: 18px;
         }
         .group-kpi-row {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-bottom: 18px;
+            gap: 6px;
+            margin-bottom: 14px;
         }
         .group-kpi {
             background: rgba(255,255,255,0.04);
             border: 1px solid var(--color-border);
             border-radius: 8px;
-            padding: 10px 6px;
+            padding: 8px 4px;
             text-align: center;
         }
         .group-kpi-value {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 700;
             line-height: 1;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
         .card-a .group-kpi-value.v1 { color: var(--color-accent); }
         .card-a .group-kpi-value.v2 { color: #00d9ff; }
@@ -204,13 +249,18 @@ $modelsB = array_values(array_filter($models, fn($m) => in_array(strtoupper($m['
             gap: 6px;
             font-size: 12px;
             color: var(--color-text-lighter);
-            padding-top: 14px;
+            padding-top: 10px;
             border-top: 1px solid var(--color-border);
             transition: color 0.2s;
         }
         .group-card:hover .group-card-cta { color: var(--color-accent); }
         .group-card-cta i { font-size: 11px; transition: transform 0.2s; }
         .group-card:hover .group-card-cta i { transform: translateX(3px); }
+
+        /* ── Content Area ── */
+        .main-content {
+            padding: 32px 40px;
+        }
 
         /* ── Modal ── */
         .gmodal-overlay {
@@ -547,23 +597,26 @@ $modelsB = array_values(array_filter($models, fn($m) => in_array(strtoupper($m['
         </div>
 
         <?php
-        $totalUnits  = array_sum(array_column($models, 'total_qty'));
-        $totalOrders = array_sum(array_column($models, 'order_count'));
-        $totalQtyA   = array_sum(array_column($modelsA, 'total_qty'));
-        $ordersA     = array_sum(array_column($modelsA, 'order_count'));
-        $totalQtyB   = array_sum(array_column($modelsB, 'total_qty'));
-        $ordersB     = array_sum(array_column($modelsB, 'order_count'));
+        // Calculate summary from all groupings
+        $summaryByGroup = [];
+        foreach ($groupings as $group => $items) {
+            $summaryByGroup[$group] = [
+                'count' => count($items),
+                'qty' => array_sum(array_column($items, 'total_qty')),
+                'orders' => array_sum(array_column($items, 'order_count'))
+            ];
+        }
         ?>
 
         <!-- Summary Strip -->
         <div class="models-summary">
             <div class="models-summary-item">
                 <div class="ms-label">Total Models</div>
-                <div class="ms-value accent"><?php echo count($models); ?></div>
+                <div class="ms-value accent"><?php echo $totalModels; ?></div>
             </div>
             <div class="models-summary-item">
                 <div class="ms-label">Units Delivered</div>
-                <div class="ms-value cyan"><?php echo number_format($totalUnits); ?></div>
+                <div class="ms-value cyan"><?php echo number_format($totalQty); ?></div>
             </div>
             <div class="models-summary-item">
                 <div class="ms-label">Total Orders</div>
@@ -571,27 +624,41 @@ $modelsB = array_values(array_filter($models, fn($m) => in_array(strtoupper($m['
             </div>
         </div>
 
-        <!-- Group Cards -->
+        <!-- Group Cards Grid -->
         <div class="group-cards-grid">
-
-            <!-- Group A -->
-            <div class="group-card card-a" onclick="openModal('A')">
+            <?php
+            // Group A - Single Gas Detectors
+            $statsA = [
+                'count' => count($groupA),
+                'qty' => array_sum(array_column($groupA, 'total_qty')),
+                'orders' => array_sum(array_column($groupA, 'order_count'))
+            ];
+            // Group B - Multi Gas Detectors
+            $statsB = [
+                'count' => count($groupB),
+                'qty' => array_sum(array_column($groupB, 'total_qty')),
+                'orders' => array_sum(array_column($groupB, 'order_count'))
+            ];
+            ?>
+            
+            <!-- Group A Card -->
+            <div class="group-card card-a" onclick="openModal('Group A')">
                 <div class="group-card-banner">
                     <div class="group-letter">A</div>
-                    <div class="group-name">Group A &mdash; Standard Series</div>
+                    <div class="group-name">Group A &mdash; Single Gas</div>
                 </div>
                 <div class="group-card-body">
                     <div class="group-kpi-row">
                         <div class="group-kpi">
-                            <div class="group-kpi-value v1"><?php echo count($modelsA); ?></div>
+                            <div class="group-kpi-value v1"><?php echo $statsA['count']; ?></div>
                             <div class="group-kpi-label">Models</div>
                         </div>
                         <div class="group-kpi">
-                            <div class="group-kpi-value v2"><?php echo number_format($totalQtyA); ?></div>
+                            <div class="group-kpi-value v2"><?php echo number_format($statsA['qty']); ?></div>
                             <div class="group-kpi-label">Units</div>
                         </div>
                         <div class="group-kpi">
-                            <div class="group-kpi-value v3"><?php echo number_format($ordersA); ?></div>
+                            <div class="group-kpi-value v3"><?php echo number_format($statsA['orders']); ?></div>
                             <div class="group-kpi-label">Orders</div>
                         </div>
                     </div>
@@ -602,24 +669,24 @@ $modelsB = array_values(array_filter($models, fn($m) => in_array(strtoupper($m['
                 </div>
             </div>
 
-            <!-- Group B -->
-            <div class="group-card card-b" onclick="openModal('B')">
+            <!-- Group B Card -->
+            <div class="group-card card-b" onclick="openModal('Group B')">
                 <div class="group-card-banner">
                     <div class="group-letter">B</div>
-                    <div class="group-name">Group B &mdash; Advanced Series</div>
+                    <div class="group-name">Group B &mdash; Multi Gas</div>
                 </div>
                 <div class="group-card-body">
                     <div class="group-kpi-row">
                         <div class="group-kpi">
-                            <div class="group-kpi-value v1"><?php echo count($modelsB); ?></div>
+                            <div class="group-kpi-value v1"><?php echo $statsB['count']; ?></div>
                             <div class="group-kpi-label">Models</div>
                         </div>
                         <div class="group-kpi">
-                            <div class="group-kpi-value v2"><?php echo number_format($totalQtyB); ?></div>
+                            <div class="group-kpi-value v2"><?php echo number_format($statsB['qty']); ?></div>
                             <div class="group-kpi-label">Units</div>
                         </div>
                         <div class="group-kpi">
-                            <div class="group-kpi-value v3"><?php echo number_format($ordersB); ?></div>
+                            <div class="group-kpi-value v3"><?php echo number_format($statsB['orders']); ?></div>
                             <div class="group-kpi-label">Orders</div>
                         </div>
                     </div>
@@ -631,6 +698,109 @@ $modelsB = array_values(array_filter($models, fn($m) => in_array(strtoupper($m['
             </div>
 
         </div>
+
+        <!-- Top Models Section -->
+        <div style="margin-top: 48px;">
+            <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-trending-up" style="color: #00d9ff;"></i> Top 10 Models
+            </h2>
+            
+            <div style="background: var(--color-dark-secondary); border: 1px solid var(--color-border); border-radius: 10px; overflow: hidden;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <thead>
+                        <tr style="background: rgba(0, 217, 255, 0.08); border-bottom: 1px solid var(--color-border);">
+                            <th style="padding: 12px 16px; text-align: left; color: var(--color-text-lighter); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Rank</th>
+                            <th style="padding: 12px 16px; text-align: left; color: var(--color-text-lighter); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Item Code</th>
+                            <th style="padding: 12px 16px; text-align: left; color: var(--color-text-lighter); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Product Name</th>
+                            <th style="padding: 12px 28px; text-align: center; color: var(--color-text-lighter); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; min-width: 100px;">Units</th>
+                            <th style="padding: 12px 28px; text-align: center; color: var(--color-text-lighter); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; min-width: 100px;">Orders</th>
+                            <th style="padding: 12px 16px; text-align: center; color: var(--color-text-lighter); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Group</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        $allItemsSorted = array_merge($groupA, $groupB);
+                        usort($allItemsSorted, fn($a, $b) => $b['total_qty'] - $a['total_qty']);
+                        $topItems = array_slice($allItemsSorted, 0, 10);
+                        
+                        foreach ($topItems as $index => $item):
+                            $rank = $index + 1;
+                            $itemGroup = strpos(strtolower($item['groupings']), 'multi') !== false ? 'Group B' : 'Group A';
+                            $medalEmoji = $rank === 1 ? '🥇' : ($rank === 2 ? '🥈' : ($rank === 3 ? '🥉' : ''));
+                        ?>
+                        <tr style="border-bottom: 1px solid var(--color-border); transition: background 0.2s;">
+                            <td style="padding: 12px 16px; color: #00d9ff; font-weight: 700; font-size: 14px;">
+                                <?php echo $medalEmoji !== '' ? $medalEmoji . ' #' . $rank : '#' . $rank; ?>
+                            </td>
+                            <td style="padding: 12px 16px; color: var(--color-accent); font-weight: 600;">
+                                <?php echo htmlspecialchars($item['item_code']); ?>
+                            </td>
+                            <td style="padding: 12px 16px; color: var(--color-text-light);">
+                                <?php echo htmlspecialchars(substr($item['item_name'], 0, 50)); ?>
+                            </td>
+                            <td style="padding: 12px 28px; text-align: center; color: #00d9ff; font-weight: 600;">
+                                <?php echo number_format($item['total_qty']); ?>
+                            </td>
+                            <td style="padding: 12px 28px; text-align: center; color: var(--color-text-light);">
+                                <?php echo $item['order_count']; ?>
+                            </td>
+                            <td style="padding: 12px 16px; text-align: center;">
+                                <span style="background: <?php echo $itemGroup === 'Group B' ? 'rgba(8, 145, 178, 0.15)' : 'rgba(30, 79, 160, 0.15)'; ?>; color: <?php echo $itemGroup === 'Group B' ? '#0891b2' : '#1e4fa0'; ?>; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600;">
+                                    <?php echo $itemGroup; ?>
+                                </span>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Stats Comparison -->
+        <div style="margin-top: 48px;">
+            <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-chart-bar" style="color: #00d9ff;"></i> Group Comparison
+            </h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+                <!-- Group A Stats -->
+                <div style="background: linear-gradient(135deg, rgba(30, 79, 160, 0.1) 0%, rgba(30, 79, 160, 0.05) 100%); border: 1px solid rgba(30, 79, 160, 0.3); border-radius: 10px; padding: 20px;">
+                    <div style="font-size: 14px; font-weight: 600; color: #6ea8fe; margin-bottom: 16px; display: flex; align-items: center; gap: 6px;">
+                        <span style="width: 8px; height: 8px; background: #1e4fa0; border-radius: 50%;"></span>
+                        Group A - Single Gas
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <div style="font-size: 24px; font-weight: 700; color: #6ea8fe;"><?php echo $statsA['count']; ?></div>
+                            <div style="font-size: 11px; color: var(--color-text-lighter); text-transform: uppercase; margin-top: 4px;">Models</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 24px; font-weight: 700; color: #6ea8fe;"><?php echo $statsA['qty']; ?></div>
+                            <div style="font-size: 11px; color: var(--color-text-lighter); text-transform: uppercase; margin-top: 4px;">Units</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Group B Stats -->
+                <div style="background: linear-gradient(135deg, rgba(8, 145, 178, 0.1) 0%, rgba(8, 145, 178, 0.05) 100%); border: 1px solid rgba(8, 145, 178, 0.3); border-radius: 10px; padding: 20px;">
+                    <div style="font-size: 14px; font-weight: 600; color: #4dd0e1; margin-bottom: 16px; display: flex; align-items: center; gap: 6px;">
+                        <span style="width: 8px; height: 8px; background: #0891b2; border-radius: 50%;"></span>
+                        Group B - Multi Gas
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <div style="font-size: 24px; font-weight: 700; color: #4dd0e1;"><?php echo $statsB['count']; ?></div>
+                            <div style="font-size: 11px; color: var(--color-text-lighter); text-transform: uppercase; margin-top: 4px;">Models</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 24px; font-weight: 700; color: #4dd0e1;"><?php echo $statsB['qty']; ?></div>
+                            <div style="font-size: 11px; color: var(--color-text-lighter); text-transform: uppercase; margin-top: 4px;">Units</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <!-- Group Products Modal -->
@@ -666,17 +836,17 @@ $modelsB = array_values(array_filter($models, fn($m) => in_array(strtoupper($m['
 
     <script>
         const groupData = {
-            A: <?php echo json_encode($modelsA); ?>,
-            B: <?php echo json_encode($modelsB); ?>
+            'Group A': <?php echo json_encode($groupA); ?>,
+            'Group B': <?php echo json_encode($groupB); ?>
         };
         let currentGroup = null;
 
         function openModal(group) {
             currentGroup = group;
             const data = groupData[group];
-            const badge = group === 'A'
-                ? `<span class="group-badge badge-a">Group A</span>`
-                : `<span class="group-badge badge-b">Group B</span>`;
+            const badge = group === 'Group A'
+                ? `<span class="group-badge badge-a">Group A &mdash; Single Gas</span>`
+                : `<span class="group-badge badge-b">Group B &mdash; Multi Gas</span>`;
             document.getElementById('modalTitle').innerHTML = badge + ' &nbsp;' + data.length + ' model' + (data.length !== 1 ? 's' : '');
             document.getElementById('modalSearch').value = '';
             renderModalRows(data);

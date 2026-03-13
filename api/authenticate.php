@@ -86,5 +86,5 @@ $_SESSION['user_name']  = $user['name'] ?? $user['email'];
 respond([
     'success'  => true,
     'message'  => 'Login successful',
-    'redirect' => 'profile.php'
+    'redirect' => 'index.php'
 ]);

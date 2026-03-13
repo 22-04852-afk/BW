@@ -22,10 +22,10 @@ try {
     if (!$colExists) {
         $conn->query("ALTER TABLE delivery_records ADD COLUMN dataset_name VARCHAR(50) DEFAULT NULL");
     }
-    // Tag any pre-existing untagged rows as data1 (imported before this feature existed)
-    $conn->query("UPDATE delivery_records SET dataset_name = 'data1' WHERE dataset_name IS NULL OR dataset_name = ''");
+    // Tag any pre-existing untagged rows as data1 (imported before this feature existed) - excluding inventory
+    $conn->query("UPDATE delivery_records SET dataset_name = 'data1' WHERE (dataset_name IS NULL OR dataset_name = '') AND company_name != 'Stock Addition'");
 
-    // Get sorted dataset names with record counts
+    // Get sorted dataset names with record counts (including inventory uploads)
     $result = $conn->query("SELECT dataset_name, COUNT(*) as record_count FROM delivery_records WHERE dataset_name IS NOT NULL AND dataset_name != '' GROUP BY dataset_name ORDER BY dataset_name ASC LIMIT 5");
     $datasets = [];
     if ($result) {

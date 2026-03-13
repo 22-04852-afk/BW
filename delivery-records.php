@@ -74,6 +74,65 @@ try {
         }
     }
 } catch (Exception $e) { /* column may not exist yet */ }
+
+// Get all unique items for dropdown (excluding months and empty codes)
+$monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+               'July', 'August', 'September', 'October', 'November', 'December'];
+$allItems = [];
+$itemResult = $conn->query("
+    SELECT DISTINCT item_code, item_name
+    FROM delivery_records
+    WHERE item_code IS NOT NULL 
+      AND item_code != ''
+      AND item_name IS NOT NULL
+      AND item_name != ''
+      AND (box_code IS NULL OR box_code = '')
+    ORDER BY item_code ASC
+");
+
+if ($itemResult) {
+    while ($row = $itemResult->fetch_assoc()) {
+        $code = trim($row['item_code']);
+        $name = trim($row['item_name']);
+        
+        // Skip if item_code is just a month name or only whitespace
+        if (!in_array($code, $monthNames) && !empty($code) && !empty($name)) {
+            $allItems[] = [
+                'code' => $code,
+                'name' => $name
+            ];
+        }
+    }
+}
+
+// If no items found, fetch from inventory (Stock Addition records)
+if (empty($allItems)) {
+    $inventoryResult = $conn->query("
+        SELECT DISTINCT item_code, item_name
+        FROM delivery_records
+        WHERE company_name = 'Stock Addition'
+          AND item_code IS NOT NULL 
+          AND item_code != ''
+          AND item_name IS NOT NULL
+          AND item_name != ''
+          AND (box_code IS NULL OR box_code = '')
+        ORDER BY item_code ASC
+    ");
+    
+    if ($inventoryResult) {
+        while ($row = $inventoryResult->fetch_assoc()) {
+            $code = trim($row['item_code']);
+            $name = trim($row['item_name']);
+            
+            if (!in_array($code, $monthNames) && !empty($code) && !empty($name)) {
+                $allItems[] = [
+                    'code' => $code,
+                    'name' => $name
+                ];
+            }
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -891,9 +950,77 @@ try {
         body.light-mode tr.andison-manila-row td {
             color: #1a3a5c;
         }
+
+        /* Loader Styles */
+        #recordsLoader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        #recordsLoader.show {
+            display: flex;
+        }
+
+        .records-loader-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .records-loader-text {
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        .records-loader-dots {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            animation: recordsLoaderDots 0.4s infinite;
+            margin-left: 4px;
+        }
+
+        @keyframes recordsLoaderDots {
+            0% { content: ''; }
+            33% { content: '.'; }
+            66% { content: '..'; }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.3/dist/dotlottie-wc.js" type="module"></script>
 </head>
 <body>
+    <!-- LOADER -->
+    <div id="recordsLoader">
+        <div class="records-loader-content">
+            <dotlottie-wc src="https://lottie.host/553405d0-4407-4c03-a973-898c31ac845a/oOYaRfJe97.lottie" style="width: 440px; height: 200px" autoplay loop></dotlottie-wc>
+            <div class="records-loader-text" id="recordsLoaderText">LOADING<span class="records-loader-dots"></span></div>
+        </div>
+    </div>
+
     <!-- TOP NAVBAR -->
     <nav class="navbar">
         <div class="navbar-container">
@@ -1273,8 +1400,15 @@ try {
                     </div>
                     <div class="form-group">
                         <label for="add_item_code">Item</label>
-                        <input type="text" id="add_item_code" name="item_code" placeholder="e.g., XT-XWHM-Y-NA">
-                        <small class="input-hint">Product code/SKU identifier</small>
+                        <select id="add_item_code" name="item_code" required>
+                            <option value="">-- Select Item --</option>
+                            <?php foreach ($allItems as $item): ?>
+                                <option value="<?php echo htmlspecialchars($item['code']); ?>" data-name="<?php echo htmlspecialchars($item['name']); ?>">
+                                    <?php echo htmlspecialchars($item['code']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <small class="input-hint">Select from existing product codes</small>
                     </div>
                     <div class="form-group full-width">
                         <label for="add_item_name">Description</label>
@@ -1300,11 +1434,6 @@ try {
                         <label for="add_company_name">Sold To</label>
                         <input type="text" id="add_company_name" name="company_name" placeholder="e.g., to Andison Manila">
                         <small class="input-hint">Original delivery recipient (e.g., to Andison Manila)</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="add_transferred_to">Transferred</label>
-                        <input type="text" id="add_transferred_to" name="transferred_to" placeholder="e.g., Company Name">
-                        <small class="input-hint">Company the item was transferred to from Andison Manila</small>
                     </div>
                     <div class="form-group">
                         <label for="add_delivery_date">Date Delivered</label>
@@ -1511,8 +1640,15 @@ try {
                     </div>
                     <div class="form-group">
                         <label for="edit_item_code">Item</label>
-                        <input type="text" id="edit_item_code" name="item_code" placeholder="e.g., XT-XWHM-Y-NA">
-                        <small class="input-hint">Product code/SKU identifier</small>
+                        <select id="edit_item_code" name="item_code">
+                            <option value="">-- Select Item --</option>
+                            <?php foreach ($allItems as $item): ?>
+                                <option value="<?php echo htmlspecialchars($item['code']); ?>" data-name="<?php echo htmlspecialchars($item['name']); ?>">
+                                    <?php echo htmlspecialchars($item['code']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <small class="input-hint">Select from existing product codes</small>
                     </div>
                     <div class="form-group full-width">
                         <label for="edit_item_name">Description</label>
@@ -1538,11 +1674,6 @@ try {
                         <label for="edit_company_name">Sold To</label>
                         <input type="text" id="edit_company_name" name="company_name" placeholder="e.g., to Andison Manila">
                         <small class="input-hint">Original delivery recipient (e.g., to Andison Manila)</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit_transferred_to">Transferred</label>
-                        <input type="text" id="edit_transferred_to" name="transferred_to" placeholder="e.g., Company Name">
-                        <small class="input-hint">Company the item was transferred to from Andison Manila</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_delivery_date">Date Delivered</label>
@@ -1605,6 +1736,19 @@ try {
     <script src="js/app.js" defer></script>
     <script src="js/xlsx.min.js"></script>
     <script>
+        // Loader Functions
+        function showRecordsLoader(message = 'LOADING') {
+            const loader = document.getElementById('recordsLoader');
+            const loaderText = document.getElementById('recordsLoaderText');
+            loaderText.innerHTML = message + '<span class="records-loader-dots"></span>';
+            loader.classList.add('show');
+        }
+
+        function hideRecordsLoader() {
+            const loader = document.getElementById('recordsLoader');
+            loader.classList.remove('show');
+        }
+
         // Store all records for modal viewing
         const recordsData = <?php echo json_encode($delivery_records); ?>;
         
@@ -1683,6 +1827,7 @@ try {
             const originalText = confirmBtn.innerHTML;
             confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
             confirmBtn.disabled = true;
+            showRecordsLoader('DELETING');
             
             fetch('api/delete-record.php', {
                 method: 'POST',
@@ -1693,6 +1838,7 @@ try {
             })
             .then(response => response.json())
             .then(result => {
+                hideRecordsLoader();
                 confirmBtn.innerHTML = originalText;
                 confirmBtn.disabled = false;
                 
@@ -1715,6 +1861,7 @@ try {
             })
             .catch(error => {
                 console.error('Error:', error);
+                hideRecordsLoader();
                 confirmBtn.innerHTML = originalText;
                 confirmBtn.disabled = false;
                 showToast('Error deleting record. Please try again.', 'error');
@@ -1752,6 +1899,7 @@ try {
             // Show loading state
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
             submitBtn.disabled = true;
+            showRecordsLoader('SAVING');
             
             // Gather ALL form data
             const formData = {
@@ -1766,13 +1914,13 @@ try {
                 uom: document.getElementById('add_uom').value,
                 serial_no: document.getElementById('add_serial_no').value,
                 company_name: document.getElementById('add_company_name').value,
-                transferred_to: document.getElementById('add_transferred_to').value,
                 delivery_date: document.getElementById('add_delivery_date').value,
                 sold_to_month: document.getElementById('add_sold_to_month').value,
                 sold_to_day: parseInt(document.getElementById('add_sold_to_day').value) || 0,
                 groupings: document.getElementById('add_groupings').value,
                 notes: document.getElementById('add_notes').value,
-                status: document.getElementById('add_status').value
+                status: document.getElementById('add_status').value,
+                dataset_name: '<?php echo isset($selected_dataset) ? htmlspecialchars($selected_dataset) : "all"; ?>'
             };
             
             // Send to API
@@ -1790,19 +1938,83 @@ try {
                 return response.json();
             })
             .then(result => {
+                hideRecordsLoader();
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
                 
                 if (result.success) {
                     showToast('Record added successfully!', 'success');
                     closeAddModal();
-                    setTimeout(() => window.location.reload(), 1200);
+                    
+                    // Add new record to the table at the top
+                    if (result.record) {
+                        const newRecord = result.record;
+                        recordsData.unshift(newRecord); // Add to beginning of array
+                        
+                        // Format dates for display
+                        const delivery_date = newRecord.delivery_date ? new Date(newRecord.delivery_date).toLocaleDateString('en-US') : '';
+                        
+                        // Determine status badge
+                        const status = newRecord.status || 'Delivered';
+                        let badgeClass = 'delivered';
+                        if (status.toLowerCase().includes('transit')) badgeClass = 'in-transit';
+                        else if (status.toLowerCase().includes('pending')) badgeClass = 'pending';
+                        else if (status.toLowerCase().includes('cancel')) badgeClass = 'cancelled';
+                        
+                        // Create new table row
+                        const newRow = document.createElement('tr');
+                        newRow.style.animation = 'slideIn 0.3s ease';
+                        newRow.innerHTML = `
+                            <td>${newRecord.invoice_no || ''}</td>
+                            <td>${newRecord.delivery_month || ''}</td>
+                            <td>${newRecord.delivery_day || ''}</td>
+                            <td>${newRecord.delivery_year || ''}</td>
+                            <td>${newRecord.item_code || ''}</td>
+                            <td>${newRecord.item_name || ''}</td>
+                            <td style="text-align:center;">${newRecord.quantity || ''}</td>
+                            <td>${newRecord.company_name || ''}</td>
+                            <td>${newRecord.sold_to_month || ''}</td>
+                            <td>${newRecord.sold_to_day || ''}</td>
+                            <td>${delivery_date}</td>
+                            <td><span class="badge ${badgeClass}">${status}</span></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="#" class="view-btn" onclick="openModal(event, ${newRecord.id})" title="View Record"><i class="fas fa-eye"></i> View</a>
+                                    <a href="#" class="edit-btn" onclick="openEditModal(event, ${newRecord.id})" title="Edit Record"><i class="fas fa-edit"></i> Edit</a>
+                                    <a href="#" class="delete-btn" onclick="deleteRecord(event, ${newRecord.id}, '${newRecord.serial_no || ''}')" title="Delete Record"><i class="fas fa-trash-alt"></i> Delete</a>
+                                </div>
+                            </td>
+                        `;
+                        
+                        // Insert at top of table
+                        const tableBody = document.querySelector('table tbody');
+                        if (tableBody) {
+                            tableBody.insertBefore(newRow, tableBody.firstChild);
+                            
+                            // Update load more logic: if we had 30 rows showing, the 31st becomes hidden now
+                            const allRows = tableBody.querySelectorAll('tr:not([style*="display: none"])');
+                            const visibleNonHiddenRows = Array.from(allRows).filter(r => !r.classList.contains('hidden-row')).length;
+                            
+                            if (visibleNonHiddenRows > 30) {
+                                // Hide the last visible row that was previously at position 30
+                                const rows = Array.from(allRows);
+                                if (rows[30]) {
+                                    rows[30].classList.add('hidden-row');
+                                }
+                            }
+                            
+                            // Update visible count
+                            updateVisibleCount();
+                            updateSearchCount();
+                        }
+                    }
                 } else {
                     showToast('Error: ' + (result.message || 'Failed to add record'), 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
+                hideRecordsLoader();
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
                 showToast('Error adding record. Please try again.', 'error');
@@ -1843,7 +2055,6 @@ try {
             document.getElementById('edit_item_code').value = record.item_code || '';
             document.getElementById('edit_item_name').value = record.item_name || '';
             document.getElementById('edit_company_name').value = record.company_name || '';
-            document.getElementById('edit_transferred_to').value = record.transferred_to || '';
             document.getElementById('edit_quantity').value = record.quantity || '';
             document.getElementById('edit_uom').value = record.uom || '';
             document.getElementById('edit_notes').value = record.notes || '';
@@ -1887,6 +2098,7 @@ try {
             // Show loading state
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
             submitBtn.disabled = true;
+            showRecordsLoader('UPDATING');
             
             // Gather form data
             const formData = {
@@ -1896,7 +2108,6 @@ try {
                 item_code: document.getElementById('edit_item_code').value,
                 item_name: document.getElementById('edit_item_name').value,
                 company_name: document.getElementById('edit_company_name').value,
-                transferred_to: document.getElementById('edit_transferred_to').value,
                 quantity: parseInt(document.getElementById('edit_quantity').value) || 0,
                 uom: document.getElementById('edit_uom').value,
                 date: document.getElementById('edit_date').value,
@@ -1921,6 +2132,7 @@ try {
             })
             .then(response => response.json())
             .then(result => {
+                hideRecordsLoader();
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
                 
@@ -1935,6 +2147,7 @@ try {
             })
             .catch(error => {
                 console.error('Error:', error);
+                hideRecordsLoader();
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
                 showToast('Error updating record. Please try again.', 'error');
@@ -2306,6 +2519,23 @@ try {
             }
             closeDatasetModal();
         }
+
+        // Handle item code dropdown selection - auto-fill item name
+        document.getElementById('add_item_code').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const itemName = selectedOption.getAttribute('data-name');
+            if (itemName) {
+                document.getElementById('add_item_name').value = itemName;
+            }
+        });
+
+        document.getElementById('edit_item_code').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const itemName = selectedOption.getAttribute('data-name');
+            if (itemName) {
+                document.getElementById('edit_item_name').value = itemName;
+            }
+        });
     </script>
     
     <!-- Dataset Management Modal -->

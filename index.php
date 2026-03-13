@@ -16,18 +16,27 @@ $user_email = $_SESSION['user_email'] ?? 'User';
 $user_name = $_SESSION['user_name'] ?? 'User';
 
 // Get selected dataset from GET parameter or session
-$selected_dataset = isset($_GET['dataset']) ? trim(strval($_GET['dataset'])) : (isset($_SESSION['active_dataset']) ? $_SESSION['active_dataset'] : null);
-
-// If a dataset is selected via GET, update the session
+// If ?dataset parameter exists in URL (even if empty), use it and update session
+// This allows "ALL DATA" to pass ?dataset= to explicitly show all data
 if (isset($_GET['dataset'])) {
-    $_SESSION['active_dataset'] = $selected_dataset;
+    $selected_dataset = trim(strval($_GET['dataset']));
+    $_SESSION['active_dataset'] = $selected_dataset; // Set session (empty string if clicking ALL DATA)
+} else {
+    // No GET parameter - use session if available, otherwise null
+    $selected_dataset = isset($_SESSION['active_dataset']) ? $_SESSION['active_dataset'] : null;
+}
+
+// Convert empty string to null for cleaner logic
+if ($selected_dataset === '') {
+    $selected_dataset = null;
 }
 
 // Build dataset filter for queries
-$dataset_filter = '';
-$dataset_filter_params = [];
+// Always exclude inventory uploads (company_name = 'Stock Addition')
+$dataset_filter = ' AND company_name != ?';
+$dataset_filter_params = ['Stock Addition'];
 if (!empty($selected_dataset)) {
-    $dataset_filter = ' AND dataset_name = ?';
+    $dataset_filter .= ' AND dataset_name = ?';
     $dataset_filter_params[] = $selected_dataset;
 }
 
@@ -44,14 +53,20 @@ $stats = [
     'yearly_total' => 0
 ];
 
+// Helper function for binding parameters
+function bindParamsAndExecute(&$stmt, $params) {
+    if (!empty($params)) {
+        $typeStr = str_repeat('s', count($params));
+        $stmt->bind_param($typeStr, ...$params);
+    }
+    $stmt->execute();
+}
+
 // Count total delivered
 $sql = "SELECT COALESCE(SUM(quantity), 0) as total FROM delivery_records WHERE status = 'Delivered'" . $dataset_filter;
 $stmt = $conn->prepare($sql);
 if ($stmt) {
-    if (!empty($dataset_filter_params)) {
-        $stmt->bind_param('s', $dataset_filter_params[0]);
-    }
-    $stmt->execute();
+    bindParamsAndExecute($stmt, $dataset_filter_params);
     $result = $stmt->get_result();
     if ($row = $result->fetch_assoc()) {
         $stats['total_delivered'] = intval($row['total']);
@@ -63,10 +78,7 @@ if ($stmt) {
 $sql = "SELECT COUNT(*) as total FROM delivery_records WHERE status IN ('Delivered', 'In Transit')" . $dataset_filter;
 $stmt = $conn->prepare($sql);
 if ($stmt) {
-    if (!empty($dataset_filter_params)) {
-        $stmt->bind_param('s', $dataset_filter_params[0]);
-    }
-    $stmt->execute();
+    bindParamsAndExecute($stmt, $dataset_filter_params);
     $result = $stmt->get_result();
     if ($row = $result->fetch_assoc()) {
         $stats['total_sold'] = intval($row['total']);
@@ -78,10 +90,7 @@ if ($stmt) {
 $sql = "SELECT COUNT(DISTINCT company_name) as total FROM delivery_records WHERE 1=1" . $dataset_filter;
 $stmt = $conn->prepare($sql);
 if ($stmt) {
-    if (!empty($dataset_filter_params)) {
-        $stmt->bind_param('s', $dataset_filter_params[0]);
-    }
-    $stmt->execute();
+    bindParamsAndExecute($stmt, $dataset_filter_params);
     $result = $stmt->get_result();
     if ($row = $result->fetch_assoc()) {
         $stats['total_companies'] = intval($row['total']);
@@ -93,10 +102,7 @@ if ($stmt) {
 $sql = "SELECT COUNT(DISTINCT item_code) as total FROM delivery_records WHERE 1=1" . $dataset_filter;
 $stmt = $conn->prepare($sql);
 if ($stmt) {
-    if (!empty($dataset_filter_params)) {
-        $stmt->bind_param('s', $dataset_filter_params[0]);
-    }
-    $stmt->execute();
+    bindParamsAndExecute($stmt, $dataset_filter_params);
     $result = $stmt->get_result();
     if ($row = $result->fetch_assoc()) {
         $stats['active_models'] = intval($row['total']);
@@ -124,10 +130,7 @@ $sql = "
 ";
 $stmt = $conn->prepare($sql);
 if ($stmt) {
-    if (!empty($dataset_filter_params)) {
-        $stmt->bind_param('s', $dataset_filter_params[0]);
-    }
-    $stmt->execute();
+    bindParamsAndExecute($stmt, $dataset_filter_params);
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
         $top_clients[] = $row;
@@ -146,10 +149,7 @@ $sql = "
 ";
 $stmt = $conn->prepare($sql);
 if ($stmt) {
-    if (!empty($dataset_filter_params)) {
-        $stmt->bind_param('s', $dataset_filter_params[0]);
-    }
-    $stmt->execute();
+    bindParamsAndExecute($stmt, $dataset_filter_params);
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
         if (array_key_exists($row['delivery_month'], $monthly_sales)) {
@@ -171,10 +171,7 @@ $sql = "
 ";
 $stmt = $conn->prepare($sql);
 if ($stmt) {
-    if (!empty($dataset_filter_params)) {
-        $stmt->bind_param('s', $dataset_filter_params[0]);
-    }
-    $stmt->execute();
+    bindParamsAndExecute($stmt, $dataset_filter_params);
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
         $top_products[] = $row;
@@ -230,25 +227,25 @@ try {
     }
     
     if ($colExists) {
-        $ds_result = $conn->query("SELECT dataset_name, COUNT(*) as record_count FROM delivery_records WHERE dataset_name IS NOT NULL AND dataset_name != '' GROUP BY dataset_name ORDER BY dataset_name ASC LIMIT 5");
+        $ds_result = $conn->query("SELECT dataset_name, COUNT(*) as record_count FROM delivery_records WHERE dataset_name IS NOT NULL AND dataset_name != '' AND company_name != 'Stock Addition' GROUP BY dataset_name ORDER BY dataset_name ASC LIMIT 5");
         if ($ds_result) {
             while ($ds_row = $ds_result->fetch_assoc()) {
                 $datasets[] = $ds_row;
             }
         }
-        // Count records with no dataset tag
-        $unt = $conn->query("SELECT COUNT(*) as cnt FROM delivery_records WHERE dataset_name IS NULL OR dataset_name = ''");
+        // Count records with no dataset tag (excluding inventory)
+        $unt = $conn->query("SELECT COUNT(*) as cnt FROM delivery_records WHERE (dataset_name IS NULL OR dataset_name = '') AND company_name != 'Stock Addition'");
         if ($unt && $r = $unt->fetch_assoc()) $untagged_count = intval($r['cnt']);
     } else {
-        // Column doesn't exist yet — all records are untagged
-        $unt = $conn->query("SELECT COUNT(*) as cnt FROM delivery_records");
+        // Column doesn't exist yet — all records are untagged (excluding inventory)
+        $unt = $conn->query("SELECT COUNT(*) as cnt FROM delivery_records WHERE company_name != 'Stock Addition'");
         if ($unt && $r = $unt->fetch_assoc()) $untagged_count = intval($r['cnt']);
     }
 } catch (Exception $e) { /* ignore */ }
 
-// Get pending count
+// Get pending count (excluding inventory)
 $pending_count = 0;
-$result = $conn->query("SELECT COUNT(*) as cnt FROM delivery_records WHERE (status = 'Pending' OR status = 'In Transit')");
+$result = $conn->query("SELECT COUNT(*) as cnt FROM delivery_records WHERE (status = 'Pending' OR status = 'In Transit') AND company_name != 'Stock Addition'");
 if ($result && $row = $result->fetch_assoc()) {
     $pending_count = intval($row['cnt']);
 }
@@ -811,13 +808,16 @@ if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
             const urlParams = new URLSearchParams(window.location.search);
             const currentDataset = urlParams.get('dataset');
             
+            // Check if we're viewing "ALL DATA" (when dataset param is empty or null)
+            const isAllDataActive = currentDataset === null || currentDataset === '';
+            
             // Limit to first 5 datasets
             const displayDatasets = datasets.slice(0, 5);
             const total = displayDatasets.reduce(function(s, d){ return s + d.count; }, 0);
             
-            let html = '<a href="index.php" class="dataset-card-dash" ' + (currentDataset === null ? 'style="border-color:#f4d03f; box-shadow: 0 0 12px rgba(244, 208, 63, 0.25);"' : '') + '>'
+            let html = '<a href="?dataset=" class="dataset-card-dash" ' + (isAllDataActive ? 'style="border-color:#f4d03f; box-shadow: 0 0 12px rgba(244, 208, 63, 0.25);"' : '') + '>'
                 + '<div class="dataset-card-icon" style="background:linear-gradient(135deg,#5b9bd5,#3a7bbf)"><i class="fas fa-layer-group" style="color:#fff"></i></div>'
-                + '<div class="dataset-card-info"><span class="dataset-card-name">ALL DATA</span>'
+                + '<div class="dataset-card-info"><span class="dataset-card-name">ALL DATA' + (isAllDataActive ? ' <i class="fas fa-check-circle" style="color:#f4d03f; margin-left:6px; font-size:12px;"></i>' : '') + '</span>'
                 + '<span class="dataset-card-count">' + total.toLocaleString() + ' records</span></div>'
                 + '<i class="fas fa-chevron-right dataset-card-arrow"></i></a>';
                 
@@ -849,6 +849,15 @@ if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
                 if (data.success) renderDatasetCards(data.datasets);
             } catch(e) {}
         }
+
+        // Ensure ALL DATA is selected by default on page load
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (!urlParams.has('dataset')) {
+                // No dataset parameter, set to empty (ALL DATA)
+                window.history.replaceState({}, document.title, window.location.pathname + '?dataset=');
+            }
+        });
 
         // Initial render from PHP data (avoids flash on load)
         renderDatasetCards(<?php echo json_encode(array_map(function($ds){ return ['name'=>$ds['dataset_name'],'count'=>intval($ds['record_count'])]; }, $datasets)); ?>);

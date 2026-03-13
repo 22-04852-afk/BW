@@ -1,8 +1,8 @@
 <?php
 session_start();
-// If already authenticated server-side, go to profile
+// If already authenticated server-side, go to dashboard
 if (!empty($_SESSION['user_id'])) {
-    header('Location: profile.php', true, 302);
+    header('Location: index.php', true, 302);
     exit;
 }
 ?>
