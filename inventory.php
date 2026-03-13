@@ -2112,8 +2112,11 @@ $avgStock = $totalItems > 0 ? intval($totalStock / $totalItems) : 0;
                 profileMenu.classList.toggle('active');
             });
 
-            document.addEventListener('click', function() {
-                profileMenu.classList.remove('active');
+            document.addEventListener('click', function(e) {
+                // Only close if click is OUTSIDE both the button and the menu
+                if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) {
+                    profileMenu.classList.remove('active');
+                }
             });
         }
 
@@ -2707,8 +2710,7 @@ $avgStock = $totalItems > 0 ? intval($totalStock / $totalItems) : 0;
                 const data = await response.json();
                 
                 if (data.success && data.orders && data.orders.length > 0) {
-                    const orderDetails = data.orders[0];
-                    updateOrderDetailsInModal(modal, orderDetails);
+                    updateOrderDetailsInModal(modal, data.orders);
                 }
             } catch (error) {
                 console.log('Could not fetch order details:', error);
@@ -2716,35 +2718,8 @@ $avgStock = $totalItems > 0 ? intval($totalStock / $totalItems) : 0;
             }
         }
         
-        // Update the modal with fetched order details
-        function updateOrderDetailsInModal(modal, orderDetails) {
-            const orderDate = orderDetails.order_date ? new Date(orderDetails.order_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
-            let deliveryDate = 'N/A';
-            let deliveryLabel = 'Expected Delivery:';
-            
-            if (orderDetails.status === 'In Inventory') {
-                deliveryDate = orderDetails.expected_delivery_date ? new Date(orderDetails.expected_delivery_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
-                deliveryLabel = 'Delivered Date:';
-            } else {
-                deliveryDate = orderDetails.expected_delivery_date ? new Date(orderDetails.expected_delivery_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
-                deliveryLabel = 'Expected Delivery:';
-            }
-            
-            let statusColor = '#95a5a6';
-            if (orderDetails.status === 'In Inventory') {
-                statusColor = '#2ecc71';
-            } else if (orderDetails.status === 'Delivered') {
-                statusColor = '#2ecc71';
-            } else if (orderDetails.status === 'Processing') {
-                statusColor = '#3498db';
-            } else if (orderDetails.status === 'Shipped') {
-                statusColor = '#f39c12';
-            } else if (orderDetails.status === 'Pending') {
-                statusColor = '#95a5a6';
-            } else {
-                statusColor = '#e74c3c';
-            }
-            
+        // Update the modal with fetched order details - now displays ALL orders
+        function updateOrderDetailsInModal(modal, allOrders) {
             let orderDetailsHTML = `
                 <!-- Order Details Section (Logbook) -->
                 <div style="margin-bottom: 24px; padding: 20px; background: linear-gradient(135deg, rgba(52, 152, 219, 0.12) 0%, rgba(52, 152, 219, 0.05) 100%); border: 2px solid rgba(52, 152, 219, 0.3); border-radius: 14px;">
@@ -2756,55 +2731,96 @@ $avgStock = $totalItems > 0 ? intval($totalStock / $totalItems) : 0;
                         display: block;
                         margin-bottom: 18px;
                         font-weight: 700;
-                    "><i class="fas fa-book" style="margin-right: 8px; color: #3498db;"></i>Order Logbook</label>
+                    "><i class="fas fa-book" style="margin-right: 8px; color: #3498db;"></i>Order Logbook (${allOrders.length} records)</label>
                     
-                    <!-- Logbook Entry Card -->
+                    <!-- Logbook Entries List -->
+            `;
+            
+            // Loop through all orders and create an entry for each
+            allOrders.forEach((orderDetails, index) => {
+                const orderDate = orderDetails.order_date ? new Date(orderDetails.order_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
+                let deliveryDate = 'N/A';
+                let deliveryLabel = 'Expected Delivery:';
+                
+                if (orderDetails.status === 'In Inventory') {
+                    deliveryDate = orderDetails.expected_delivery_date ? new Date(orderDetails.expected_delivery_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
+                    deliveryLabel = 'Delivered Date:';
+                } else {
+                    deliveryDate = orderDetails.expected_delivery_date ? new Date(orderDetails.expected_delivery_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
+                    deliveryLabel = 'Expected Delivery:';
+                }
+                
+                let statusColor = '#95a5a6';
+                if (orderDetails.status === 'In Inventory') {
+                    statusColor = '#2ecc71';
+                } else if (orderDetails.status === 'Delivered') {
+                    statusColor = '#2ecc71';
+                } else if (orderDetails.status === 'Processing') {
+                    statusColor = '#3498db';
+                } else if (orderDetails.status === 'Shipped') {
+                    statusColor = '#f39c12';
+                } else if (orderDetails.status === 'Pending') {
+                    statusColor = '#95a5a6';
+                } else {
+                    statusColor = '#e74c3c';
+                }
+                
+                const entryNumber = index + 1;
+                
+                orderDetailsHTML += `
+                    <!-- Logbook Entry Card {${entryNumber}} -->
                     <div style="
                         background: rgba(255, 255, 255, 0.02);
                         border: 1px solid rgba(52, 152, 219, 0.2);
                         border-radius: 12px;
-                        padding: 16px;
-                        margin-bottom: 12px;
+                        padding: 14px;
+                        margin-bottom: 10px;
                     ">
+                        <div style="font-size: 10px; color: #7a7a7a; margin-bottom: 10px; font-weight: 600;">📌 Record #${entryNumber}</div>
+                        
                         <!-- Row 1: Dates -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px;">
                             <!-- Order Date -->
                             <div>
-                                <div style="font-size: 11px; color: #7a7a7a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; font-weight: 600;">📋 Order Date</div>
-                                <div style="font-size: 16px; color: #f4d03f; font-weight: 700;">${orderDate}</div>
+                                <div style="font-size: 10px; color: #7a7a7a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 600;">📋 Order Date</div>
+                                <div style="font-size: 13px; color: #f4d03f; font-weight: 700;">${orderDate}</div>
                             </div>
                             
                             <!-- Delivered/Expected Date -->
                             <div>
-                                <div style="font-size: 11px; color: #7a7a7a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; font-weight: 600;">📦 ${deliveryLabel.split(':')[0]}</div>
-                                <div style="font-size: 16px; color: #17a2b8; font-weight: 700;">${deliveryDate}</div>
+                                <div style="font-size: 10px; color: #7a7a7a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 600;">📦 ${deliveryLabel.split(':')[0]}</div>
+                                <div style="font-size: 13px; color: #17a2b8; font-weight: 700;">${deliveryDate}</div>
                             </div>
                         </div>
                         
                         <!-- Row 2: Quantity & Status -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: center;">
                             <!-- Quantity -->
                             <div>
-                                <div style="font-size: 11px; color: #7a7a7a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; font-weight: 600;">📊 Qty Ordered</div>
-                                <div style="font-size: 16px; color: #2ecc71; font-weight: 700;">${orderDetails.quantity} units</div>
+                                <div style="font-size: 10px; color: #7a7a7a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 600;">📊 Qty</div>
+                                <div style="font-size: 13px; color: #2ecc71; font-weight: 700;">${orderDetails.quantity} units</div>
                             </div>
                             
                             <!-- Status -->
                             <div>
-                                <div style="font-size: 11px; color: #7a7a7a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; font-weight: 600;">🔔 Status</div>
+                                <div style="font-size: 10px; color: #7a7a7a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 600;">🔔 Status</div>
                                 <span style="
                                     display: inline-block;
-                                    padding: 6px 12px;
+                                    padding: 4px 10px;
                                     background: ${statusColor};
                                     color: #fff;
-                                    border-radius: 18px;
-                                    font-size: 12px;
+                                    border-radius: 16px;
+                                    font-size: 10px;
                                     font-weight: 700;
                                     letter-spacing: 0.5px;
                                 ">${orderDetails.status}</span>
                             </div>
                         </div>
                     </div>
+                `;
+            });
+            
+            orderDetailsHTML += `
                 </div>
             `;
             

@@ -97,8 +97,7 @@ try {
                     updated_at
                 FROM delivery_records
                 WHERE item_code = ? AND company_name = 'Stock Addition'
-                ORDER BY updated_at DESC
-                LIMIT 1";
+                ORDER BY updated_at DESC";
     
     $stmt_inv = $conn->prepare($sql_inventory);
     if (!$stmt_inv) {
@@ -110,37 +109,38 @@ try {
     $result_inv = $stmt_inv->get_result();
     
     if ($result_inv->num_rows > 0) {
-        $inv_row = $result_inv->fetch_assoc();
-        
-        // Original order date from delivery_month, delivery_day, delivery_year
-        $months = ['January', 'February', 'March', 'April', 'May', 'June', 
-                   'July', 'August', 'September', 'October', 'November', 'December'];
-        $month_num = array_search($inv_row['delivery_month'], $months);
-        if ($month_num !== false) {
-            $order_date = sprintf('%04d-%02d-%02d', $inv_row['delivery_year'], $month_num + 1, $inv_row['delivery_day']);
-        } else {
-            $order_date = null;
+        // Loop through ALL inventory records
+        while ($inv_row = $result_inv->fetch_assoc()) {
+            // Original order date from delivery_month, delivery_day, delivery_year
+            $months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+            $month_num = array_search($inv_row['delivery_month'], $months);
+            if ($month_num !== false) {
+                $order_date = sprintf('%04d-%02d-%02d', $inv_row['delivery_year'], $month_num + 1, $inv_row['delivery_day']);
+            } else {
+                $order_date = null;
+            }
+            
+            // Delivery date from created_at (when it was moved to inventory)
+            $delivery_date = null;
+            if ($inv_row['created_at']) {
+                $delivery_date = substr($inv_row['created_at'], 0, 10); // Extract date part from timestamp
+            }
+            
+            // Add as inventory record
+            $orders[] = [
+                'id' => $inv_row['id'],
+                'item_code' => $inv_row['item_code'],
+                'item_name' => $inv_row['item_name'],
+                'quantity' => $inv_row['quantity'],
+                'status' => 'In Inventory',
+                'order_date' => $order_date,
+                'expected_delivery_date' => $delivery_date,
+                'created_at' => $inv_row['created_at'],
+                'updated_at' => $inv_row['updated_at'],
+                'order_type' => 'delivered'
+            ];
         }
-        
-        // Delivery date from created_at (when it was moved to inventory)
-        $delivery_date = null;
-        if ($inv_row['created_at']) {
-            $delivery_date = substr($inv_row['created_at'], 0, 10); // Extract date part from timestamp
-        }
-        
-        // Add as inventory record
-        $orders[] = [
-            'id' => $inv_row['id'],
-            'item_code' => $inv_row['item_code'],
-            'item_name' => $inv_row['item_name'],
-            'quantity' => $inv_row['quantity'],
-            'status' => 'In Inventory',
-            'order_date' => $order_date,
-            'expected_delivery_date' => $delivery_date,
-            'created_at' => $inv_row['created_at'],
-            'updated_at' => $inv_row['updated_at'],
-            'order_type' => 'delivered'
-        ];
     }
     
     $stmt_inv->close();
