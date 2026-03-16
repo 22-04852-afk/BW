@@ -1312,6 +1312,8 @@ $avgStock = $totalItems > 0 ? intval($totalStock / $totalItems) : 0;
                     <div class="dropdown-menu" id="profileMenu">
                         <a href="profile.php"><i class="fas fa-user"></i> My Profile</a>
                         <a href="settings.php"><i class="fas fa-cog"></i> Settings</a>
+                        <a href="help.php"><i class="fas fa-question-circle"></i> Help</a>
+                        <hr>
                         <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
                     </div>
                 </div>
@@ -2092,33 +2094,35 @@ $avgStock = $totalItems > 0 ? intval($totalStock / $totalItems) : 0;
 
     <script src="js/app.js" defer></script>
     <script>
-        // Hamburger menu toggle
-        const hamburgerBtn = document.getElementById('hamburgerBtn');
-        const sidebar = document.getElementById('sidebar');
-        
-        if (hamburgerBtn) {
-            hamburgerBtn.addEventListener('click', function() {
-                sidebar.classList.toggle('active');
-            });
-        }
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hamburger menu toggle
+            const hamburgerBtn = document.getElementById('hamburgerBtn');
+            const sidebar = document.getElementById('sidebar');
+            
+            if (hamburgerBtn) {
+                hamburgerBtn.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                });
+            }
 
-        // Profile dropdown
-        const profileBtn = document.getElementById('profileBtn');
-        const profileMenu = document.getElementById('profileMenu');
-        
-        if (profileBtn && profileMenu) {
-            profileBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                profileMenu.classList.toggle('active');
-            });
+            // Profile dropdown
+            const profileBtn = document.getElementById('profileBtn');
+            const profileMenu = document.getElementById('profileMenu');
+            
+            if (profileBtn && profileMenu) {
+                profileBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    profileMenu.classList.toggle('active');
+                });
 
-            document.addEventListener('click', function(e) {
-                // Only close if click is OUTSIDE both the button and the menu
-                if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) {
-                    profileMenu.classList.remove('active');
-                }
-            });
-        }
+                document.addEventListener('click', function(e) {
+                    // Only close if click is OUTSIDE both the button and the menu
+                    if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) {
+                        profileMenu.classList.remove('active');
+                    }
+                });
+            }
+        });
 
         // Tab Navigation Functions
         function openTab(evt, tabName) {

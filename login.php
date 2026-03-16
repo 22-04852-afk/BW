@@ -113,27 +113,6 @@ if (!empty($_SESSION['user_id'])) {
                     Don't have an account? <a href="signup.php">Sign up here</a>
                 </div>
 
-                <!-- Divider -->
-                <div class="divider">
-                    <span>OR SIGN IN WITH</span>
-                </div>
-
-                <!-- Social Login -->
-                <div class="social-login" role="group" aria-label="Social sign-in options">
-                    <button class="social-btn google" title="Sign in with Google" aria-label="Sign in with Google">
-                        <i class="fab fa-google" aria-hidden="true"></i>
-                    </button>
-                    <button class="social-btn facebook" title="Sign in with Facebook" aria-label="Sign in with Facebook">
-                        <i class="fab fa-facebook-f" aria-hidden="true"></i>
-                    </button>
-                    <button class="social-btn linkedin" title="Sign in with LinkedIn" aria-label="Sign in with LinkedIn">
-                        <i class="fab fa-linkedin-in" aria-hidden="true"></i>
-                    </button>
-                    <button class="social-btn github" title="Sign in with GitHub" aria-label="Sign in with GitHub">
-                        <i class="fab fa-github" aria-hidden="true"></i>
-                    </button>
-                </div>
-
             </div>
         </div>
 

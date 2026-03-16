@@ -104,7 +104,7 @@
 
                     <!-- Confirm Password Field -->
                     <div class="form-group">
-                        <label for="confirmPassword" class="form-label">Confirm Password</label>
+                        <label for="confirmPassword" class="form-label">Confirm Password</label>/label>
                         <div class="input-wrapper">
                             <i class="fas fa-lock"></i>
                             <input 
@@ -138,26 +138,6 @@
                     Already have an account? <a href="login.php">Sign in here</a>
                 </div>
 
-                <!-- Divider -->
-                <div class="divider">
-                    <span>OR SIGN UP WITH</span>
-                </div>
-
-                <!-- Social Signup -->
-                <div class="social-login">
-                    <button type="button" class="social-btn google" title="Sign up with Google">
-                        <i class="fab fa-google"></i>
-                    </button>
-                    <button type="button" class="social-btn facebook" title="Sign up with Facebook">
-                        <i class="fab fa-facebook-f"></i>
-                    </button>
-                    <button type="button" class="social-btn linkedin" title="Sign up with LinkedIn">
-                        <i class="fab fa-linkedin-in"></i>
-                    </button>
-                    <button type="button" class="social-btn github" title="Sign up with GitHub">
-                        <i class="fab fa-github"></i>
-                    </button>
-                </div>
             </div>
         </div>
 

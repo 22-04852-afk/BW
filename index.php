@@ -484,7 +484,7 @@ if ($stats['total_delivered'] > 0 && $months_with_data > 0) {
                     <div class="dropdown-menu" id="profileMenu">
                         <a href="profile.php"><i class="fas fa-user"></i> My Profile</a>
                         <a href="settings.php"><i class="fas fa-cog"></i> Settings</a>
-                        <a href="#"><i class="fas fa-question-circle"></i> Help</a>
+                        <a href="help.php"><i class="fas fa-question-circle"></i> Help</a>
                         <hr>
                         <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
                     </div>
